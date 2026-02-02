@@ -25,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "OpenAPIKit30", package: "OpenAPIKit"),
+                .product(name: "_OpenAPIGeneratorCore", package: "swift-openapi-generator"),
             ]
         ),
         .executableTarget(
@@ -32,7 +33,8 @@ let package = Package(
             dependencies: [
                 "KawarimiCore",
                 .product(name: "_OpenAPIGeneratorCore", package: "swift-openapi-generator"),
-            ]
+            ],
+            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
         .plugin(
             name: "KawarimiPlugin",
@@ -41,11 +43,14 @@ let package = Package(
         ),
         .testTarget(
             name: "KawarimiCoreTests",
-            dependencies: ["KawarimiCore"],
-            resources: [.copy("openapi.yaml")]
+            dependencies: [
+                "KawarimiCore",
+                .product(name: "_OpenAPIGeneratorCore", package: "swift-openapi-generator"),
+            ],
+            resources: [.copy("openapi.yaml"), .copy("kawarimi.yaml")]
         ),
         .testTarget(
-            name: "KawarimiIntegrationTests",
+            name: "KawarimiTests",
             dependencies: [],
             resources: [.copy("openapi.yaml")]
         ),
