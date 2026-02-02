@@ -49,4 +49,4 @@ swift run DemoApp      # client
 
 - Swift 6.2+ / macOS 14+
 - Supported: 200 + application/json operations, schemas referencing components/schemas via $ref
-- See [docs/usage-and-patterns.md](docs/usage-and-patterns.md) for more.
+- See the repository for more.

@@ -49,4 +49,4 @@ swift run DemoApp      # クライアント
 
 - Swift 6.2+ / macOS 14+
 - 生成対象: 200 + application/json の operation、$ref で components/schemas を参照する schema
-- 詳しくは [docs/usage-and-patterns.md](docs/usage-and-patterns.md)
+- 詳しくはリポジトリを参照
