@@ -1,0 +1,4 @@
+# Kawarimi 用設定 openapi-generator-config.yaml もフォールバック対象。
+
+## 省略時は internal
+accessModifier: package
