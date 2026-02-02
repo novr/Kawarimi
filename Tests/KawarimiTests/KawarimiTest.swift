@@ -52,20 +52,20 @@ import Testing
     #expect(kawarimiGenerated.contains("import HTTPTypes"))
 
     let typesGenerated = try String(contentsOf: typesURL, encoding: .utf8)
-    #expect(typesGenerated.contains("Operations"), "本家の Types に Operations 名前空間が含まれること")
-    #expect(typesGenerated.contains("getGreeting"), "本家の Types に openapi の operation が含まれること")
+    #expect(typesGenerated.contains("Operations"), "swift-openapi-generator の Types に Operations 名前空間が含まれること")
+    #expect(typesGenerated.contains("getGreeting"), "swift-openapi-generator の Types に openapi の operation が含まれること")
 
     let clientGenerated = try String(contentsOf: clientURL, encoding: .utf8)
-    #expect(clientGenerated.contains("Client"), "本家の Client が含まれること")
+    #expect(clientGenerated.contains("Client"), "swift-openapi-generator の Client が含まれること")
     #expect(clientGenerated.contains("getGreeting"), "Client に operation が含まれること")
 
     let serverGenerated = try String(contentsOf: serverURL, encoding: .utf8)
-    #expect(serverGenerated.contains("Server"), "本家の Server 登録コードが含まれること")
+    #expect(serverGenerated.contains("Server"), "swift-openapi-generator の Server 登録コードが含まれること")
 
-    let handlerURL = outputDirURL.appendingPathComponent("DefaultHandler.swift")
-    #expect(FileManager.default.fileExists(atPath: handlerURL.path), "DefaultHandler.swift が出力されること")
+    let handlerURL = outputDirURL.appendingPathComponent("KawarimiHandler.swift")
+    #expect(FileManager.default.fileExists(atPath: handlerURL.path), "KawarimiHandler.swift が出力されること")
     let handlerGenerated = try String(contentsOf: handlerURL, encoding: .utf8)
-    #expect(handlerGenerated.contains("public struct DefaultHandler"), "DefaultHandler.swift に型名が含まれること")
+    #expect(handlerGenerated.contains("public struct KawarimiHandler"), "KawarimiHandler.swift に型名が含まれること")
     #expect(handlerGenerated.contains("APIProtocol"))
     #expect(handlerGenerated.contains("getGreeting"), "openapi の operationId に対応するメソッドが含まれること")
 }

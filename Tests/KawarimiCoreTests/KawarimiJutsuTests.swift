@@ -2,15 +2,15 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func kawarimiJutsuGenerateDefaultHandlerSource() throws {
+@Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
     guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let source = KawarimiJutsu.generateDefaultHandlerSource(document: document)
+    let source = KawarimiJutsu.generateKawarimiHandlerSource(document: document)
 
-    #expect(source.contains("public struct DefaultHandler"))
+    #expect(source.contains("public struct KawarimiHandler"))
     #expect(source.contains("APIProtocol"))
     #expect(source.contains("getGreeting"))
     #expect(source.contains(".ok("))
@@ -39,19 +39,6 @@ import Testing
     #expect(source.contains("message"))
     #expect(source.contains("import OpenAPIRuntime"))
     #expect(source.contains("import HTTPTypes"))
-}
-
-@Test func kawarimiJutsuGeneratesCustomTypeName() throws {
-    guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
-        Issue.record("openapi.yaml がテストリソースに見つかりません")
-        return
-    }
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let source = KawarimiJutsu.generateSwiftSource(document: document, typeName: "MyMock")
-
-    #expect(source.contains("public struct MyMock"))
-    #expect(source.contains("ClientTransport"))
-    #expect(source.contains("case \"getGreeting\""))
 }
 
 @Test func kawarimiJutsuThrowsWhenSpecNotFound() throws {

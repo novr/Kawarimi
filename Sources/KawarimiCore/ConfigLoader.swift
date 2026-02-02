@@ -1,9 +1,9 @@
 import Foundation
 import Yams
 
-/// 本家 openapi-generator-config 形式の YAML を読む責務のみを持つ。
+/// swift-openapi-generator openapi-generator-config 形式の YAML を読む責務のみを持つ。
 public enum ConfigLoader {
-    /// openapi パスから同じディレクトリの config を読む。kawarimi.yaml を優先し、なければ本家の openapi-generator-config.yaml をフォールバック。
+    /// openapi パスから同じディレクトリの config を読む。kawarimi.yaml を優先し、なければswift-openapi-generatorの openapi-generator-config.yaml をフォールバック。
     public static func load(openapiPath: String) -> OpenAPIGeneratorConfig? {
         let dir = URL(fileURLWithPath: openapiPath).deletingLastPathComponent().path
         let kawarimiPath = (dir as NSString).appendingPathComponent("kawarimi.yaml")

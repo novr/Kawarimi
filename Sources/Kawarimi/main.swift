@@ -58,13 +58,8 @@ struct Kawarimi {
             }
 
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
-            let mockSource = KawarimiJutsu.generateSwiftSource(document: document, typeName: "Kawarimi")
-            let kawarimiURL = URL(fileURLWithPath: outputDirPath).appendingPathComponent("Kawarimi.swift")
-            try mockSource.write(to: kawarimiURL, atomically: true, encoding: .utf8)
-
-            let handlerSource = KawarimiJutsu.generateDefaultHandlerSource(document: document, typeName: "DefaultHandler", methodAccess: "package")
-            let handlerURL = URL(fileURLWithPath: outputDirPath).appendingPathComponent("DefaultHandler.swift")
-            try handlerSource.write(to: handlerURL, atomically: true, encoding: .utf8)
+            try KawarimiJutsu.generateSwiftSource(document: document).write(to: URL(fileURLWithPath: outputDirPath).appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
+            try KawarimiJutsu.generateKawarimiHandlerSource(document: document).write(to: URL(fileURLWithPath: outputDirPath).appendingPathComponent("KawarimiHandler.swift"), atomically: true, encoding: .utf8)
         } catch {
             fputs("Error: \(error)\n", stderr)
             exit(1)

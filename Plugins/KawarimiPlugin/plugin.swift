@@ -91,7 +91,7 @@ struct KawarimiPlugin: BuildToolPlugin {
             case "server": return "Server.swift"
             default: return "Types.swift"
             }
-        } + ["Kawarimi.swift", "DefaultHandler.swift"]
+        } + ["Kawarimi.swift", "KawarimiHandler.swift"]
 
         return (outputNames, configPathForTool, inputFileURLs)
     }
