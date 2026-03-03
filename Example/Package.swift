@@ -39,6 +39,11 @@ let package = Package(
             ],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
+        .executableTarget(
+            name: "DemoAppUI",
+            dependencies: [],
+            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+        ),
         .testTarget(
             name: "DemoAPITests",
             dependencies: ["DemoAPI"],
