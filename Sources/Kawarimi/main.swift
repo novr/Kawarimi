@@ -58,8 +58,10 @@ struct Kawarimi {
             }
 
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
-            try KawarimiJutsu.generateSwiftSource(document: document).write(to: URL(fileURLWithPath: outputDirPath).appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
-            try KawarimiJutsu.generateKawarimiHandlerSource(document: document).write(to: URL(fileURLWithPath: outputDirPath).appendingPathComponent("KawarimiHandler.swift"), atomically: true, encoding: .utf8)
+            let outputDir = URL(fileURLWithPath: outputDirPath)
+            try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
+            try KawarimiJutsu.generateKawarimiHandlerSource(document: document).write(to: outputDir.appendingPathComponent("KawarimiHandler.swift"), atomically: true, encoding: .utf8)
+            try KawarimiJutsu.generateKawarimiSpecSource(document: document).write(to: outputDir.appendingPathComponent("KawarimiSpec.swift"), atomically: true, encoding: .utf8)
         } catch {
             fputs("Error: \(error)\n", stderr)
             exit(1)
