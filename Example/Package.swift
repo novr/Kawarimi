@@ -25,6 +25,7 @@ let package = Package(
             name: "DemoServer",
             dependencies: [
                 "DemoAPI",
+                .product(name: "KawarimiCore", package: "Kawarimi"),
                 .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
                 .product(name: "Vapor", package: "vapor"),
             ],
