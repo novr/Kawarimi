@@ -113,6 +113,9 @@ public enum KawarimiJutsu {
             return "[\(itemJSON)]"
         }
 
+        if let exampleJSON = exampleToJSONString(resolved.example) {
+            return exampleJSON
+        }
         switch resolved.jsonType {
         case .some(.string): return "\"\""
         case .some(.integer): return "0"
@@ -120,6 +123,13 @@ public enum KawarimiJutsu {
         case .some(.boolean): return "false"
         default: return "\"\""
         }
+    }
+
+    private static func exampleToJSONString(_ example: AnyCodable?) -> String? {
+        guard let example else { return nil }
+        guard let data = try? JSONEncoder().encode(example),
+              let s = String(data: data, encoding: .utf8) else { return nil }
+        return s
     }
 
     public static func generateKawarimiHandlerSource(document: OpenAPI.Document) -> String {
@@ -355,12 +365,36 @@ public enum KawarimiJutsu {
             return "[\(itemExpr)]"
         }
 
+        if let swiftLiteral = exampleToSwiftLiteral(resolved.example, jsonType: resolved.jsonType) {
+            return swiftLiteral
+        }
         switch resolved.jsonType {
         case .some(.string): return "\"\""
         case .some(.integer): return "0"
         case .some(.number): return "0.0"
         case .some(.boolean): return "false"
         default: return "\"\""
+        }
+    }
+
+    private static func exampleToSwiftLiteral(_ example: AnyCodable?, jsonType: JSONType?) -> String? {
+        guard let example else { return nil }
+        guard let data = try? JSONEncoder().encode(example) else { return nil }
+        switch jsonType {
+        case .string:
+            guard let s = try? JSONDecoder().decode(String.self, from: data) else { return nil }
+            return "\"\(escapeForSwiftStringLiteral(s))\""
+        case .integer:
+            guard let i = try? JSONDecoder().decode(Int.self, from: data) else { return nil }
+            return "\(i)"
+        case .number:
+            guard let d = try? JSONDecoder().decode(Double.self, from: data) else { return nil }
+            return "\(d)"
+        case .boolean:
+            guard let b = try? JSONDecoder().decode(Bool.self, from: data) else { return nil }
+            return b ? "true" : "false"
+        default:
+            return nil
         }
     }
 }

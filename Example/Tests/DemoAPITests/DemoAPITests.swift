@@ -11,7 +11,7 @@ import Testing
     switch response {
     case .ok(let ok):
         if case .json(let body) = ok.body {
-            #expect(body.message == "", "Kawarimi モックは string のデフォルト \"\" を返す")
+            #expect(body.message == "Hello from API", "Kawarimi モックは openapi の example を返す")
         } else {
             Issue.record("レスポンスボディが .json でない")
         }
