@@ -32,7 +32,7 @@ struct MockInterceptorMiddleware: AsyncMiddleware {
         var headers = HTTPHeaders()
         headers.contentType = .json
         return Response(
-            status: HTTPResponseStatus(statusCode: UInt(override.statusCode)),
+            status: HTTPResponseStatus(statusCode: override.statusCode),
             headers: headers,
             body: .init(string: entry.body)
         )
