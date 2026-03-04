@@ -1,9 +1,10 @@
+import DemoAPI
 import SwiftUI
 
 struct MockConfigView: View {
     @State private var serverURLString = "http://localhost:8080"
-    @State private var meta: SpecMeta? = nil
-    @State private var endpoints: [SpecEndpoint] = []
+    @State private var meta: KawarimiSpec.Meta? = nil
+    @State private var endpoints: [KawarimiSpec.Endpoint] = []
     @State private var selectedCodes: [String: Int] = [:]  // key: "METHOD:path", value: statusCode or -1 (disabled)
     @State private var errorMessage: String? = nil
     @State private var isLoading = false
@@ -70,7 +71,7 @@ struct MockConfigView: View {
         }
     }
 
-    private func rowKey(_ endpoint: SpecEndpoint) -> String {
+    private func rowKey(_ endpoint: KawarimiSpec.Endpoint) -> String {
         "\(endpoint.method):\(endpoint.path)"
     }
 
@@ -98,7 +99,7 @@ struct MockConfigView: View {
         isLoading = false
     }
 
-    private func applyOverride(endpoint: SpecEndpoint, statusCode: Int) async {
+    private func applyOverride(endpoint: KawarimiSpec.Endpoint, statusCode: Int) async {
         errorMessage = nil
         do {
             if statusCode == -1 {
@@ -106,7 +107,9 @@ struct MockConfigView: View {
                     path: endpoint.path,
                     method: endpoint.method,
                     statusCode: endpoint.responses.first?.statusCode ?? 200,
-                    isEnabled: false
+                    isEnabled: false,
+                    exampleId: nil,
+                    mockId: nil
                 )
                 try await client.configure(dto)
             } else {
@@ -114,7 +117,9 @@ struct MockConfigView: View {
                     path: endpoint.path,
                     method: endpoint.method,
                     statusCode: statusCode,
-                    isEnabled: true
+                    isEnabled: true,
+                    exampleId: nil,
+                    mockId: nil
                 )
                 try await client.configure(dto)
             }
@@ -137,7 +142,7 @@ struct MockConfigView: View {
 }
 
 private struct EndpointRow: View {
-    let endpoint: SpecEndpoint
+    let endpoint: KawarimiSpec.Endpoint
     @Binding var selectedCode: Int
 
     var body: some View {

@@ -41,7 +41,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "DemoAppUI",
-            dependencies: [],
+            dependencies: ["DemoAPI"],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
         .testTarget(
