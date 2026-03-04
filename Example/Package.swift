@@ -25,6 +25,7 @@ let package = Package(
             name: "DemoServer",
             dependencies: [
                 "DemoAPI",
+                .product(name: "KawarimiCore", package: "Kawarimi"),
                 .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
                 .product(name: "Vapor", package: "vapor"),
             ],
@@ -36,6 +37,11 @@ let package = Package(
                 "DemoAPI",
                 .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
             ],
+            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+        ),
+        .executableTarget(
+            name: "DemoAppUI",
+            dependencies: ["DemoAPI"],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
         .testTarget(

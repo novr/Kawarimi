@@ -7,3 +7,8 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 docs/
+
+## Example
+Example/config.json
+Example/.swiftpm
+Example/Package.resolved

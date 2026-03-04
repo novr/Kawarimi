@@ -31,5 +31,6 @@ components:
       properties:
         message:
           type: string
+          example: "Hello from API"
       required:
         - message

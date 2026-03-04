@@ -9,6 +9,7 @@ let package = Package(
     ],
     products: [
         .executable(name: "Kawarimi", targets: ["Kawarimi"]),
+        .library(name: "KawarimiCore", targets: ["KawarimiCore"]),
         .plugin(
             name: "KawarimiPlugin",
             targets: ["KawarimiPlugin"]
