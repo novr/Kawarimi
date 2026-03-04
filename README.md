@@ -11,7 +11,7 @@ A SwiftPM Build Tool Plugin that uses swift-openapi-generator to generate Types,
 ```swift
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.2.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.3.0"),
 ],
 targets: [
     .target(
