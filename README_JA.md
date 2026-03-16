@@ -2,7 +2,9 @@
 
 # Kawarimi（代わり身）
 
-swift-openapi-generator を使って Types / Client / Server と Kawarimi（ClientTransport モック）・KawarimiHandler（APIProtocol のデフォルト実装）をビルド時に生成する SwiftPM Build Tool Plugin。
+OpenAPI から Kawarimi（ClientTransport モック）・KawarimiHandler（APIProtocol のデフォルト実装）・KawarimiSpec をビルド時に生成する SwiftPM Build Tool Plugin。Types / Client / Server は [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) の公式プラグインで生成する。
+
+**OpenAPIGenerator への暗黙的な依存**: 生成される Kawarimi のコードは、公式プラグイン（OpenAPIGenerator）が出力する Types / Client / Server の型・API に合わせてある。同じターゲットで両方のプラグインを使うこと。対応バージョン: **swift-openapi-generator 1.0.0 以上**。
 
 ## 使い方
 
@@ -11,24 +13,28 @@ swift-openapi-generator を使って Types / Client / Server と Kawarimi（Clie
 ```swift
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
+    .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/novr/Kawarimi.git", from: "0.3.0"),
 ],
 targets: [
     .target(
         name: "MyAPI",
         dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")],
-        plugins: [.plugin(name: "KawarimiPlugin", package: "Kawarimi")]
+        plugins: [
+            .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
+            .plugin(name: "KawarimiPlugin", package: "Kawarimi"),
+        ]
     ),
 ]
 ```
 
 ### 2. OpenAPI を置く
 
-ターゲットのソースディレクトリに openapi.yaml を 1 つ置く。ビルドで Types.swift / Client.swift / Server.swift / Kawarimi.swift / KawarimiHandler.swift が生成される。
+ターゲットのソースディレクトリに openapi.yaml を 1 つ置く。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
-### 3. オプション: 設定ファイル
+### 3. オプション: 公式 generator の設定
 
-同じディレクトリに kawarimi.yaml（または openapi-generator-config.yaml）を置くと、generate / filter / featureFlags など swift-openapi-generator 向けの設定を指定できる。
+Types/Client/Server の生成オプションは、同じディレクトリに openapi-generator-config.yaml を置いて [swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
 
 ### 4. テストでモックを使う
 
