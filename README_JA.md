@@ -4,7 +4,7 @@
 
 OpenAPI から Kawarimi（ClientTransport モック）・KawarimiHandler（APIProtocol のデフォルト実装）・KawarimiSpec をビルド時に生成する SwiftPM Build Tool Plugin。Types / Client / Server は [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) の公式プラグインで生成する。
 
-**OpenAPIGenerator への暗黙的な依存**: 生成される Kawarimi のコードは、公式プラグイン（OpenAPIGenerator）が出力する Types / Client / Server の型・API に合わせてある。同じターゲットで両方のプラグインを使うこと。対応バージョン: **swift-openapi-generator 1.0.0 以上**。
+**OpenAPIGenerator への暗黙的な依存**: 同じターゲットで両方のプラグインを使うこと。対応バージョン: **swift-openapi-generator 1.0.0 以上**。実質の型依存は **Types.swift**（`Operations.*` の Input/Output）と **Server.swift**（`APIProtocol`）のみ。KawarimiHandler がこれらを参照する。Kawarimi（モック）は Client に渡して使う側であり、Client.swift は依存先ではない。
 
 ## 使い方
 
