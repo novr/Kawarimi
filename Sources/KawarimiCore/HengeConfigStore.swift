@@ -1,13 +1,16 @@
 import Foundation
 
-public actor MockConfigStore {
+public actor HengeConfigStore {
     private let configPath: String
+    /// Path 正規化で付与するプレフィックス（例: "/api"）。デフォルト "/api"。
+    private let pathPrefix: String
     private var cachedOverrides: [MockOverride]
 
-    public init(configPath: String) {
+    public init(configPath: String, pathPrefix: String = "/api") {
         self.configPath = configPath
+        self.pathPrefix = pathPrefix.hasSuffix("/") ? String(pathPrefix.dropLast()) : pathPrefix
         if let data = FileManager.default.contents(atPath: configPath),
-           let config = try? JSONDecoder().decode(MockConfig.self, from: data) {
+           let config = try? JSONDecoder().decode(HengeConfig.self, from: data) {
             self.cachedOverrides = config.overrides
         } else {
             self.cachedOverrides = []
@@ -33,16 +36,24 @@ public actor MockConfigStore {
         try persist()
     }
 
-    /// Path を `/api` プレフィックス付きに正規化する（プラン仕様）。
+    /// Path を pathPrefix 付きに正規化する。body/contentType の空文字は nil に正規化する。
     private func normalizing(_ override: MockOverride) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
         }
-        if !result.path.hasPrefix("/api") {
-            result.path = "/api" + (result.path == "/" ? "" : result.path)
+        let prefix = pathPrefix.hasPrefix("/") ? pathPrefix : "/" + pathPrefix
+        if !result.path.hasPrefix(prefix) {
+            result.path = prefix + (result.path == "/" ? "" : result.path)
         }
         result.method = result.method.uppercased()
+        if result.body?.isEmpty == true {
+            result.body = nil
+            result.contentType = nil
+        }
+        if result.contentType?.isEmpty == true {
+            result.contentType = nil
+        }
         return result
     }
 
@@ -53,7 +64,7 @@ public actor MockConfigStore {
     }
 
     private func persist() throws {
-        let config = MockConfig(overrides: cachedOverrides)
+        let config = HengeConfig(overrides: cachedOverrides)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)
