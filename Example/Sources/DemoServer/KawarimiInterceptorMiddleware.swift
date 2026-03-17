@@ -2,8 +2,8 @@ import DemoAPI
 import KawarimiCore
 import Vapor
 
-struct HengeInterceptorMiddleware: AsyncMiddleware {
-    let store: HengeConfigStore
+struct KawarimiInterceptorMiddleware: AsyncMiddleware {
+    let store: KawarimiConfigStore
 
     func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
         let path = request.url.path

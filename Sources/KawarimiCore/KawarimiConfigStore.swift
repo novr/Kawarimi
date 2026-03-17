@@ -1,6 +1,6 @@
 import Foundation
 
-public actor HengeConfigStore {
+public actor KawarimiConfigStore {
     private let configPath: String
     /// Path 正規化で付与するプレフィックス（例: "/api"）。デフォルト "/api"。
     private let pathPrefix: String
@@ -10,7 +10,7 @@ public actor HengeConfigStore {
         self.configPath = configPath
         self.pathPrefix = pathPrefix.hasSuffix("/") ? String(pathPrefix.dropLast()) : pathPrefix
         if let data = FileManager.default.contents(atPath: configPath),
-           let config = try? JSONDecoder().decode(HengeConfig.self, from: data) {
+           let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
             self.cachedOverrides = config.overrides
         } else {
             self.cachedOverrides = []
@@ -64,7 +64,7 @@ public actor HengeConfigStore {
     }
 
     private func persist() throws {
-        let config = HengeConfig(overrides: cachedOverrides)
+        let config = KawarimiConfig(overrides: cachedOverrides)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)

@@ -2,7 +2,7 @@ import DemoAPI
 import KawarimiHenge
 import SwiftUI
 
-/// DemoAppUI 用ルート。Package の HengeConfigView に serverURL と Spec 用クロージャを渡す。
+/// DemoAppUI 用ルート。Package の KawarimiConfigView に serverURL と Spec 用クロージャを渡す。
 struct DemoHengeRootView: View {
     @Binding var serverURL: String
 
@@ -10,12 +10,12 @@ struct DemoHengeRootView: View {
         URL(string: serverURL) ?? URL(string: defaultServerURLString)!
     }
 
-    private var client: HengeAPIClient {
-        HengeAPIClient(baseURL: baseURL)
+    private var client: KawarimiAPIClient {
+        KawarimiAPIClient(baseURL: baseURL)
     }
 
     var body: some View {
-        HengeConfigView(
+        KawarimiConfigView(
             serverURL: $serverURL,
             specProvider: {
                 let spec: SpecResponse = try await client.fetchSpec(as: SpecResponse.self)

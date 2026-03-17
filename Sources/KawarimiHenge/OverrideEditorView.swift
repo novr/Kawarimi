@@ -3,7 +3,7 @@ import SwiftUI
 
 /// SwiftUI view for editing mock overrides (status and optional custom body/contentType).
 /// Uses protocol-returning closures so the app hides its implementation (e.g. KawarimiSpec, API client).
-public struct KawarimiHengeView: View {
+public struct OverrideEditorView: View {
     private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
     private let fetchOverrides: () async throws -> [MockOverride]
     private let configureOverride: (MockOverride) async throws -> Void

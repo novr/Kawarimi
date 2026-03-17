@@ -1,8 +1,8 @@
 import KawarimiCore
 import SwiftUI
 
-/// Server URL バー付きの KawarimiHengeView ラッパー。アプリは serverURL と specProvider 等のクロージャを渡す。
-public struct HengeConfigView: View {
+/// Server URL バー付きの OverrideEditorView ラッパー。アプリは serverURL と specProvider 等のクロージャを渡す。
+public struct KawarimiConfigView: View {
     @Binding public var serverURL: String
 
     private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
@@ -30,7 +30,7 @@ public struct HengeConfigView: View {
         VStack(alignment: .leading, spacing: 0) {
             serverURLBar
             Divider()
-            KawarimiHengeView(
+            OverrideEditorView(
                 specProvider: specProvider,
                 fetchOverrides: fetchOverrides,
                 configureOverride: configureOverride,

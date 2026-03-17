@@ -41,7 +41,7 @@ public struct MockOverride: Codable, Sendable {
     }
 }
 
-public struct HengeConfig: Codable, Sendable {
+public struct KawarimiConfig: Codable, Sendable {
     public var overrides: [MockOverride]
 
     public init(overrides: [MockOverride] = []) {

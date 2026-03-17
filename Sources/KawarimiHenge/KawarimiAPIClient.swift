@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 
 /// HTTP エラー（4xx/5xx）。レスポンス body の先頭を errorDescription に含める。
-public struct HengeAPIError: Error, LocalizedError, Sendable {
+public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     public var statusCode: Int
     public var data: Data?
 
@@ -17,7 +17,7 @@ public struct HengeAPIError: Error, LocalizedError, Sendable {
 }
 
 /// Henge API（`/__kawarimi/*`）用クライアント。Spec はジェネリックでデコードする。
-public struct HengeAPIClient: Sendable {
+public struct KawarimiAPIClient: Sendable {
     public var baseURL: URL
 
     public init(baseURL: URL) {
@@ -27,7 +27,7 @@ public struct HengeAPIClient: Sendable {
     private func validateHTTPStatus(_ response: URLResponse?, data: Data?) throws {
         guard let http = response as? HTTPURLResponse else { return }
         guard (200 ..< 300).contains(http.statusCode) else {
-            throw HengeAPIError(statusCode: http.statusCode, data: data)
+            throw KawarimiAPIError(statusCode: http.statusCode, data: data)
         }
     }
 

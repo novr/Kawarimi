@@ -45,7 +45,7 @@ let response = try await client.getGreeting(...)
 
 ## ダイナミックモック
 
-Kawarimi はビルド時に `KawarimiSpec.swift` を他のファイルと一緒に生成します。このファイルには API の全エンドポイントとレスポンスボディが Swift の定数として含まれます。サーバー側の `HengeInterceptorMiddleware` と Henge API を組み合わせることで、再コンパイルなしに実行時モックレスポンスを切り替えられます。
+Kawarimi はビルド時に `KawarimiSpec.swift` を他のファイルと一緒に生成します。このファイルには API の全エンドポイントとレスポンスボディが Swift の定数として含まれます。サーバー側の `KawarimiInterceptorMiddleware` と Henge API を組み合わせることで、再コンパイルなしに実行時モックレスポンスを切り替えられます。
 
 ### 生成ファイル: KawarimiSpec.swift
 
@@ -59,12 +59,14 @@ KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 
 ### Henge API（DemoServer / /__kawarimi/*）
 
+**Henge API** は、動的モック管理用 API の通称で、**`/__kawarimi/*`** で提供されます（パスは固定。「Henge」はその機能名）。
+
 `DemoServer` をモックサーバーとして使う場合、admin ルートとミドルウェアを登録します:
 
 ```swift
-let store = HengeConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
-registerHengeRoutes(app: app, store: store)
-app.middleware.use(HengeInterceptorMiddleware(store: store))
+let store = KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
+registerKawarimiRoutes(app: app, store: store)
+app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
 | エンドポイント | 説明 |
@@ -104,7 +106,7 @@ transport.mockId = "error-case"
 
 ### config.json / KAWARIMI_CONFIG
 
-`HengeConfigStore` はオーバーライドを JSON ファイルに読み書きします（デフォルト: カレントディレクトリの `config.json`）。ファイル形式は `HengeConfig`（overrides 配列）を使用します。**DemoServer は Example ディレクトリをカレントにして起動してください**（`config.json` の読み書き先を揃えるため。例: `cd Example && swift run DemoServer`）。環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。オーバーライドの `body` または `contentType` が空文字の場合は保存時に「未設定」に正規化され、レスポンス時も空 body は Spec のレスポンスにフォールバックします（カスタム body なし）。API を別パスにマウントしている場合は `HengeConfigStore` の `pathPrefix`（デフォルト `"/api"`）を指定できます。
+`KawarimiConfigStore` はオーバーライドを JSON ファイルに読み書きします（デフォルト: カレントディレクトリの `config.json`）。ファイル形式は `KawarimiConfig`（overrides 配列）を使用します。**DemoServer は Example ディレクトリをカレントにして起動してください**（`config.json` の読み書き先を揃えるため。例: `cd Example && swift run DemoServer`）。環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。オーバーライドの `body` または `contentType` が空文字の場合は保存時に「未設定」に正規化され、レスポンス時も空 body は Spec のレスポンスにフォールバックします（カスタム body なし）。API を別パスにマウントしている場合は `KawarimiConfigStore` の `pathPrefix`（デフォルト `"/api"`）を指定できます。
 
 ```bash
 cd Example && swift run DemoServer   # config.json は Example/ に作成

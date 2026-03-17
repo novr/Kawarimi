@@ -6,9 +6,9 @@ import Vapor
 extension MockOverride: @retroactive Content {}
 extension SpecResponse: Content {}
 
-func registerHengeRoutes(app: Application, store: HengeConfigStore) {
-    app.group("__kawarimi") { henge in
-        henge.post("configure") { req async throws -> Response in
+func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) {
+    app.group("__kawarimi") { kawarimi in
+        kawarimi.post("configure") { req async throws -> Response in
             let override: MockOverride
             do {
                 override = try req.content.decode(MockOverride.self)
@@ -23,7 +23,7 @@ func registerHengeRoutes(app: Application, store: HengeConfigStore) {
             }
         }
 
-        henge.get("status") { req async throws -> Response in
+        kawarimi.get("status") { req async throws -> Response in
             let overrides = await store.overrides()
             let data = try JSONEncoder().encode(overrides)
             var headers = HTTPHeaders()
@@ -31,12 +31,12 @@ func registerHengeRoutes(app: Application, store: HengeConfigStore) {
             return Response(status: .ok, headers: headers, body: .init(data: data))
         }
 
-        henge.post("reset") { req async throws -> Response in
+        kawarimi.post("reset") { req async throws -> Response in
             try await store.reset()
             return Response(status: .ok)
         }
 
-        henge.get("spec") { _ async throws -> SpecResponse in
+        kawarimi.get("spec") { _ async throws -> SpecResponse in
             SpecResponse(meta: KawarimiSpec.meta, endpoints: KawarimiSpec.endpoints)
         }
     }

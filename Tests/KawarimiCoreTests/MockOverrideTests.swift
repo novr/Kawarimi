@@ -42,12 +42,12 @@ import Testing
 }
 
 @Test func hengeConfigRoundtripWithBodyOverrides() throws {
-    let config = HengeConfig(overrides: [
+    let config = KawarimiConfig(overrides: [
         MockOverride(name: "a", path: "/api/a", method: "GET", statusCode: 200, body: "{}", contentType: "application/json"),
         MockOverride(name: "b", path: "/api/b", method: "POST", statusCode: 201, body: nil, contentType: nil),
     ])
     let data = try JSONEncoder().encode(config)
-    let decoded = try JSONDecoder().decode(HengeConfig.self, from: data)
+    let decoded = try JSONDecoder().decode(KawarimiConfig.self, from: data)
     #expect(decoded.overrides.count == 2)
     #expect(decoded.overrides[0].body == "{}")
     #expect(decoded.overrides[1].body == nil)
@@ -62,7 +62,7 @@ import Testing
 @Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
-    let store = HengeConfigStore(configPath: path)
+    let store = KawarimiConfigStore(configPath: path)
     try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, body: "", contentType: ""))
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
@@ -74,10 +74,11 @@ import Testing
 @Test func hengeConfigStoreUsesPathPrefix() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
-    let store = HengeConfigStore(configPath: path, pathPrefix: "/v1")
+    let store = KawarimiConfigStore(configPath: path, pathPrefix: "/v1")
     try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 200))
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
     #expect(overrides[0].path == "/v1/greet")
     try? FileManager.default.removeItem(at: url)
 }
+
