@@ -2,8 +2,8 @@ import DemoAPI
 import KawarimiCore
 import Vapor
 
-struct MockInterceptorMiddleware: AsyncMiddleware {
-    let store: MockConfigStore
+struct KawarimiInterceptorMiddleware: AsyncMiddleware {
+    let store: KawarimiConfigStore
 
     func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
         let path = request.url.path
@@ -22,19 +22,29 @@ struct MockInterceptorMiddleware: AsyncMiddleware {
                 && (mockId == nil || ov.mockId == mockId)
         }
 
-        guard let override = match,
-              let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(path)"],
-              let entry = responses[override.statusCode]
-        else {
+        guard let override = match else {
+            return try await next.respond(to: request)
+        }
+
+        let body: String
+        let contentType: String
+        if override.hasEffectiveCustomBody, let customBody = override.body {
+            body = customBody
+            contentType = override.contentType ?? "application/json"
+        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(path)"],
+                  let entry = responses[override.statusCode] {
+            body = entry.body
+            contentType = entry.contentType
+        } else {
             return try await next.respond(to: request)
         }
 
         var headers = HTTPHeaders()
-        headers.contentType = .json
+        headers.replaceOrAdd(name: .contentType, value: contentType)
         return Response(
             status: HTTPResponseStatus(statusCode: override.statusCode),
             headers: headers,
-            body: .init(string: entry.body)
+            body: .init(string: body)
         )
     }
 }

@@ -46,3 +46,20 @@ import Testing
         _ = try KawarimiJutsu.loadOpenAPISpec(path: "/nonexistent/openapi.yaml")
     }
 }
+
+@Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
+    guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
+        Issue.record("openapi.yaml がテストリソースに見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("import KawarimiCore"))
+    #expect(source.contains("extension KawarimiSpec.Meta: SpecMetaProviding"))
+    #expect(source.contains("extension KawarimiSpec.MockResponse: SpecMockResponseProviding"))
+    #expect(source.contains("extension KawarimiSpec.Endpoint: SpecEndpointProviding"))
+    #expect(source.contains("responseList"))
+    #expect(source.contains("public struct SpecResponse: Codable, Sendable"))
+    #expect(source.contains("public var meta: KawarimiSpec.Meta"))
+    #expect(source.contains("public var endpoints: [KawarimiSpec.Endpoint]"))
+}

@@ -1,10 +1,10 @@
 import SwiftUI
 
 @main
-struct DemoAppUIApp: App {
+struct DemoApp: App {
     var body: some Scene {
         WindowGroup {
-            MockConfigView()
+            MainView()
         }
     }
 }

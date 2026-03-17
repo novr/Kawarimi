@@ -45,7 +45,7 @@ let response = try await client.getGreeting(...)
 
 ## Dynamic Mock
 
-Kawarimi generates `KawarimiSpec.swift` alongside the other files at build time. This file contains the full API spec (endpoints and response bodies) as Swift constants. Together with the server-side `MockInterceptorMiddleware` and Admin API, you can switch mock responses at runtime without recompiling.
+Kawarimi generates `KawarimiSpec.swift` alongside the other files at build time. This file contains the full API spec (endpoints and response bodies) as Swift constants. Together with the server-side `KawarimiInterceptorMiddleware` and Henge API, you can switch mock responses at runtime without recompiling.
 
 ### Generated file: KawarimiSpec.swift
 
@@ -57,14 +57,16 @@ KawarimiSpec.endpoints   // all endpoints with their possible responses
 KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 ```
 
-### Admin API (DemoServer / /__kawarimi/*)
+### Henge API (DemoServer / /__kawarimi/*)
+
+**Henge API** is the name for the dynamic-mock management API served at **`/__kawarimi/*`** (the path is fixed; the name "Henge" refers to the feature).
 
 When using `DemoServer` as a mock server, register the admin routes and middleware:
 
 ```swift
-let store = MockConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
-registerAdminRoutes(app: app, store: store)
-app.middleware.use(MockInterceptorMiddleware(store: store))
+let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
+registerKawarimiRoutes(app: app, store: store)
+app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
 | Endpoint | Description |
@@ -104,7 +106,7 @@ transport.mockId = "error-case"
 
 ### config.json / KAWARIMI_CONFIG
 
-`MockConfigStore` reads and writes overrides to a JSON file (default: `config.json` in the working directory). **Run DemoServer with the Example directory as the current working directory** so that `config.json` is read and written there (e.g. `cd Example && swift run DemoServer`). Set the `KAWARIMI_CONFIG` environment variable to override the path:
+`KawarimiConfigStore` reads and writes overrides to a JSON file (default: `config.json` in the working directory). The file format uses `KawarimiConfig` (overrides array). **Run DemoServer with the Example directory as the current working directory** so that `config.json` is read and written there (e.g. `cd Example && swift run DemoServer`). Set the `KAWARIMI_CONFIG` environment variable to override the path. Override `body` or `contentType` that is empty string is normalized to “not set” when saved; at response time, empty body means fall back to the spec response (no custom body). You can pass `pathPrefix` (default `"/api"`) to `KawarimiConfigStore` if your API is mounted at a different path.
 
 ```bash
 cd Example && swift run DemoServer   # config.json in Example/

@@ -6,10 +6,12 @@ let package = Package(
     name: "Kawarimi",
     platforms: [
         .macOS(.v14),
+        .iOS(.v17),
     ],
     products: [
         .executable(name: "Kawarimi", targets: ["Kawarimi"]),
         .library(name: "KawarimiCore", targets: ["KawarimiCore"]),
+        .library(name: "KawarimiHenge", targets: ["KawarimiHenge"]),
         .plugin(
             name: "KawarimiPlugin",
             targets: ["KawarimiPlugin"]
@@ -37,6 +39,10 @@ let package = Package(
             capability: .buildTool(),
             dependencies: ["Kawarimi"]
         ),
+        .target(
+            name: "KawarimiHenge",
+            dependencies: ["KawarimiCore"]
+        ),
         .testTarget(
             name: "KawarimiCoreTests",
             dependencies: ["KawarimiCore"],
@@ -46,6 +52,10 @@ let package = Package(
             name: "KawarimiTests",
             dependencies: [],
             resources: [.copy("openapi.yaml")]
+        ),
+        .testTarget(
+            name: "KawarimiHengeTests",
+            dependencies: ["KawarimiHenge"]
         ),
     ]
 )
