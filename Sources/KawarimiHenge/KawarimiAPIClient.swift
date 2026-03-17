@@ -6,6 +6,11 @@ public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     public var statusCode: Int
     public var data: Data?
 
+    public init(statusCode: Int, data: Data? = nil) {
+        self.statusCode = statusCode
+        self.data = data
+    }
+
     public var errorDescription: String? {
         var msg = "HTTP \(statusCode)"
         if let data = data, let body = String(data: data, encoding: .utf8), !body.isEmpty {
@@ -19,9 +24,11 @@ public struct KawarimiAPIError: Error, LocalizedError, Sendable {
 /// Henge API（`/__kawarimi/*`）用クライアント。Spec はジェネリックでデコードする。
 public struct KawarimiAPIClient: Sendable {
     public var baseURL: URL
+    private let session: URLSession
 
-    public init(baseURL: URL) {
+    public init(baseURL: URL, session: URLSession = .shared) {
         self.baseURL = baseURL
+        self.session = session
     }
 
     private func validateHTTPStatus(_ response: URLResponse?, data: Data?) throws {
@@ -34,7 +41,7 @@ public struct KawarimiAPIClient: Sendable {
     /// GET /__kawarimi/spec を取得し、指定した型でデコードする。生成された SpecResponse を渡す。
     public func fetchSpec<T: Decodable & Sendable>(as type: T.Type) async throws -> T {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("spec")
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
         try validateHTTPStatus(response, data: data)
         return try JSONDecoder().decode(T.self, from: data)
     }
@@ -42,7 +49,7 @@ public struct KawarimiAPIClient: Sendable {
     /// GET /__kawarimi/status を取得し、[MockOverride] として返す。
     public func fetchOverrides() async throws -> [MockOverride] {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("status")
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await session.data(from: url)
         try validateHTTPStatus(response, data: data)
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
@@ -54,7 +61,7 @@ public struct KawarimiAPIClient: Sendable {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(override)
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: data)
     }
 
@@ -63,7 +70,7 @@ public struct KawarimiAPIClient: Sendable {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("reset")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: nil)
     }
 }

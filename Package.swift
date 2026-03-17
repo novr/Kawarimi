@@ -53,5 +53,9 @@ let package = Package(
             dependencies: [],
             resources: [.copy("openapi.yaml")]
         ),
+        .testTarget(
+            name: "KawarimiHengeTests",
+            dependencies: ["KawarimiHenge"]
+        ),
     ]
 )
