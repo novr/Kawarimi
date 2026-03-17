@@ -95,3 +95,21 @@ import Testing
     #expect(thrown)
 }
 
+@Test func kawarimiConfigStoreThrowsBodyTooLong() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let store = try KawarimiConfigStore(configPath: url.path)
+    let hugeBody = String(repeating: "x", count: MockOverride.maxBodyLength + 1)
+    var thrown = false
+    do {
+        try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: hugeBody))
+    } catch let e as KawarimiConfigStoreError {
+        thrown = true
+        if case .bodyTooLong(let actual, let limit) = e {
+            #expect(actual == MockOverride.maxBodyLength + 1)
+            #expect(limit == MockOverride.maxBodyLength)
+        }
+    }
+    #expect(thrown)
+}
+

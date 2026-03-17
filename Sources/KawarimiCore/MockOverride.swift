@@ -18,6 +18,9 @@ public struct MockOverride: Codable, Sendable {
     /// True when custom body should be used (non-nil and non-empty). Empty string falls back to spec.
     public var hasEffectiveCustomBody: Bool { body.map { !$0.isEmpty } ?? false }
 
+    /// 許容する body の最大バイト数（UTF-8）。超過時は Store が拒否する。
+    public static let maxBodyLength = 1_000_000  // 1 MiB
+
     public init(
         name: String? = nil,
         path: String,

@@ -15,9 +15,17 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) {
             } catch {
                 return Response(status: .badRequest, body: .init(string: "Invalid JSON body: \(error)"))
             }
+            if let body = override.body, body.utf8.count > MockOverride.maxBodyLength {
+                return Response(status: .payloadTooLarge, body: .init(string: "Override body exceeds \(MockOverride.maxBodyLength) bytes"))
+            }
             do {
                 try await store.configure(override)
                 return Response(status: .ok)
+            } catch let e as KawarimiConfigStoreError {
+                if case .bodyTooLong = e {
+                    return Response(status: .payloadTooLarge, body: .init(string: "\(e)"))
+                }
+                return Response(status: .internalServerError, body: .init(string: "\(e)"))
             } catch {
                 return Response(status: .internalServerError, body: .init(string: "\(error)"))
             }
