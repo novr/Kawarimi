@@ -62,7 +62,7 @@ import Testing
 @Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
-    let store = KawarimiConfigStore(configPath: path)
+    let store = try KawarimiConfigStore(configPath: path)
     try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, body: "", contentType: ""))
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
@@ -74,11 +74,24 @@ import Testing
 @Test func hengeConfigStoreUsesPathPrefix() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
-    let store = KawarimiConfigStore(configPath: path, pathPrefix: "/v1")
+    let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/v1")
     try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 200))
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
     #expect(overrides[0].path == "/v1/greet")
     try? FileManager.default.removeItem(at: url)
+}
+
+@Test func kawarimiConfigStoreThrowsInvalidConfigPath() throws {
+    var thrown = false
+    do {
+        _ = try KawarimiConfigStore(configPath: "/foo/../bar.json")
+    } catch let e as KawarimiConfigStoreError {
+        thrown = true
+        if case .invalidConfigPath(let path) = e {
+            #expect(path == "/foo/../bar.json")
+        }
+    }
+    #expect(thrown)
 }
 

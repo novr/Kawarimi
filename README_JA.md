@@ -64,7 +64,7 @@ KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 `DemoServer` をモックサーバーとして使う場合、admin ルートとミドルウェアを登録します:
 
 ```swift
-let store = KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
+let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```

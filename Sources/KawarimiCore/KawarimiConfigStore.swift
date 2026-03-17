@@ -1,12 +1,23 @@
 import Foundation
 
+/// Store の初期化・configure で発生しうるエラー。
+public enum KawarimiConfigStoreError: Error, Sendable {
+    /// configPath に ".." が含まれており path traversal の可能性がある。
+    case invalidConfigPath(String)
+}
+
 public actor KawarimiConfigStore {
     private let configPath: String
     /// Path 正規化で付与するプレフィックス（例: "/api"）。デフォルト "/api"。
     private let pathPrefix: String
     private var cachedOverrides: [MockOverride]
 
-    public init(configPath: String, pathPrefix: String = "/api") {
+    /// - Throws: `KawarimiConfigStoreError.invalidConfigPath` が configPath に ".." を含む場合。
+    public init(configPath: String, pathPrefix: String = "/api") throws {
+        let components = (configPath as NSString).pathComponents
+        if components.contains("..") {
+            throw KawarimiConfigStoreError.invalidConfigPath(configPath)
+        }
         self.configPath = configPath
         self.pathPrefix = pathPrefix.hasSuffix("/") ? String(pathPrefix.dropLast()) : pathPrefix
         if let data = FileManager.default.contents(atPath: configPath),

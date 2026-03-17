@@ -64,7 +64,7 @@ KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 When using `DemoServer` as a mock server, register the admin routes and middleware:
 
 ```swift
-let store = KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
+let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json")
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
