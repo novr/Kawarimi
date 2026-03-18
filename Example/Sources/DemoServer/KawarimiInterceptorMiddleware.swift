@@ -16,7 +16,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         let overrides = await store.overrides()
 
         let match = overrides.first { ov in
-            ov.path == path
+            PathTemplate.matches(actual: path, template: ov.path)
                 && ov.method.uppercased() == method.uppercased()
                 && ov.isEnabled
                 && (mockId == nil || ov.mockId == mockId)
@@ -31,7 +31,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         if override.hasEffectiveCustomBody, let customBody = override.body {
             body = customBody
             contentType = override.contentType ?? "application/json"
-        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(path)"],
+        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(override.path)"],
                   let entry = responses[override.statusCode] {
             body = entry.body
             contentType = entry.contentType
