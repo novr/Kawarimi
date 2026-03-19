@@ -68,6 +68,14 @@ public enum KawarimiJutsu {
             .replacingOccurrences(of: "\t", with: "\\t")
     }
 
+    /// ビルド時警告を stderr に出力（プラグイン実行コンテキストで使用）
+    private static func warnToStderr(_ message: String) {
+        let line = message + "\n"
+        if let data = line.data(using: .utf8) {
+            try? FileHandle.standardError.write(contentsOf: data)
+        }
+    }
+
     private static func defaultResponseJSON(operation: OpenAPI.Operation, components: OpenAPI.Components) -> String {
         guard let responseEither = operation.responses[status: 200],
               let response = components[responseEither],
@@ -157,7 +165,14 @@ public enum KawarimiJutsu {
                 let operation = endpoint.operation
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
                 let methodName = operationId
-                let (statusCode, bodyExpr) = preferredDefaultResponse(operation: operation, components: components) ?? (204, nil)
+                let preferred = preferredDefaultResponse(operation: operation, components: components)
+                let (statusCode, bodyExpr): (Int, String?) = preferred ?? (204, nil)
+                if preferred == nil {
+                    let has204 = operation.responses[status: OpenAPI.Response.StatusCode.status(code: 204)] != nil
+                    if !has204 {
+                        warnToStderr("Kawarimi: operation '\(operationId)' has no 200/201/204 response; generated .noContent stub may not compile. Add at least one of 200, 201, or 204 to the operation.")
+                    }
+                }
                 lines.append("    package func \(methodName)(_ input: Operations.\(methodName).Input) async throws -> Operations.\(methodName).Output {")
                 switch statusCode {
                 case 200:
