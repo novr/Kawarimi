@@ -118,6 +118,11 @@ public struct OverrideEditorView: View {
                                 }
                             }
                         }
+                        Section {
+                            Text("複数オーバーライドが同一リクエストにマッチする場合、サーバーでは先頭の設定が使用され、ログに警告が出力されます。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     } else {
                         Text("No spec loaded. Provide spec via specProvider.")
                             .foregroundStyle(.secondary)
