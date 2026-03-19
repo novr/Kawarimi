@@ -237,6 +237,32 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StringMap"
+  /config/raw:
+    get:
+      tags: ["Config"]
+      operationId: "getConfigRaw"
+      responses:
+        "200":
+          description: "Raw config (arbitrary JSON values per key)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringToAnyMap"
+    put:
+      tags: ["Config"]
+      operationId: "setConfigRaw"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StringToAnyMap"
+      responses:
+        "200":
+          description: "Updated raw config"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringToAnyMap"
   /items/{id}/metadata:
     get:
       tags: ["Items"]
