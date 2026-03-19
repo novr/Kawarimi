@@ -17,6 +17,13 @@ import Testing
     #expect(!PathTemplate.matches(actual: "/api/items/item-1/extra/metadata", template: "/api/items/{id}/metadata"))
 }
 
+@Test func pathTemplateMultipleParameters() {
+    #expect(PathTemplate.matches(actual: "/api/foo/bar", template: "/api/{a}/{b}"))
+    #expect(PathTemplate.matches(actual: "/api/items/tags", template: "/api/{type}/{id}"))
+    #expect(!PathTemplate.matches(actual: "/api/foo", template: "/api/{a}/{b}"))
+    #expect(!PathTemplate.matches(actual: "/api/foo/bar/baz", template: "/api/{a}/{b}"))
+}
+
 @Test func pathTemplateMismatchLength() {
     #expect(!PathTemplate.matches(actual: "/api/items", template: "/api/items/{id}"))
     #expect(!PathTemplate.matches(actual: "/api/items/123/foo", template: "/api/items/{id}"))
