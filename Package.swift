@@ -46,12 +46,11 @@ let package = Package(
         .testTarget(
             name: "KawarimiCoreTests",
             dependencies: ["KawarimiCore"],
-            resources: [.copy("openapi.yaml")]
+            resources: [.copy("Fixtures/openapi.yaml")]
         ),
         .testTarget(
             name: "KawarimiTests",
-            dependencies: [],
-            resources: [.copy("openapi.yaml")]
+            dependencies: []
         ),
         .testTarget(
             name: "KawarimiHengeTests",

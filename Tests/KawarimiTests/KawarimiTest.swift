@@ -3,11 +3,15 @@ import Testing
 
 /// プラグインが起動する Kawarimi 実行体と同一の生成結果であることを保証する。
 @Test func cliGeneratesSwiftFromOpenAPI() throws {
-    guard let openapiURL = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
-        Issue.record("openapi.yaml がテストリソースに見つかりません")
+    let openapiURL = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .appendingPathComponent("../KawarimiCoreTests/Fixtures/openapi.yaml")
+        .standardizedFileURL
+    guard FileManager.default.fileExists(atPath: openapiURL.path) else {
+        Issue.record("共有 openapi.yaml が見つかりません: \(openapiURL.path)")
         return
     }
-    let openapiPath = openapiURL.path()
+    let openapiPath = openapiURL.path
     let packageRoot = resolvePackageRoot()
     let outputDirURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("KawarimiTests-\(UUID().uuidString)")
@@ -45,6 +49,7 @@ import Testing
     #expect(kawarimiGenerated.contains("public struct Kawarimi"), "Kawarimi.swift に ClientTransport 用の型名が含まれること")
     #expect(kawarimiGenerated.contains("ClientTransport"))
     #expect(kawarimiGenerated.contains("case \"getGreeting\""), "openapi の operationId に対応する case が含まれること")
+    #expect(kawarimiGenerated.contains("case \"listItems\""), "複数 operation の case が生成されること")
     #expect(kawarimiGenerated.contains("HTTPResponse(status: .ok)"))
     #expect(kawarimiGenerated.contains("import OpenAPIRuntime"))
     #expect(kawarimiGenerated.contains("import HTTPTypes"))
@@ -53,6 +58,7 @@ import Testing
     #expect(handlerGenerated.contains("public struct KawarimiHandler"), "KawarimiHandler.swift に型名が含まれること")
     #expect(handlerGenerated.contains("APIProtocol"))
     #expect(handlerGenerated.contains("getGreeting"), "openapi の operationId に対応するメソッドが含まれること")
+    #expect(handlerGenerated.contains("deleteItem"), "DELETE 204 系 operation がハンドラに含まれること")
 }
 
 private func resolvePackageRoot() -> URL {
