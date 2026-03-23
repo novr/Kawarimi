@@ -15,14 +15,18 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         let mockId = request.headers.first(name: "x-kawarimi-mockId")
         let overrides = await store.overrides()
 
-        let hits = overrides.filter { ov in
-            PathTemplate.matches(actual: path, template: ov.path)
-                && ov.method.uppercased() == method.uppercased()
-                && ov.isEnabled
-                && (mockId == nil || ov.mockId == mockId)
-        }
+        let hits = MockOverride.sortedForInterceptorTieBreak(
+            overrides.filter { ov in
+                PathTemplate.matches(actual: path, template: ov.path)
+                    && ov.method.uppercased() == method.uppercased()
+                    && ov.isEnabled
+                    && (mockId == nil || ov.mockId == mockId)
+            }
+        )
         if hits.count > 1 {
-            request.logger.warning("Multiple overrides match \(path) \(method): using first of \(hits.count). Paths: \(hits.map(\.path).joined(separator: ", "))")
+            request.logger.warning(
+                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) mockId=\($0.mockId ?? "nil") status=\($0.statusCode)" }.joined(separator: " | "))"
+            )
         }
         guard let override = hits.first else {
             return try await next.respond(to: request)

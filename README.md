@@ -129,6 +129,8 @@ Set `KAWARIMI_CONFIG` to override the path.
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
+If several overrides match the same request (same path template + method + `x-kawarimi-mockId` rule), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry: `path`, then non-`nil` `mockId` before `nil`, then `mockId` string, `statusCode`, `name`, `exampleId`. Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
+
 **DemoServer** passes `pathPrefix` from `KawarimiSpec.meta.apiPathPrefix` (from the OpenAPI `servers[0].url` path), so the mount matches the spec without a separate env var.
 
 For your own server, pass the same prefix you use in `registerHandlers` / OpenAPI `servers`.

@@ -122,7 +122,7 @@ public struct OverrideEditorView: View {
                             }
                         }
                         Section {
-                            Text("複数オーバーライドが同一リクエストにマッチする場合、サーバーでは先頭の設定が使用され、ログに警告が出力されます。")
+                            Text("複数オーバーライドが同一リクエストにマッチする場合、サーバーは path・mockId・status 等でソートした先頭を採用します（同順位は設定リストの順を維持）。ログに警告と並び順が出ます。")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

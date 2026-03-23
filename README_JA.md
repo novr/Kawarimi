@@ -129,6 +129,8 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
+同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッド・`x-kawarimi-mockId` の条件が一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。比較順は `path` → **`mockId` が非 nil を nil より先** → `mockId` 文字列 → `statusCode` → `name` → `exampleId` です。キーが同順位のときは Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。
+
 **DemoServer** は `KawarimiSpec.meta.apiPathPrefix`（OpenAPI `servers[0].url` のパス由来）を `pathPrefix` に渡すため、Spec とマウントが一致し、別の環境変数は不要です。
 
 独自サーバーでは `registerHandlers` や OpenAPI `servers` と同じプレフィックスを `KawarimiConfigStore` に渡してください。

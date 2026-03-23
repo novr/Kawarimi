@@ -1,6 +1,6 @@
 import Foundation
 
-public struct MockOverride: Codable, Sendable {
+public struct MockOverride: Codable, Sendable, Equatable {
     public var name: String?
     public var path: String
     public var method: String
@@ -46,5 +46,30 @@ public struct KawarimiConfig: Codable, Sendable {
 
     public init(overrides: [MockOverride] = []) {
         self.overrides = overrides
+    }
+}
+
+// MARK: - Interceptor sort order
+
+extension MockOverride {
+    /// インターセプタで同一リクエストに複数マッチしたときの並び（先頭が採用される）。
+    ///
+    /// 比較キー（昇順）: `path` → `mockId` 非 nil を nil より先 → `mockId` 文字列 → `statusCode` → `name` → `exampleId`。
+    /// キーが等しい要素は安定ソートで `hits` の相対順を維持する。
+    public static func sortedForInterceptorTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
+        hits.sorted { interceptorTieBreakKey($0) < interceptorTieBreakKey($1) }
+    }
+
+    private static func interceptorTieBreakKey(_ o: MockOverride)
+        -> (String, Int, String, Int, String, String)
+    {
+        (
+            o.path,
+            o.mockId == nil ? 1 : 0,
+            o.mockId ?? "",
+            o.statusCode,
+            o.name ?? "",
+            o.exampleId ?? ""
+        )
     }
 }
