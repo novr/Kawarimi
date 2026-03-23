@@ -3,7 +3,7 @@ info:
   title: "GreetingService"
   version: "1.0.0"
 servers:
-  - url: "https://example.com/api"
+  - url: "https://localhost:8080/api"
     description: "Example"
 paths:
   /greet:
@@ -17,6 +17,13 @@ paths:
         description: "name"
         schema:
           type: "string"
+      - name: "locale"
+        required: false
+        in: "query"
+        description: "Locale (e.g. en, ja)"
+        schema:
+          type: "string"
+          default: "en"
       responses:
         "200":
           description: "Returns a greeting"
@@ -24,6 +31,290 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Greeting"
+  /items:
+    get:
+      tags: ["Items"]
+      operationId: "listItems"
+      parameters:
+      - name: "limit"
+        required: false
+        in: "query"
+        description: "Max number of items"
+        schema:
+          type: "integer"
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: "offset"
+        required: false
+        in: "query"
+        description: "Offset for pagination"
+        schema:
+          type: "integer"
+          minimum: 0
+          default: 0
+      responses:
+        "200":
+          description: "List all items"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+    post:
+      tags: ["Items"]
+      operationId: "createItem"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemCreate"
+      responses:
+        "201":
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /items/{id}:
+    get:
+      tags: ["Items"]
+      operationId: "getItem"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Returns the item"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: "Not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      tags: ["Items"]
+      operationId: "updateItem"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemCreate"
+      responses:
+        "200":
+          description: "Updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: "Not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags: ["Items"]
+      operationId: "patchItem"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemPatch"
+      responses:
+        "200":
+          description: "Updated"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: "Not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: ["Items"]
+      operationId: "deleteItem"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "Deleted"
+        "404":
+          description: "Not found"
+  /tags:
+    get:
+      tags: ["Tags"]
+      operationId: "listTags"
+      responses:
+        "200":
+          description: "List all tags"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+    post:
+      tags: ["Tags"]
+      operationId: "createTag"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagCreate"
+      responses:
+        "201":
+          description: "Created"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          description: "Validation error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /config:
+    get:
+      tags: ["Config"]
+      operationId: "getConfig"
+      responses:
+        "200":
+          description: "Key-value config (string map)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringMap"
+    put:
+      tags: ["Config"]
+      operationId: "setConfig"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StringMap"
+      responses:
+        "200":
+          description: "Updated config"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringMap"
+  /config/raw:
+    get:
+      tags: ["Config"]
+      operationId: "getConfigRaw"
+      responses:
+        "200":
+          description: "Raw config (arbitrary JSON values per key)"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringToAnyMap"
+    put:
+      tags: ["Config"]
+      operationId: "setConfigRaw"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StringToAnyMap"
+      responses:
+        "200":
+          description: "Updated raw config"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringToAnyMap"
+  /items/{id}/metadata:
+    get:
+      tags: ["Items"]
+      operationId: "getItemMetadata"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Item metadata map"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StringMap"
+        "404":
+          description: "Not found"
+  /tags/{id}:
+    get:
+      tags: ["Tags"]
+      operationId: "getTag"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "Returns the tag"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "404":
+          description: "Not found"
+    delete:
+      tags: ["Tags"]
+      operationId: "deleteTag"
+      parameters:
+      - name: "id"
+        required: true
+        in: "path"
+        schema:
+          type: "string"
+      responses:
+        "204":
+          description: "Deleted"
+        "404":
+          description: "Not found"
 components:
   schemas:
     Greeting:
@@ -34,3 +325,74 @@ components:
           example: "Hello from API"
       required:
         - message
+    Item:
+      type: "object"
+      properties:
+        id:
+          type: string
+          example: "item-1"
+        name:
+          type: string
+          example: "Example item"
+        metadata:
+          $ref: "#/components/schemas/StringMap"
+          description: "Optional key-value metadata"
+      required:
+        - id
+        - name
+    ItemCreate:
+      type: "object"
+      properties:
+        name:
+          type: string
+          example: "New item"
+      required:
+        - name
+    ItemPatch:
+      type: "object"
+      properties:
+        name:
+          type: string
+          example: "Updated name"
+      description: "Partial update; all fields optional"
+    Error:
+      type: "object"
+      properties:
+        code:
+          type: string
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          example: "Invalid request"
+      required:
+        - code
+        - message
+    Tag:
+      type: "object"
+      properties:
+        id:
+          type: string
+          example: "tag-1"
+        name:
+          type: string
+          example: "Swift"
+      required:
+        - id
+        - name
+    TagCreate:
+      type: "object"
+      properties:
+        name:
+          type: string
+          example: "New tag"
+      required:
+        - name
+    StringMap:
+      type: "object"
+      additionalProperties:
+        type: string
+      description: "Key-value map (string keys, string values)"
+    StringToAnyMap:
+      type: "object"
+      additionalProperties: true
+      description: "Key-value map (string keys, arbitrary JSON values)"

@@ -2,7 +2,6 @@ import Foundation
 import OpenAPIKit30
 import Yams
 
-/// OpenAPI のパースとモック・ハンドラ用 Swift ソース生成。
 public enum KawarimiJutsu {
     public static func loadOpenAPISpec(path: String) throws -> OpenAPI.Document {
         guard let data = FileManager.default.contents(atPath: path) else {
@@ -40,7 +39,7 @@ public enum KawarimiJutsu {
             """
     }
 
-    // MARK: - モック生成の内部
+    // MARK: - Mock transport generation
 
     private static func generateTransportCases(document: OpenAPI.Document) -> String {
         var lines: [String] = []
@@ -66,6 +65,14 @@ public enum KawarimiJutsu {
             .replacingOccurrences(of: "\n", with: "\\n")
             .replacingOccurrences(of: "\r", with: "\\r")
             .replacingOccurrences(of: "\t", with: "\\t")
+    }
+
+    /// プラグイン実行時は Xcode が stderr をビルドログに載せやすい。
+    private static func warnToStderr(_ message: String) {
+        let line = message + "\n"
+        if let data = line.data(using: .utf8) {
+            try? FileHandle.standardError.write(contentsOf: data)
+        }
     }
 
     private static func defaultResponseJSON(operation: OpenAPI.Operation, components: OpenAPI.Components) -> String {
@@ -157,32 +164,74 @@ public enum KawarimiJutsu {
                 let operation = endpoint.operation
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
                 let methodName = operationId
-                guard let bodyExpr = defaultResponseBodyExpr(operation: operation, components: components) else { continue }
+                let preferred = preferredDefaultResponse(operation: operation, components: components)
+                let (statusCode, bodyExpr): (Int, String?) = preferred ?? (204, nil)
+                if preferred == nil {
+                    let has204 = operation.responses[status: OpenAPI.Response.StatusCode.status(code: 204)] != nil
+                    if !has204 {
+                        warnToStderr("Kawarimi: operation '\(operationId)' has no 200/201/204 response; generated .noContent stub may not compile. Add at least one of 200, 201, or 204 to the operation.")
+                    }
+                }
                 lines.append("    package func \(methodName)(_ input: Operations.\(methodName).Input) async throws -> Operations.\(methodName).Output {")
-                lines.append("        return .ok(.init(body: .json(\(bodyExpr))))")
+                switch statusCode {
+                case 200:
+                    lines.append("        return .ok(.init(body: .json(\(bodyExpr!))))")
+                case 201:
+                    lines.append("        return .created(.init(body: .json(\(bodyExpr!))))")
+                default:
+                    lines.append("        return .noContent(.init())")
+                }
                 lines.append("    }")
             }
         }
         return lines.joined(separator: "\n")
     }
 
-    private static func defaultResponseBodyExpr(operation: OpenAPI.Operation, components: OpenAPI.Components) -> String? {
-        guard let responseEither = operation.responses[status: 200],
-              let response = components[responseEither],
-              let content = response.content[.json],
-              let schemaEither = content.schema else {
-            return nil
+    private static func preferredDefaultResponse(operation: OpenAPI.Operation, components: OpenAPI.Components) -> (Int, String?)? {
+        for code in [200, 201] {
+            let statusCode = OpenAPI.Response.StatusCode.status(code: code)
+            guard let responseEither = operation.responses[status: statusCode],
+                  let response = components[responseEither],
+                  let expr = bodyExprForResponse(response: response, components: components) else { continue }
+            return (code, expr)
         }
-        guard let ref = schemaEither.reference,
-              let name = ref.name,
-              let key = OpenAPI.ComponentKey(rawValue: name),
-              let schema = components.schemas[key] else {
+        if operation.responses[status: OpenAPI.Response.StatusCode.status(code: 204)] != nil {
+            return (204, nil)
+        }
+        return nil
+    }
+
+    private static func bodyExprForResponse(response: OpenAPI.Response, components: OpenAPI.Components) -> String? {
+        guard let content = response.content[.json],
+              let schema = resolveSchemaFromContent(content: content, components: components) else {
             return nil
         }
         return swiftInitializerForSchema(schema, components: components)
     }
 
-    // MARK: - KawarimiSpec 生成
+    private static func resolveSchemaFromContent(content: OpenAPI.Content, components: OpenAPI.Components) -> JSONSchema? {
+        guard let schemaEither = content.schema else { return nil }
+        switch schemaEither {
+        case .a(let ref):
+            return components[ref]
+        case .b(let schema):
+            return schema
+        }
+    }
+
+    private static func pathPrefix(in document: OpenAPI.Document) -> String {
+        guard let raw = document.servers.first?.urlTemplate.rawValue, !raw.isEmpty,
+              let url = URL(string: raw) else {
+            return OpenAPIPathPrefix.defaultMountPath
+        }
+        let path = url.path
+        if path.isEmpty {
+            return OpenAPIPathPrefix.defaultMountPath
+        }
+        return OpenAPIPathPrefix.normalizedPrefix(path)
+    }
+
+    // MARK: - KawarimiSpec source emission
 
     public static func generateKawarimiSpecSource(document: OpenAPI.Document) -> String {
         let info = document.info
@@ -191,8 +240,8 @@ public enum KawarimiJutsu {
         let description = info.description
 
         let serverURLString = document.servers.first?.urlTemplate.rawValue ?? ""
-        /// DemoServer の serverURL: "/api" と揃えるため、path は常に "/api" プレフィックス付きで出力する。
-        let apiPathPrefix = "/api"
+        let apiPathPrefix = pathPrefix(in: document)
+        let apiPathPrefixEscaped = escapeForSwiftStringLiteral(apiPathPrefix)
 
         let components = document.components
 
@@ -253,106 +302,108 @@ public enum KawarimiJutsu {
             }
         }
 
-        // Build source string
-        var lines: [String] = []
-        lines.append("// Generated by Kawarimi. Do not edit.")
-        lines.append("")
-        lines.append("import KawarimiCore")
-        lines.append("")
-        lines.append("public enum KawarimiSpec {")
-        lines.append("    public struct Meta: Codable, Sendable {")
-        lines.append("        public var title: String")
-        lines.append("        public var version: String")
-        lines.append("        public var description: String?")
-        lines.append("        public var serverURL: String")
-        lines.append("    }")
-        lines.append("    public struct Endpoint: Codable, Sendable {")
-        lines.append("        public var path: String")
-        lines.append("        public var method: String")
-        lines.append("        public var operationId: String")
-        lines.append("        public var responses: [MockResponse]")
-        lines.append("    }")
-        lines.append("    public struct MockResponse: Codable, Sendable {")
-        lines.append("        public var statusCode: Int")
-        lines.append("        public var contentType: String")
-        lines.append("        public var body: String")
-        lines.append("        public var exampleId: String?")
-        lines.append("        public var summary: String?")
-        lines.append("        public var description: String?")
-        lines.append("    }")
-        lines.append("")
-
-        // meta
         let descLiteral = description.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
-        lines.append("    public static let meta = Meta(")
-        lines.append("        title: \"\(escapeForSwiftStringLiteral(title))\",")
-        lines.append("        version: \"\(escapeForSwiftStringLiteral(version))\",")
-        lines.append("        description: \(descLiteral),")
-        lines.append("        serverURL: \"\(escapeForSwiftStringLiteral(serverURLString.isEmpty ? "https://example.com/api" : serverURLString))\"")
-        lines.append("    )")
-        lines.append("")
+        let serverURLEscaped = escapeForSwiftStringLiteral(serverURLString.isEmpty ? "https://example.com/api" : serverURLString)
 
-        // endpoints
-        lines.append("    public static let endpoints: [Endpoint] = [")
-        for entry in endpointEntries {
-            lines.append("        Endpoint(")
-            lines.append("            path: \"\(escapeForSwiftStringLiteral(entry.fullPath))\",")
-            lines.append("            method: \"\(entry.method)\",")
-            lines.append("            operationId: \"\(escapeForSwiftStringLiteral(entry.operationId))\",")
-            lines.append("            responses: [")
-            for resp in entry.responses {
+        let endpointsLiteral = endpointEntries.map { entry in
+            let responsesBlock = entry.responses.map { resp in
                 let descVal = resp.responseDescription.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
                 let bodyEsc = escapeForSwiftStringLiteral(resp.body)
                 let ctEsc = escapeForSwiftStringLiteral(resp.contentType)
-                lines.append("                MockResponse(")
-                lines.append("                    statusCode: \(resp.statusCode),")
-                lines.append("                    contentType: \"\(ctEsc)\",")
-                lines.append("                    body: \"\(bodyEsc)\",")
-                lines.append("                    exampleId: nil,")
-                lines.append("                    summary: nil,")
-                lines.append("                    description: \(descVal)")
-                lines.append("                ),")
-            }
-            lines.append("            ]")
-            lines.append("        ),")
-        }
-        lines.append("    ]")
-        lines.append("")
+                return """
+                        MockResponse(
+                            statusCode: \(resp.statusCode),
+                            contentType: "\(ctEsc)",
+                            body: "\(bodyEsc)",
+                            exampleId: nil,
+                            summary: nil,
+                            description: \(descVal)
+                        ),
+"""
+            }.joined(separator: "\n")
+            return """
+                    Endpoint(
+                        path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
+                        method: "\(entry.method)",
+                        operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
+                        responses: [
+            \(responsesBlock)
+                        ]
+                    ),
+"""
+        }.joined(separator: "\n")
 
-        // responseMap
-        lines.append("    public static let responseMap: [String: [Int: (body: String, contentType: String)]] = [")
-        for entry in endpointEntries {
-            var innerPairs: [String] = []
-            for resp in entry.responses {
+        let responseMapLiteral = endpointEntries.map { entry in
+            let innerPairs = entry.responses.map { resp in
                 let bodyEsc = escapeForSwiftStringLiteral(resp.body)
                 let ctEsc = escapeForSwiftStringLiteral(resp.contentType)
-                innerPairs.append("\(resp.statusCode): (body: \"\(bodyEsc)\", contentType: \"\(ctEsc)\")")
-            }
+                return "\(resp.statusCode): (body: \"\(bodyEsc)\", contentType: \"\(ctEsc)\")"
+            }.joined(separator: ", ")
             let key = "\(entry.method):\(entry.fullPath)"
             let keyEsc = escapeForSwiftStringLiteral(key)
-            lines.append("        \"\(keyEsc)\": [\(innerPairs.joined(separator: ", "))],")
-        }
-        lines.append("    ]")
-        lines.append("}")
-        lines.append("")
-        lines.append("extension KawarimiSpec.Meta: SpecMetaProviding {}")
-        lines.append("extension KawarimiSpec.MockResponse: SpecMockResponseProviding {}")
-        lines.append("extension KawarimiSpec.Endpoint: SpecEndpointProviding {")
-        lines.append("    public var responseList: [any SpecMockResponseProviding] { responses }")
-        lines.append("}")
-        lines.append("")
-        lines.append("/// DTO for Henge spec API (GET /__kawarimi/spec). Generated by Kawarimi.")
-        lines.append("public struct SpecResponse: Codable, Sendable {")
-        lines.append("    public var meta: KawarimiSpec.Meta")
-        lines.append("    public var endpoints: [KawarimiSpec.Endpoint]")
-        lines.append("    public init(meta: KawarimiSpec.Meta, endpoints: [KawarimiSpec.Endpoint]) {")
-        lines.append("        self.meta = meta")
-        lines.append("        self.endpoints = endpoints")
-        lines.append("    }")
-        lines.append("}")
-        lines.append("")
+            return "                \"\(keyEsc)\": [\(innerPairs)],"
+        }.joined(separator: "\n")
 
-        return lines.joined(separator: "\n")
+        return """
+            // Generated by Kawarimi. Do not edit.
+
+            import KawarimiCore
+
+            public enum KawarimiSpec {
+                public struct Meta: Codable, Sendable {
+                    public var title: String
+                    public var version: String
+                    public var description: String?
+                    public var serverURL: String
+                    public var apiPathPrefix: String
+                }
+                public struct Endpoint: Codable, Sendable {
+                    public var path: String
+                    public var method: String
+                    public var operationId: String
+                    public var responses: [MockResponse]
+                }
+                public struct MockResponse: Codable, Sendable {
+                    public var statusCode: Int
+                    public var contentType: String
+                    public var body: String
+                    public var exampleId: String?
+                    public var summary: String?
+                    public var description: String?
+                }
+
+                public static let meta = Meta(
+                    title: "\(escapeForSwiftStringLiteral(title))",
+                    version: "\(escapeForSwiftStringLiteral(version))",
+                    description: \(descLiteral),
+                    serverURL: "\(serverURLEscaped)",
+                    apiPathPrefix: "\(apiPathPrefixEscaped)"
+                )
+
+                public static let endpoints: [Endpoint] = [
+            \(endpointsLiteral)
+                ]
+
+                public static let responseMap: [String: [Int: (body: String, contentType: String)]] = [
+            \(responseMapLiteral)
+                ]
+            }
+
+            extension KawarimiSpec.Meta: SpecMetaProviding {}
+            extension KawarimiSpec.MockResponse: SpecMockResponseProviding {}
+            extension KawarimiSpec.Endpoint: SpecEndpointProviding {
+                public var responseList: [any SpecMockResponseProviding] { responses }
+            }
+
+            public struct SpecResponse: Codable, Sendable {
+                public var meta: KawarimiSpec.Meta
+                public var endpoints: [KawarimiSpec.Endpoint]
+                public init(meta: KawarimiSpec.Meta, endpoints: [KawarimiSpec.Endpoint]) {
+                    self.meta = meta
+                    self.endpoints = endpoints
+                }
+            }
+            """
     }
 
     private static func responseBodyJSON(content: OpenAPI.Content, components: OpenAPI.Components) -> String {

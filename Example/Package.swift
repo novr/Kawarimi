@@ -6,13 +6,11 @@ let package = Package(
     name: "Example",
     platforms: [
         .macOS(.v14),
-        .iOS(.v17),
     ],
     dependencies: [
         .package(name: "Kawarimi", path: ".."),
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.0"),
         .package(url: "https://github.com/vapor/swift-openapi-vapor", from: "1.0.0"),
         .package(url: "https://github.com/vapor/vapor", from: "4.89.0"),
     ],
@@ -42,16 +40,8 @@ let package = Package(
             name: "DemoApp",
             dependencies: [
                 "DemoAPI",
-                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
-            ],
-            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
-        ),
-        .executableTarget(
-            name: "DemoAppUI",
-            dependencies: [
-                "DemoAPI",
+                .product(name: "KawarimiCore", package: "Kawarimi"),
                 .product(name: "KawarimiHenge", package: "Kawarimi"),
-                .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
             ],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),

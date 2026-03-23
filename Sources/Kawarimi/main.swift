@@ -1,7 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// 引数: openapi パス、出力ディレクトリ。Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を出力する。
+/// ビルドプラグインが呼ぶ実行体と同じ生成処理（差分が出ないようにする）。
 @main
 struct Kawarimi {
     static func main() throws {

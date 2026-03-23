@@ -1,7 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// HTTP エラー（4xx/5xx）。レスポンス body の先頭を errorDescription に含める。
+/// 失敗時にレスポンス本文の断片を載せ、ログ・UI で切り分けしやすくする。
 public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     public var statusCode: Int
     public var data: Data?
@@ -21,7 +21,7 @@ public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     }
 }
 
-/// Henge API（`/__kawarimi/*`）用クライアント。Spec はジェネリックでデコードする。
+/// `baseURL` は API マウント先まで含める（`__kawarimi` はその直下）。
 public struct KawarimiAPIClient: Sendable {
     public var baseURL: URL
     private let session: URLSession
@@ -38,7 +38,7 @@ public struct KawarimiAPIClient: Sendable {
         }
     }
 
-    /// GET /__kawarimi/spec を取得し、指定した型でデコードする。生成された SpecResponse を渡す。
+    /// `T` は OpenAPI プラグインが生成した `SpecResponse` など、サーバの JSON と一致する型。
     public func fetchSpec<T: Decodable & Sendable>(as type: T.Type) async throws -> T {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("spec")
         let (data, response) = try await session.data(from: url)
@@ -46,7 +46,6 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    /// GET /__kawarimi/status を取得し、[MockOverride] として返す。
     public func fetchOverrides() async throws -> [MockOverride] {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("status")
         let (data, response) = try await session.data(from: url)
@@ -54,7 +53,6 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
 
-    /// POST /__kawarimi/configure でオーバーライドを送信する。
     public func configure(override: MockOverride) async throws {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("configure")
         var request = URLRequest(url: url)
@@ -65,7 +63,6 @@ public struct KawarimiAPIClient: Sendable {
         try validateHTTPStatus(response, data: data)
     }
 
-    /// POST /__kawarimi/reset で全オーバーライドをクリアする。
     public func reset() async throws {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("reset")
         var request = URLRequest(url: url)

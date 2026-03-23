@@ -7,7 +7,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
 
     func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
         let path = request.url.path
-        guard !path.hasPrefix("/__kawarimi") else {
+        guard !KawarimiAdminPath.isManagementRequestPath(path) else {
             return try await next.respond(to: request)
         }
 
@@ -15,14 +15,20 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         let mockId = request.headers.first(name: "x-kawarimi-mockId")
         let overrides = await store.overrides()
 
-        let match = overrides.first { ov in
-            ov.path == path
-                && ov.method.uppercased() == method.uppercased()
-                && ov.isEnabled
-                && (mockId == nil || ov.mockId == mockId)
+        let hits = MockOverride.sortedForInterceptorTieBreak(
+            overrides.filter { ov in
+                PathTemplate.matches(actual: path, template: ov.path)
+                    && ov.method.uppercased() == method.uppercased()
+                    && ov.isEnabled
+                    && (mockId == nil || ov.mockId == mockId)
+            }
+        )
+        if hits.count > 1 {
+            request.logger.warning(
+                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) mockId=\($0.mockId ?? "nil") status=\($0.statusCode)" }.joined(separator: " | "))"
+            )
         }
-
-        guard let override = match else {
+        guard let override = hits.first else {
             return try await next.respond(to: request)
         }
 
@@ -31,7 +37,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         if override.hasEffectiveCustomBody, let customBody = override.body {
             body = customBody
             contentType = override.contentType ?? "application/json"
-        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(path)"],
+        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(override.path)"],
                   let entry = responses[override.statusCode] {
             body = entry.body
             contentType = entry.contentType

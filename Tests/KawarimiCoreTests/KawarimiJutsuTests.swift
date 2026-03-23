@@ -13,7 +13,14 @@ import Testing
     #expect(source.contains("public struct KawarimiHandler"))
     #expect(source.contains("APIProtocol"))
     #expect(source.contains("getGreeting"))
+    #expect(source.contains("listItems"))
+    #expect(source.contains("createItem"))
+    #expect(source.contains("getItem"))
+    #expect(source.contains("deleteItem"))
+    #expect(source.contains("listTags"))
     #expect(source.contains(".ok("))
+    #expect(source.contains(".created("))
+    #expect(source.contains(".noContent("))
     #expect(source.contains("import OpenAPIRuntime"))
 }
 
@@ -34,6 +41,8 @@ import Testing
     #expect(source.contains("public struct Kawarimi"))
     #expect(source.contains("ClientTransport"))
     #expect(source.contains("case \"getGreeting\""))
+    #expect(source.contains("case \"listItems\""))
+    #expect(source.contains("case \"deleteItem\""))
     #expect(source.contains("HTTPResponse(status: .ok)"))
     #expect(source.contains("HTTPBody("))
     #expect(source.contains("message"))
@@ -62,4 +71,8 @@ import Testing
     #expect(source.contains("public struct SpecResponse: Codable, Sendable"))
     #expect(source.contains("public var meta: KawarimiSpec.Meta"))
     #expect(source.contains("public var endpoints: [KawarimiSpec.Endpoint]"))
+    #expect(source.contains("apiPathPrefix"))
+    #expect(source.contains("listItems"))
+    #expect(source.contains("/items/{id}"))
+    #expect(source.contains("responseMap"))
 }

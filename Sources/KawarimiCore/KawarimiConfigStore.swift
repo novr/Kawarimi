@@ -1,27 +1,27 @@
 import Foundation
 
-/// Store の初期化・configure で発生しうるエラー。
 public enum KawarimiConfigStoreError: Error, Sendable {
-    /// configPath に ".." が含まれており path traversal の可能性がある。
+    /// `..` による設定パスからの脱出を防ぐ。
     case invalidConfigPath(String)
-    /// override.body が MockOverride.maxBodyLength を超えている。
+    /// 設定ファイルと転送のメモリ・サイズを抑える。
     case bodyTooLong(actual: Int, limit: Int)
 }
 
 public actor KawarimiConfigStore {
     private let configPath: String
-    /// Path 正規化で付与するプレフィックス（例: "/api"）。デフォルト "/api"。
-    private let pathPrefix: String
+    private let prefix: String
     private var cachedOverrides: [MockOverride]
 
-    /// - Throws: `KawarimiConfigStoreError.invalidConfigPath` が configPath に ".." を含む場合。
-    public init(configPath: String, pathPrefix: String = "/api") throws {
+    /// ミドルウェア・`registerHandlers` と同一パスでオーバーライドを解決する。
+    public var pathPrefix: String { prefix }
+
+    public init(configPath: String, pathPrefix: String = OpenAPIPathPrefix.defaultMountPath) throws {
         let components = (configPath as NSString).pathComponents
         if components.contains("..") {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
         }
         self.configPath = configPath
-        self.pathPrefix = pathPrefix.hasSuffix("/") ? String(pathPrefix.dropLast()) : pathPrefix
+        self.prefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
         if let data = FileManager.default.contents(atPath: configPath),
            let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
             self.cachedOverrides = config.overrides
@@ -34,9 +34,8 @@ public actor KawarimiConfigStore {
         cachedOverrides
     }
 
-    /// - Throws: `KawarimiConfigStoreError.bodyTooLong` が body が `MockOverride.maxBodyLength` を超える場合。
     public func configure(_ override: MockOverride) throws {
-        let normalized = normalizing(override)
+        let normalized = normalize(override)
         if let body = normalized.body, body.utf8.count > MockOverride.maxBodyLength {
             throw KawarimiConfigStoreError.bodyTooLong(actual: body.utf8.count, limit: MockOverride.maxBodyLength)
         }
@@ -53,13 +52,12 @@ public actor KawarimiConfigStore {
         try persist()
     }
 
-    /// Path を pathPrefix 付きに正規化する。body/contentType の空文字は nil に正規化する。
-    private func normalizing(_ override: MockOverride) -> MockOverride {
+    /// インターセプタの `PathTemplate` 一致とパスをそろえる。
+    private func normalize(_ override: MockOverride) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
         }
-        let prefix = pathPrefix.hasPrefix("/") ? pathPrefix : "/" + pathPrefix
         if !result.path.hasPrefix(prefix) {
             result.path = prefix + (result.path == "/" ? "" : result.path)
         }

@@ -1,0 +1,65 @@
+import Foundation
+import KawarimiCore
+import Testing
+
+@Test func openAPIPathPrefixTrimsAndNormalizes() {
+    #expect(OpenAPIPathPrefix.normalizedPrefix("api") == OpenAPIPathPrefix.defaultMountPath)
+    #expect(OpenAPIPathPrefix.normalizedPrefix("/api/") == OpenAPIPathPrefix.defaultMountPath)
+    #expect(OpenAPIPathPrefix.normalizedPrefix("  /v1/  ") == "/v1")
+}
+
+@Test func openAPIPathPrefixEmptyUsesDefault() {
+    #expect(OpenAPIPathPrefix.normalizedPrefix("") == OpenAPIPathPrefix.defaultMountPath)
+    #expect(OpenAPIPathPrefix.normalizedPrefix("   ") == OpenAPIPathPrefix.defaultMountPath)
+}
+
+@Test func openAPIPathPrefixEmptyUsesCustomDefaultIfEmpty() {
+    #expect(OpenAPIPathPrefix.normalizedPrefix("", defaultIfEmpty: "/v1") == "/v1")
+}
+
+@Test func openAPIPathPrefixStubServerURL() throws {
+    let url = try #require(OpenAPIPathPrefix.stubServerURL(pathPrefix: OpenAPIPathPrefix.defaultMountPath))
+    #expect(url.scheme == "https")
+    #expect(url.host == "kawarimi.openapi.invalid")
+    #expect(url.path == OpenAPIPathPrefix.defaultMountPath)
+}
+
+@Test func kawarimiAdminPathDetectsManagementSegment() {
+    #expect(KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi/spec"))
+    #expect(KawarimiAdminPath.isManagementRequestPath("/__kawarimi/configure"))
+    #expect(KawarimiAdminPath.isManagementRequestPath("/v1/__kawarimi/status"))
+}
+
+@Test func kawarimiAdminPathRejectsNonSegmentMatch() {
+    #expect(!KawarimiAdminPath.isManagementRequestPath("/api/greet"))
+    #expect(!KawarimiAdminPath.isManagementRequestPath("/v1/foo__kawarimi/x"))
+    #expect(!KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi_backup/x"))
+}
+
+@Test func httpRequestBodyPolicyNoBodyForGetHead() {
+    let empty = Data()
+    let nonEmpty = Data("{}".utf8)
+    for m in ["GET", "HEAD", "OPTIONS", "TRACE"] {
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nil))
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: empty))
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nonEmpty))
+        #expect(!HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: m))
+    }
+}
+
+@Test func httpRequestBodyPolicyPostPutPatchAlwaysAttach() {
+    let empty = Data()
+    for m in ["POST", "PUT", "PATCH"] {
+        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nil))
+        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: empty))
+        #expect(HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: m))
+    }
+}
+
+@Test func httpRequestBodyPolicyDeleteOptionalBody() {
+    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: nil))
+    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: Data()))
+    let data = Data([0x22])
+    #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: data))
+    #expect(HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: "DELETE"))
+}
