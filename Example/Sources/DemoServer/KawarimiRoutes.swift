@@ -6,7 +6,7 @@ import Vapor
 extension MockOverride: @retroactive Content {}
 extension SpecResponse: Content {}
 
-/// `KawarimiConfigStore.pathPrefix` の下に `__kawarimi/*` をマウントする（例: `/api` → `/api/__kawarimi/spec`）。
+/// OpenAPI と同じ `pathPrefix` にネストしないと、クライアントが叩く API ベースと管理 API のパスがずれる。
 func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async {
     let pathPrefix = await store.pathPrefix
     let segments = pathPrefix.split(separator: "/").filter { !$0.isEmpty }.map(String.init)

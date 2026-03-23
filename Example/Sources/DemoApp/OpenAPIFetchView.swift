@@ -4,7 +4,6 @@ import Foundation
 import KawarimiCore
 import SwiftUI
 
-/// OpenAPI の手動実行。`KawarimiSpec.endpoints`（`openapi.yaml` から生成）に追随する。
 struct OpenAPIFetchView: View {
     @Binding var serverBaseURL: String
     @Binding var apiPathPrefix: String
@@ -127,7 +126,6 @@ struct OpenAPIFetchView: View {
         )
     }
 
-    /// `openapi.yaml` 更新後も `KawarimiSpec` を再生成すれば一覧は追従する。
     private func syncInputsToSelection() {
         guard let ep = currentEndpoint else { return }
         let names = pathParameterNames(in: ep.path)

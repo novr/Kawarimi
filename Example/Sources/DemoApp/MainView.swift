@@ -7,7 +7,6 @@ private enum KawarimiExampleDefaults {
     static let apiPathPrefixKey = "kawarimi.example.apiPathPrefix"
 }
 
-/// メイン画面: OpenAPI の実行と KawarimiConfigView。既定は `KawarimiSpec.meta`、前回値は UserDefaults に保存。
 struct MainView: View {
     @State private var serverBaseURLString: String
     @State private var apiPathPrefixString: String

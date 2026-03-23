@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-/// Kawarimi CLI の結合テスト。openapi → Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift 出力を検証する。
+/// プラグインが起動する Kawarimi 実行体と同一の生成結果であることを保証する。
 @Test func cliGeneratesSwiftFromOpenAPI() throws {
     guard let openapiURL = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")

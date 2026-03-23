@@ -1,14 +1,13 @@
 import KawarimiCore
 import SwiftUI
 
-/// SwiftUI view for editing mock overrides (status and optional custom body/contentType).
-/// Uses protocol-returning closures so the app hides its implementation (e.g. KawarimiSpec, API client).
+/// アプリ側の具象型（生成 `KawarimiSpec` 等）を閉じ込めるため protocol 経由にしている。
 public struct OverrideEditorView: View {
     private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
     private let fetchOverrides: () async throws -> [MockOverride]
     private let configureOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
-    /// Spec 取得後に `meta.apiPathPrefix` を書き戻す（OpenAPI タブのプレフィックスと揃える用）。
+    /// 別タブのプレフィックス入力と Spec の値を一致させる。
     private let apiPathPrefixSync: Binding<String>?
 
     @State private var meta: (any SpecMetaProviding)?
@@ -21,7 +20,7 @@ public struct OverrideEditorView: View {
     @State private var errorMessage: String?
     @State private var isLoading = false
     @State private var validationMessage: String?
-    /// True when detail panel has edits not yet applied. Used to confirm before switching selection.
+    /// 未適用のまま別エンドポイントへ切り替えないようガードする。
     @State private var detailDirty = false
     @State private var showDiscardConfirmation = false
     @State private var pendingSelectionKey: String?
@@ -171,12 +170,10 @@ public struct OverrideEditorView: View {
         }
     }
 
-    /// Stable id for list rows (method:path). Used for ForEach id and selection.
     private var endpointKeys: [String] {
         endpoints.map { rowKey($0) }
     }
 
-    /// Intercepts selection change: if detail has unapplied changes, shows confirmation before switching.
     private var selectionBinding: Binding<String?> {
         Binding(
             get: { selectedEndpointKey },
@@ -313,7 +310,7 @@ public struct OverrideEditorView: View {
     }
 }
 
-// MARK: - Endpoint row (protocol-based)
+// MARK: - List rows
 
 private struct EndpointRowView: View {
     let endpoint: any SpecEndpointProviding
@@ -342,7 +339,7 @@ private struct EndpointRowView: View {
     }
 }
 
-// MARK: - Detail panel (body/contentType edit)
+// MARK: - Detail panel
 
 private struct DetailPanelView: View {
     let endpoint: any SpecEndpointProviding

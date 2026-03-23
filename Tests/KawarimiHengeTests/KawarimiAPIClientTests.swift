@@ -2,8 +2,7 @@ import Foundation
 import KawarimiHenge
 import Testing
 
-// MARK: - Mock URLProtocol for 4xx/5xx responses
-
+/// `URL.host` を HTTP ステータスとして返す（`http://500/` 等）ので、本番と無関係な擬似 URL で検証できる。
 private final class MockKawarimiURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -29,8 +28,6 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-// MARK: - KawarimiAPIError tests
-
 @Test func kawarimiAPIErrorDescriptionContainsStatusCodeAndBodySnippet() {
     let err = KawarimiAPIError(statusCode: 503, data: "Service Unavailable — overloaded".data(using: .utf8))
     let desc = err.errorDescription ?? ""
@@ -43,8 +40,6 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     #expect(err.errorDescription == "HTTP 404")
 }
 
-// MARK: - KawarimiAPIClient tests (mocked HTTP)
-
 @Test func kawarimiAPIClientFetchSpecThrowsKawarimiAPIErrorOn5xx() async throws {
     URLProtocol.registerClass(MockKawarimiURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiURLProtocol.self) }
@@ -52,7 +47,6 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     let config = URLSessionConfiguration.ephemeral
     config.protocolClasses = [MockKawarimiURLProtocol.self]
     let session = URLSession(configuration: config)
-    // Use host "500" so our mock returns status 500
     let baseURL = URL(string: "http://500/")!
     let client = KawarimiAPIClient(baseURL: baseURL, session: session)
 

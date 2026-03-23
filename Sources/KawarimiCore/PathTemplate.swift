@@ -1,8 +1,7 @@
 import Foundation
 
-/// OpenAPI の path テンプレート（例: `/api/items/{id}`）と実 path の一致判定。
+/// `{param}` を 1 セグメント分のワイルドカードとみなし、セグメント数が一致するときだけマッチさせる。
 public enum PathTemplate {
-    /// 実リクエスト path がテンプレートに一致するか。`{param}` は任意の 1 セグメントにマッチする。
     public static func matches(actual: String, template: String) -> Bool {
         let a = actual.split(separator: "/", omittingEmptySubsequences: false)
         let t = template.split(separator: "/", omittingEmptySubsequences: false)

@@ -2,12 +2,11 @@ import DemoAPI
 import KawarimiHenge
 import SwiftUI
 
-/// Example `DemoApp` 用ルート。`KawarimiConfigView` に serverURL と Spec 用クロージャを渡す。
 struct HengeRootView: View {
     @Binding var serverBaseURL: String
     @Binding var apiPathPrefix: String
 
-    /// OpenAPI と同じ API ベース（`pathPrefix` 込み）。`__kawarimi` はこの URL 直下にマウントされる。
+    /// Henge は OpenAPI クライアントと同じ base（`/api` 等）を使わないと `__kawarimi` に届かない。
     private var baseURL: URL {
         let m = KawarimiSpec.meta
         let fallbackBase = ServerURLNormalization.defaultServerBaseURLString(

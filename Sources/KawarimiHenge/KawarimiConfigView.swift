@@ -1,8 +1,7 @@
 import KawarimiCore
 import SwiftUI
 
-/// Server base URL バー付きの OverrideEditorView ラッパー。
-/// `__kawarimi/*` は通常「API のベース URL」（例: `http://host:8080/api`）直下。`apiPathPrefixSync` でプレフィックスを Spec と同期できる。
+/// サーバオリジン用のバーを分離しつつ、タブ間で `apiPathPrefix` を揃えたいとき `apiPathPrefixSync` を渡す。
 public struct KawarimiConfigView: View {
     @Binding public var serverURL: String
 

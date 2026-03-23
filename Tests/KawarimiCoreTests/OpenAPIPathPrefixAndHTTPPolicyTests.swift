@@ -2,8 +2,6 @@ import Foundation
 import KawarimiCore
 import Testing
 
-// MARK: - OpenAPIPathPrefix
-
 @Test func openAPIPathPrefixTrimsAndNormalizes() {
     #expect(OpenAPIPathPrefix.normalizedPrefix("api") == "/api")
     #expect(OpenAPIPathPrefix.normalizedPrefix("/api/") == "/api")
@@ -22,8 +20,6 @@ import Testing
     #expect(url.path == "/api")
 }
 
-// MARK: - KawarimiAdminPath
-
 @Test func kawarimiAdminPathDetectsManagementSegment() {
     #expect(KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi/spec"))
     #expect(KawarimiAdminPath.isManagementRequestPath("/__kawarimi/configure"))
@@ -36,11 +32,9 @@ import Testing
     #expect(!KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi_backup/x"))
 }
 
-// MARK: - HTTPRequestBodyPolicy
-
 @Test func httpRequestBodyPolicyNoBodyForGetHead() {
     let empty = Data()
-    let nonEmpty = Data([0x7B, 0x7D]) // "{}"
+    let nonEmpty = Data("{}".utf8)
     for m in ["GET", "HEAD", "OPTIONS", "TRACE"] {
         #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: nil))
         #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: empty))

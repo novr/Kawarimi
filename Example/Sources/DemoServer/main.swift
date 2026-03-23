@@ -21,7 +21,7 @@ struct DemoServer {
         app.middleware.use(KawarimiInterceptorMiddleware(store: store))
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()
-        // OpenAPI ランタイムは serverURL の path のみ使用。host はプレースホルダ（`URLComponents` で組み立て）。
+        // ランタイムは path のみ参照するため `OpenAPIPathPrefix` でプレースホルダ host を使う。
         guard let serverURL = OpenAPIPathPrefix.serverURLForOpenAPIPathOnlyMount(pathPrefix: await store.pathPrefix) else {
             throw DemoServerError.invalidOpenAPIServerURL
         }

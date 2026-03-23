@@ -1,8 +1,7 @@
 import Foundation
 
-/// OpenAPI の API マウントパス（`servers[0].url` の path、`KawarimiConfigStore.pathPrefix` 等）の正規化を一箇所に集約する。
+/// servers URL・ConfigStore などで同じプレフィックス規則にそろえるための集約。
 public enum OpenAPIPathPrefix {
-    /// 空白除去、末尾 `/`（ルート以外）除去、先頭 `/` 付与。中身が空なら `defaultIfEmpty` を同様に正規化して返す。
     public static func normalizedPrefix(_ raw: String, defaultIfEmpty: String = "/api") -> String {
         let trimmed = coreNormalize(raw)
         if trimmed.isEmpty {
@@ -15,7 +14,7 @@ public enum OpenAPIPathPrefix {
         return trimmed
     }
 
-    /// OpenAPI `registerHandlers(..., serverURL:)` 向け。ランタイムは **path のみ**参照し、host はプレースホルダ。
+    /// OpenAPI ランタイムは `serverURL` の path だけ使うため、host は意味のない固定値でよい。
     public static func serverURLForOpenAPIPathOnlyMount(pathPrefix raw: String) -> URL? {
         let path = normalizedPrefix(raw, defaultIfEmpty: "/api")
         var components = URLComponents()
