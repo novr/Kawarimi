@@ -62,4 +62,5 @@ import Testing
     #expect(source.contains("public struct SpecResponse: Codable, Sendable"))
     #expect(source.contains("public var meta: KawarimiSpec.Meta"))
     #expect(source.contains("public var endpoints: [KawarimiSpec.Endpoint]"))
+    #expect(source.contains("apiPathPrefix"))
 }
