@@ -57,9 +57,9 @@ KawarimiSpec.endpoints   // all endpoints with their possible responses
 KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 ```
 
-### Henge API (DemoServer / /__kawarimi/*)
+### Henge API (DemoServer / `{pathPrefix}/__kawarimi/*`)
 
-**Henge API** is the name for the dynamic-mock management API served at **`/__kawarimi/*`** (the path is fixed; the name "Henge" refers to the feature).
+**Henge API** is the dynamic-mock management API (the name “Henge” refers to the feature). In the **Example** `DemoServer`, routes are mounted **under the same path prefix as the OpenAPI API** (from `KawarimiSpec.meta.apiPathPrefix`, e.g. **`/api/__kawarimi/spec`**). Your own app may mount `__kawarimi` at the root instead; keep it consistent with `KawarimiAPIClient`’s `baseURL`.
 
 When using `DemoServer` as a mock server, register the admin routes and middleware:
 
@@ -71,59 +71,46 @@ app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 
 | Endpoint | Description |
 |---|---|
-| `POST /__kawarimi/configure` | Enable a mock response for a path/method/statusCode |
-| `GET /__kawarimi/status` | List active overrides |
-| `POST /__kawarimi/reset` | Clear all overrides |
-| `GET /__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
+| `POST {pathPrefix}/__kawarimi/configure` | Enable a mock response for a path/method/statusCode |
+| `GET {pathPrefix}/__kawarimi/status` | List active overrides |
+| `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
+| `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
-Example — enable a 200 mock for GET /api/greet:
+Example — enable a 200 mock for GET /api/greet (Example `DemoServer`, default `pathPrefix` `/api`):
 
 ```bash
-curl -X POST http://localhost:8080/__kawarimi/configure \
+curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -H "Content-Type: application/json" \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
 ```
 
-### DynamicMockTransport (client side)
+### Client: real server vs Kawarimi mock
 
-`DynamicMockTransport` is a hand-written `ClientTransport` (generated into `DemoAPI`) that lets the client switch between the real server and the mock server at runtime:
+Use **two** generated `Client` instances if you want both in-process examples and a live server: `Kawarimi()` (no network; responses from OpenAPI `example` values) and `URLSessionTransport()` from [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) against your `DemoServer` (add that product to your target). Example **`DemoAPITests`** covers the `Kawarimi` path; **`DemoApp`** (SwiftUI) OpenAPI tab exercises HTTP against a running server.
 
-```swift
-let transport = DynamicMockTransport(
-    underlying: URLSessionTransport(),
-    realBaseURL: URL(string: "https://example.com/api")!,
-    mockBaseURL: URL(string: "http://localhost:8080/api")!,
-    useMockServer: true
-)
-let client = Client(serverURL: transport.mockBaseURL, transport: transport)
-```
-
-Set `x-kawarimi-mockId` header to target a specific named override:
-
-```swift
-transport.mockId = "error-case"
-```
+If you need **one** client that switches real vs mock at runtime, or always sends `x-kawarimi-mockId`, implement a small type conforming to `ClientTransport` in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
 
 ### config.json / KAWARIMI_CONFIG
 
-`KawarimiConfigStore` reads and writes overrides to a JSON file (default: `config.json` in the working directory). The file format uses `KawarimiConfig` (overrides array). **Run DemoServer with the Example directory as the current working directory** so that `config.json` is read and written there (e.g. `cd Example && swift run DemoServer`). Set the `KAWARIMI_CONFIG` environment variable to override the path. Override `body` or `contentType` that is empty string is normalized to “not set” when saved; at response time, empty body means fall back to the spec response (no custom body). You can pass `pathPrefix` (default `"/api"`) to `KawarimiConfigStore` if your API is mounted at a different path.
+`KawarimiConfigStore` reads and writes overrides to a JSON file (default: `config.json` in the working directory). The file format uses `KawarimiConfig` (overrides array). **Run DemoServer with the Example directory as the current working directory** so that `config.json` is read and written there (e.g. `cd Example && swift run DemoServer`). Set the `KAWARIMI_CONFIG` environment variable to override the path. Override `body` or `contentType` that is empty string is normalized to “not set” when saved; at response time, empty body means fall back to the spec response (no custom body). **DemoServer** passes `pathPrefix` from generated `KawarimiSpec.meta.apiPathPrefix` (derived from the OpenAPI document’s `servers[0].url` path), so the mount matches the spec without a separate env var. For your own server, pass the same prefix you use in `registerHandlers` / OpenAPI `servers`.
 
 ```bash
 cd Example && swift run DemoServer   # config.json in Example/
 KAWARIMI_CONFIG=/tmp/mock-config.json swift run DemoServer
 ```
 
-### SwiftUI management UI (DemoAppUI)
+### DemoApp (SwiftUI, macOS)
 
-Run `swift run DemoAppUI` to open a macOS window that shows all endpoints from the running server and lets you switch mock responses via a picker — no terminal required.
+Run `swift run DemoApp` to open a window that shows all endpoints from the running server and lets you switch mock responses via a picker — no terminal required. **Server URL** and **API prefix** default to `KawarimiSpec.meta` and are **persisted** in UserDefaults; point the host at your machine (e.g. `http://localhost:8080`) when running DemoServer locally.
 
 ## Example
+
+The **`Example/` Swift package** is a **macOS-only sample**: it is not hardened for production. **`__kawarimi`** admin endpoints have **no authentication**, and **`DemoApp`** can issue HTTP requests to **any URL** you enter—use only in trusted environments and add your own auth / network controls for real deployments.
 
 ```bash
 cd Example && swift build
 swift run DemoServer   # in another terminal
-swift run DemoApp      # client
-swift run DemoAppUI    # SwiftUI management UI (optional)
+swift run DemoApp      # SwiftUI: OpenAPI + Henge (optional)
 ```
 
 ## Plugin and execution order
