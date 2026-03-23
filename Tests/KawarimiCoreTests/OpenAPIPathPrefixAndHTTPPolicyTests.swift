@@ -3,21 +3,25 @@ import KawarimiCore
 import Testing
 
 @Test func openAPIPathPrefixTrimsAndNormalizes() {
-    #expect(OpenAPIPathPrefix.normalizedPrefix("api") == "/api")
-    #expect(OpenAPIPathPrefix.normalizedPrefix("/api/") == "/api")
+    #expect(OpenAPIPathPrefix.normalizedPrefix("api") == OpenAPIPathPrefix.defaultMountPath)
+    #expect(OpenAPIPathPrefix.normalizedPrefix("/api/") == OpenAPIPathPrefix.defaultMountPath)
     #expect(OpenAPIPathPrefix.normalizedPrefix("  /v1/  ") == "/v1")
 }
 
 @Test func openAPIPathPrefixEmptyUsesDefault() {
-    #expect(OpenAPIPathPrefix.normalizedPrefix("", defaultIfEmpty: "/api") == "/api")
-    #expect(OpenAPIPathPrefix.normalizedPrefix("   ", defaultIfEmpty: "/api") == "/api")
+    #expect(OpenAPIPathPrefix.normalizedPrefix("") == OpenAPIPathPrefix.defaultMountPath)
+    #expect(OpenAPIPathPrefix.normalizedPrefix("   ") == OpenAPIPathPrefix.defaultMountPath)
 }
 
-@Test func openAPIPathPrefixServerURLForMount() throws {
-    let url = try #require(OpenAPIPathPrefix.serverURLForOpenAPIPathOnlyMount(pathPrefix: "/api"))
+@Test func openAPIPathPrefixEmptyUsesCustomDefaultIfEmpty() {
+    #expect(OpenAPIPathPrefix.normalizedPrefix("", defaultIfEmpty: "/v1") == "/v1")
+}
+
+@Test func openAPIPathPrefixStubServerURL() throws {
+    let url = try #require(OpenAPIPathPrefix.stubServerURL(pathPrefix: OpenAPIPathPrefix.defaultMountPath))
     #expect(url.scheme == "https")
     #expect(url.host == "kawarimi.openapi.invalid")
-    #expect(url.path == "/api")
+    #expect(url.path == OpenAPIPathPrefix.defaultMountPath)
 }
 
 @Test func kawarimiAdminPathDetectsManagementSegment() {
@@ -36,9 +40,9 @@ import Testing
     let empty = Data()
     let nonEmpty = Data("{}".utf8)
     for m in ["GET", "HEAD", "OPTIONS", "TRACE"] {
-        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: nil))
-        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: empty))
-        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: nonEmpty))
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nil))
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: empty))
+        #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nonEmpty))
         #expect(!HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: m))
     }
 }
@@ -46,16 +50,16 @@ import Testing
 @Test func httpRequestBodyPolicyPostPutPatchAlwaysAttach() {
     let empty = Data()
     for m in ["POST", "PUT", "PATCH"] {
-        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: nil))
-        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, bodyUTF8: empty))
+        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nil))
+        #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: empty))
         #expect(HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: m))
     }
 }
 
 @Test func httpRequestBodyPolicyDeleteOptionalBody() {
-    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", bodyUTF8: nil))
-    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", bodyUTF8: Data()))
+    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: nil))
+    #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: Data()))
     let data = Data([0x22])
-    #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", bodyUTF8: data))
+    #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: data))
     #expect(HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: "DELETE"))
 }
