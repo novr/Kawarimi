@@ -7,7 +7,8 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
 
     func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
         let path = request.url.path
-        guard !path.hasPrefix("/__kawarimi") else {
+        // 管理 API はパスセグメントが `__kawarimi` と完全一致するときのみ（`foo__kawarimi` 等は除外）
+        guard !KawarimiAdminPath.isManagementRequestPath(path) else {
             return try await next.respond(to: request)
         }
 
