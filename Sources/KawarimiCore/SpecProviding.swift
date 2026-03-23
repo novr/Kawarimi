@@ -6,6 +6,8 @@ public protocol SpecMetaProviding: Sendable {
     var version: String { get }
     var description: String? { get }
     var serverURL: String { get }
+    /// OpenAPI の API マウントパス（例: `/api`）。`KawarimiConfigStore.pathPrefix` と揃える。
+    var apiPathPrefix: String { get }
 }
 
 /// Protocol for a single mock response in an endpoint. Generated KawarimiSpec.MockResponse conforms to this.

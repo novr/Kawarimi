@@ -11,8 +11,11 @@ public enum KawarimiConfigStoreError: Error, Sendable {
 public actor KawarimiConfigStore {
     private let configPath: String
     /// Path 正規化で付与するプレフィックス（例: "/api"）。デフォルト "/api"。
-    private let pathPrefix: String
+    private let storedPathPrefix: String
     private var cachedOverrides: [MockOverride]
+
+    /// `configure` 時にオーバーライドの path に付与するプレフィックス（`registerHandlers` の serverURL と揃える）。
+    public var pathPrefix: String { storedPathPrefix }
 
     /// - Throws: `KawarimiConfigStoreError.invalidConfigPath` が configPath に ".." を含む場合。
     public init(configPath: String, pathPrefix: String = "/api") throws {
@@ -21,7 +24,7 @@ public actor KawarimiConfigStore {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
         }
         self.configPath = configPath
-        self.pathPrefix = pathPrefix.hasSuffix("/") ? String(pathPrefix.dropLast()) : pathPrefix
+        self.storedPathPrefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix, defaultIfEmpty: "/api")
         if let data = FileManager.default.contents(atPath: configPath),
            let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
             self.cachedOverrides = config.overrides
@@ -59,7 +62,7 @@ public actor KawarimiConfigStore {
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
         }
-        let prefix = pathPrefix.hasPrefix("/") ? pathPrefix : "/" + pathPrefix
+        let prefix = storedPathPrefix
         if !result.path.hasPrefix(prefix) {
             result.path = prefix + (result.path == "/" ? "" : result.path)
         }

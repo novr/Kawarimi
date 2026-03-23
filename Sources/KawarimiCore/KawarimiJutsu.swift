@@ -222,6 +222,19 @@ public enum KawarimiJutsu {
         }
     }
 
+    /// OpenAPI `servers[0].url` の path 部分（先頭スラッシュ付き）。取れなければ `/api`。
+    static func apiPathPrefixFromOpenAPIDocument(_ document: OpenAPI.Document) -> String {
+        guard let raw = document.servers.first?.urlTemplate.rawValue, !raw.isEmpty,
+              let url = URL(string: raw) else {
+            return "/api"
+        }
+        let path = url.path
+        if path.isEmpty {
+            return "/api"
+        }
+        return OpenAPIPathPrefix.normalizedPrefix(path, defaultIfEmpty: "/api")
+    }
+
     // MARK: - KawarimiSpec 生成
 
     public static func generateKawarimiSpecSource(document: OpenAPI.Document) -> String {
@@ -231,8 +244,8 @@ public enum KawarimiJutsu {
         let description = info.description
 
         let serverURLString = document.servers.first?.urlTemplate.rawValue ?? ""
-        /// DemoServer の serverURL: "/api" と揃えるため、path は常に "/api" プレフィックス付きで出力する。
-        let apiPathPrefix = "/api"
+        let apiPathPrefix = apiPathPrefixFromOpenAPIDocument(document)
+        let apiPathPrefixEscaped = escapeForSwiftStringLiteral(apiPathPrefix)
 
         let components = document.components
 
@@ -347,6 +360,7 @@ public enum KawarimiJutsu {
                     public var version: String
                     public var description: String?
                     public var serverURL: String
+                    public var apiPathPrefix: String
                 }
                 public struct Endpoint: Codable, Sendable {
                     public var path: String
@@ -367,7 +381,8 @@ public enum KawarimiJutsu {
                     title: "\(escapeForSwiftStringLiteral(title))",
                     version: "\(escapeForSwiftStringLiteral(version))",
                     description: \(descLiteral),
-                    serverURL: "\(serverURLEscaped)"
+                    serverURL: "\(serverURLEscaped)",
+                    apiPathPrefix: "\(apiPathPrefixEscaped)"
                 )
 
                 public static let endpoints: [Endpoint] = [
