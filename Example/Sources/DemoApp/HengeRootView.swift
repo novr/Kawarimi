@@ -6,18 +6,13 @@ struct HengeRootView: View {
     @Binding var serverBaseURL: String
     @Binding var apiPathPrefix: String
 
-    /// Henge は OpenAPI クライアントと同じ base（`/api` 等）を使わないと `__kawarimi` に届かない。
+    /// Henge は OpenAPI 実行と同じ base（`clientURL` = オリジン + `apiPathPrefix`）を使わないと `__kawarimi` に届かない。
     private var baseURL: URL {
-        let m = KawarimiSpec.meta
-        let fallbackBase = ServerURLNormalization.defaultServerBaseURLString(
-            openAPIServerURL: m.serverURL,
-            apiPathPrefix: m.apiPathPrefix
-        )
-        return ServerURLNormalization.openAPIClientBaseURL(serverBase: serverBaseURL, apiPathPrefix: apiPathPrefix)
-            ?? ServerURLNormalization.openAPIClientBaseURL(
-                serverBase: fallbackBase,
-                apiPathPrefix: m.apiPathPrefix
-            )!
+        ServerURLNormalization.clientURL(
+            serverBaseURL: serverBaseURL,
+            apiPathPrefix: apiPathPrefix,
+            meta: KawarimiSpec.meta
+        )!
     }
 
     private var client: KawarimiAPIClient {

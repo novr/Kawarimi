@@ -9,7 +9,7 @@ struct OpenAPIExecuteView: View {
     @Binding var serverBaseURL: String
     @Binding var apiPathPrefix: String
 
-    @State private var selectedOperationId: String = KawarimiSpec.endpoints.first?.operationId ?? ""
+    @State private var operationId: String = KawarimiSpec.endpoints.first?.operationId ?? ""
     @State private var pathParams: [String: String] = [:]
     @State private var queryString: String = ""
     @State private var bodyText: String = "{}"
@@ -18,19 +18,16 @@ struct OpenAPIExecuteView: View {
 
     private var endpoints: [KawarimiSpec.Endpoint] { KawarimiSpec.endpoints }
 
-    private var defaultServerBasePlaceholder: String {
-        ServerURLNormalization.defaultServerBaseURLString(
-            openAPIServerURL: KawarimiSpec.meta.serverURL,
-            apiPathPrefix: KawarimiSpec.meta.apiPathPrefix
+    private var clientURL: URL? {
+        ServerURLNormalization.clientURL(
+            serverBaseURL: serverBaseURL,
+            apiPathPrefix: apiPathPrefix,
+            meta: KawarimiSpec.meta
         )
     }
 
-    private var parsedOpenAPIBaseURL: URL? {
-        ServerURLNormalization.openAPIClientBaseURL(serverBase: serverBaseURL, apiPathPrefix: apiPathPrefix)
-    }
-
-    private var currentEndpoint: KawarimiSpec.Endpoint? {
-        endpoints.first { $0.operationId == selectedOperationId }
+    private var endpoint: KawarimiSpec.Endpoint? {
+        endpoints.first { $0.operationId == operationId }
     }
 
     var body: some View {
@@ -39,7 +36,7 @@ struct OpenAPIExecuteView: View {
                 .font(.headline)
             HStack {
                 Text("Server URL:")
-                TextField(defaultServerBasePlaceholder, text: $serverBaseURL)
+                TextField(KawarimiSpec.meta.serverURL, text: $serverBaseURL)
                     .textFieldStyle(.roundedBorder)
             }
             HStack {
@@ -47,29 +44,29 @@ struct OpenAPIExecuteView: View {
                 TextField(KawarimiSpec.meta.apiPathPrefix, text: $apiPathPrefix)
                     .textFieldStyle(.roundedBorder)
             }
-            Text("実際のベース: \(parsedOpenAPIBaseURL?.absoluteString ?? "（無効）")")
+            Text("実際のベース: \(clientURL?.absoluteString ?? "（無効）")")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Picker("Operation", selection: $selectedOperationId) {
+            Picker("Operation", selection: $operationId) {
                 ForEach(endpoints, id: \.operationId) { ep in
                     Text("\(ep.method)  \(ep.operationId)")
                         .tag(ep.operationId)
                 }
             }
-            .onChange(of: selectedOperationId) { _, _ in
-                syncInputsToSelection()
+            .onChange(of: operationId) { _, _ in
+                syncOperationInputs()
             }
 
-            if let ep = currentEndpoint {
-                let names = pathParameterNames(in: ep.path)
+            if let ep = endpoint {
+                let names = bracedParamNames(in: ep.path)
                 if !names.isEmpty {
                     Text("パスパラメータ")
                         .font(.subheadline)
                     ForEach(names, id: \.self) { name in
                         HStack {
                             Text("\(name):")
-                            TextField(name, text: binding(forPathParam: name))
+                            TextField(name, text: paramBinding(name))
                                 .textFieldStyle(.roundedBorder)
                         }
                     }
@@ -94,7 +91,7 @@ struct OpenAPIExecuteView: View {
             Button("実行") {
                 Task { await performRequest() }
             }
-            .disabled(parsedOpenAPIBaseURL == nil || isRunning || currentEndpoint == nil)
+            .disabled(clientURL == nil || isRunning || endpoint == nil)
 
             if isRunning {
                 ProgressView()
@@ -113,23 +110,23 @@ struct OpenAPIExecuteView: View {
         .padding()
         .frame(minWidth: 400, minHeight: 320)
         .onAppear {
-            if selectedOperationId.isEmpty, let first = endpoints.first?.operationId {
-                selectedOperationId = first
+            if operationId.isEmpty, let first = endpoints.first?.operationId {
+                operationId = first
             }
-            syncInputsToSelection()
+            syncOperationInputs()
         }
     }
 
-    private func binding(forPathParam name: String) -> Binding<String> {
+    private func paramBinding(_ name: String) -> Binding<String> {
         Binding(
             get: { pathParams[name, default: ""] },
             set: { pathParams[name] = $0 }
         )
     }
 
-    private func syncInputsToSelection() {
-        guard let ep = currentEndpoint else { return }
-        let names = pathParameterNames(in: ep.path)
+    private func syncOperationInputs() {
+        guard let ep = endpoint else { return }
+        let names = bracedParamNames(in: ep.path)
         var next: [String: String] = [:]
         for n in names {
             next[n] = pathParams[n] ?? "item-1"
@@ -137,8 +134,8 @@ struct OpenAPIExecuteView: View {
         pathParams = next
 
         if HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: ep.method) {
-            let example = ep.responses.filter { $0.statusCode < 400 }.first?.body
-            bodyText = (example?.isEmpty == false) ? (example ?? "{}") : "{}"
+            let sample = ep.responses.filter { $0.statusCode < 400 }.first?.body
+            bodyText = (sample?.isEmpty == false) ? (sample ?? "{}") : "{}"
         } else {
             bodyText = ""
         }
@@ -146,55 +143,54 @@ struct OpenAPIExecuteView: View {
     }
 
     private func performRequest() async {
-        guard let base = parsedOpenAPIBaseURL,
-              let ep = currentEndpoint else { return }
+        guard let base = clientURL, let ep = endpoint else { return }
 
         isRunning = true
         resultText = ""
         defer { isRunning = false }
 
-        let prefix = OpenAPIPathPrefix.normalizedPrefix(KawarimiSpec.meta.apiPathPrefix, defaultIfEmpty: "/api")
-        var pathForSubst = ep.path
-        if pathForSubst.hasPrefix(prefix) {
-            pathForSubst = String(pathForSubst.dropFirst(prefix.count))
+        let metaPathPrefix = OpenAPIPathPrefix.normalizedPrefix(KawarimiSpec.meta.apiPathPrefix)
+        var path = ep.path
+        if path.hasPrefix(metaPathPrefix) {
+            path = String(path.dropFirst(metaPathPrefix.count))
         }
-        if pathForSubst.isEmpty {
-            pathForSubst = "/"
+        if path.isEmpty {
+            path = "/"
         }
-        if !pathForSubst.hasPrefix("/") {
-            pathForSubst = "/" + pathForSubst
+        if !path.hasPrefix("/") {
+            path = "/" + path
         }
 
-        for name in pathParameterNames(in: pathForSubst) {
+        for name in bracedParamNames(in: path) {
             let raw = pathParams[name] ?? ""
             let encoded = raw.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? raw
-            pathForSubst = pathForSubst.replacingOccurrences(of: "{\(name)}", with: encoded)
+            path = path.replacingOccurrences(of: "{\(name)}", with: encoded)
         }
 
-        if pathForSubst.contains("{") {
+        if path.contains("{") {
             resultText = "Error: パスに未置換の `{…}` があります（パスパラメータを入力してください）"
             return
         }
 
-        guard var url = appendPath(base: base, relativePath: pathForSubst) else {
+        guard var url = append(base: base, path: path) else {
             resultText = "Error: URL の組み立てに失敗しました"
             return
         }
 
         let q = queryString.trimmingCharacters(in: .whitespacesAndNewlines)
         if !q.isEmpty {
-            var c = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            c?.query = q
-            if let u = c?.url { url = u }
+            var parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            parts?.query = q
+            if let u = parts?.url { url = u }
         }
 
         let bodyData = bodyText.data(using: .utf8)
-        let attachBody = HTTPRequestBodyPolicy.shouldAttachRequestBody(method: ep.method, bodyUTF8: bodyData)
+        let withBody = HTTPRequestBodyPolicy.shouldAttachRequestBody(method: ep.method, body: bodyData)
 
         var request = URLRequest(url: url)
         request.httpMethod = ep.method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        if attachBody {
+        if withBody {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = bodyData
         } else {
@@ -204,21 +200,21 @@ struct OpenAPIExecuteView: View {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             let status = (response as? HTTPURLResponse).map { "\($0.statusCode)" } ?? "?"
-            let bodyString: String
+            let bodyOut: String
             if let s = String(data: data, encoding: .utf8), !s.isEmpty {
-                bodyString = s
+                bodyOut = s
             } else if data.isEmpty {
-                bodyString = "(empty body)"
+                bodyOut = "(empty body)"
             } else {
-                bodyString = data.map { String(format: "%02x", $0) }.joined(separator: " ")
+                bodyOut = data.map { String(format: "%02x", $0) }.joined(separator: " ")
             }
-            resultText = "HTTP \(status)\n\(bodyString)"
+            resultText = "HTTP \(status)\n\(bodyOut)"
         } catch {
             resultText = "Error: \(error.localizedDescription)"
         }
     }
 
-    private func pathParameterNames(in path: String) -> [String] {
+    private func bracedParamNames(in path: String) -> [String] {
         let pattern = #"\{([^}]+)\}"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let range = NSRange(path.startIndex..., in: path)
@@ -228,8 +224,8 @@ struct OpenAPIExecuteView: View {
         }
     }
 
-    private func appendPath(base: URL, relativePath: String) -> URL? {
-        var tail = relativePath
+    private func append(base: URL, path: String) -> URL? {
+        var tail = path
         if tail.hasPrefix("/") {
             tail = String(tail.dropFirst())
         }

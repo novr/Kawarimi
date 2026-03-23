@@ -1,38 +1,46 @@
 import Foundation
 import KawarimiCore
 
-/// OpenAPI と `__kawarimi` が同じ API プレフィックス配下にある前提で、入力欄（オリジン）とクライアント base を切り分ける。
+/// Example は **Server URL** と **API prefix** を別フィールドで持つ。`meta` は入力が解決できないときのフォールバック（`servers.url` / `apiPathPrefix`）。
 enum ServerURLNormalization {
-    static func defaultServerBaseURLString(openAPIServerURL: String, apiPathPrefix: String) -> String {
-        let pref = OpenAPIPathPrefix.normalizedPrefix(apiPathPrefix, defaultIfEmpty: "/api")
-        guard let u = URL(string: openAPIServerURL), u.scheme != nil, u.host != nil else {
-            return "http://localhost:8080"
-        }
-        let docPath = OpenAPIPathPrefix.normalizedPrefix(u.path, defaultIfEmpty: "/")
-        if docPath == pref {
-            return originStringStrippingPath(of: u) ?? "http://localhost:8080"
-        }
-        return originStringStrippingPath(of: u) ?? "http://localhost:8080"
+    static func clientURL(
+        serverBaseURL: String,
+        apiPathPrefix: String,
+        meta: some SpecMetaProviding
+    ) -> URL? {
+        resolve(origin: serverBaseURL, pathPrefix: apiPathPrefix)
+            ?? resolve(origin: meta.serverURL, pathPrefix: meta.apiPathPrefix)
     }
 
-    static func openAPIClientBaseURL(serverBase: String, apiPathPrefix: String) -> URL? {
-        let baseTrimmed = serverBase.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let base = URL(string: baseTrimmed), base.scheme != nil else { return nil }
+    /// オリジンに path が無いときだけ正規化したマウント path を付ける。URL の path がそれと同じなら付けない（pathPrefix の二重付与を防ぐ）。
+    private static func resolve(origin: String, pathPrefix: String) -> URL? {
+        let trimmed = origin.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), url.scheme != nil else { return nil }
 
-        let prefix = OpenAPIPathPrefix.normalizedPrefix(apiPathPrefix, defaultIfEmpty: "/api")
-        let segments = prefix.split(separator: "/").map(String.init)
-        var url = base
-        for seg in segments where !seg.isEmpty {
-            url = url.appendingPathComponent(seg)
+        let normalized = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
+        var urlPath = url.path
+        if urlPath.isEmpty { urlPath = "/" }
+        urlPath = OpenAPIPathPrefix.normalizedPrefix(urlPath, defaultIfEmpty: "/")
+
+        if urlPath == normalized {
+            return url
         }
-        return url
-    }
-
-    private static func originStringStrippingPath(of url: URL) -> String? {
-        var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        components?.path = ""
-        components?.query = nil
-        components?.fragment = nil
-        return components?.string
+        if urlPath == "/" {
+            var u = url
+            for seg in normalized.split(separator: "/").map(String.init) where !seg.isEmpty {
+                u = u.appendingPathComponent(seg)
+            }
+            return u
+        }
+        guard var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        c.path = ""
+        c.query = nil
+        c.fragment = nil
+        guard let originOnly = c.url else { return nil }
+        var u = originOnly
+        for seg in normalized.split(separator: "/").map(String.init) where !seg.isEmpty {
+            u = u.appendingPathComponent(seg)
+        }
+        return u
     }
 }

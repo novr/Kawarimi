@@ -8,35 +8,31 @@ private enum KawarimiExampleDefaults {
 }
 
 struct MainView: View {
-    @State private var serverBaseURLString: String
-    @State private var apiPathPrefixString: String
+    @State private var serverBaseURL: String
+    @State private var apiPathPrefix: String
 
     init() {
         let defaults = UserDefaults.standard
         let meta = KawarimiSpec.meta
-        let defaultBase = ServerURLNormalization.defaultServerBaseURLString(
-            openAPIServerURL: meta.serverURL,
-            apiPathPrefix: meta.apiPathPrefix
+        _serverBaseURL = State(
+            initialValue: defaults.string(forKey: KawarimiExampleDefaults.serverBaseURLKey) ?? meta.serverURL
         )
-        _serverBaseURLString = State(
-            initialValue: defaults.string(forKey: KawarimiExampleDefaults.serverBaseURLKey) ?? defaultBase
-        )
-        _apiPathPrefixString = State(
+        _apiPathPrefix = State(
             initialValue: defaults.string(forKey: KawarimiExampleDefaults.apiPathPrefixKey) ?? meta.apiPathPrefix
         )
     }
 
     var body: some View {
         TabView {
-            OpenAPIExecuteView(serverBaseURL: $serverBaseURLString, apiPathPrefix: $apiPathPrefixString)
+            OpenAPIExecuteView(serverBaseURL: $serverBaseURL, apiPathPrefix: $apiPathPrefix)
                 .tabItem { Label("OpenAPI", systemImage: "arrow.left.arrow.right.circle") }
-            HengeRootView(serverBaseURL: $serverBaseURLString, apiPathPrefix: $apiPathPrefixString)
+            HengeRootView(serverBaseURL: $serverBaseURL, apiPathPrefix: $apiPathPrefix)
                 .tabItem { Label("Henge", systemImage: "slider.horizontal.3") }
         }
-        .onChange(of: serverBaseURLString) { _, newValue in
+        .onChange(of: serverBaseURL) { _, newValue in
             UserDefaults.standard.set(newValue, forKey: KawarimiExampleDefaults.serverBaseURLKey)
         }
-        .onChange(of: apiPathPrefixString) { _, newValue in
+        .onChange(of: apiPathPrefix) { _, newValue in
             UserDefaults.standard.set(newValue, forKey: KawarimiExampleDefaults.apiPathPrefixKey)
         }
     }
