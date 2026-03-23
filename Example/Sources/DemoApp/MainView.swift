@@ -28,8 +28,8 @@ struct MainView: View {
 
     var body: some View {
         TabView {
-            OpenAPIFetchView(serverBaseURL: $serverBaseURLString, apiPathPrefix: $apiPathPrefixString)
-                .tabItem { Label("OpenAPI", systemImage: "arrow.down.circle") }
+            OpenAPIExecuteView(serverBaseURL: $serverBaseURLString, apiPathPrefix: $apiPathPrefixString)
+                .tabItem { Label("OpenAPI", systemImage: "arrow.left.arrow.right.circle") }
             HengeRootView(serverBaseURL: $serverBaseURLString, apiPathPrefix: $apiPathPrefixString)
                 .tabItem { Label("Henge", systemImage: "slider.horizontal.3") }
         }

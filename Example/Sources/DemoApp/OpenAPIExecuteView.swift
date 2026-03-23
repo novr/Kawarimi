@@ -4,7 +4,8 @@ import Foundation
 import KawarimiCore
 import SwiftUI
 
-struct OpenAPIFetchView: View {
+/// Spec に沿って URL・クエリ・ボディを組み立て任意メソッドで HTTP を送る（GET 専用ではない）。
+struct OpenAPIExecuteView: View {
     @Binding var serverBaseURL: String
     @Binding var apiPathPrefix: String
 
@@ -91,7 +92,7 @@ struct OpenAPIFetchView: View {
             }
 
             Button("実行") {
-                Task { await fetch() }
+                Task { await performRequest() }
             }
             .disabled(parsedOpenAPIBaseURL == nil || isRunning || currentEndpoint == nil)
 
@@ -144,7 +145,7 @@ struct OpenAPIFetchView: View {
         queryString = ""
     }
 
-    private func fetch() async {
+    private func performRequest() async {
         guard let base = parsedOpenAPIBaseURL,
               let ep = currentEndpoint else { return }
 
