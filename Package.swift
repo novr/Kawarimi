@@ -31,8 +31,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "Kawarimi",
-            dependencies: ["KawarimiCore"],
-            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+            dependencies: ["KawarimiCore"]
         ),
         .plugin(
             name: "KawarimiPlugin",
