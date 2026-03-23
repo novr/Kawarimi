@@ -9,19 +9,19 @@ public enum KawarimiConfigStoreError: Error, Sendable {
 
 public actor KawarimiConfigStore {
     private let configPath: String
-    private let storedPathPrefix: String
+    private let prefix: String
     private var cachedOverrides: [MockOverride]
 
     /// ミドルウェア・`registerHandlers` と同一パスでオーバーライドを解決する。
-    public var pathPrefix: String { storedPathPrefix }
+    public var pathPrefix: String { prefix }
 
-    public init(configPath: String, pathPrefix: String = "/api") throws {
+    public init(configPath: String, pathPrefix: String = OpenAPIPathPrefix.defaultMountPath) throws {
         let components = (configPath as NSString).pathComponents
         if components.contains("..") {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
         }
         self.configPath = configPath
-        self.storedPathPrefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix, defaultIfEmpty: "/api")
+        self.prefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
         if let data = FileManager.default.contents(atPath: configPath),
            let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
             self.cachedOverrides = config.overrides
@@ -35,7 +35,7 @@ public actor KawarimiConfigStore {
     }
 
     public func configure(_ override: MockOverride) throws {
-        let normalized = normalizing(override)
+        let normalized = normalize(override)
         if let body = normalized.body, body.utf8.count > MockOverride.maxBodyLength {
             throw KawarimiConfigStoreError.bodyTooLong(actual: body.utf8.count, limit: MockOverride.maxBodyLength)
         }
@@ -53,12 +53,11 @@ public actor KawarimiConfigStore {
     }
 
     /// インターセプタの `PathTemplate` 一致とパスをそろえる。
-    private func normalizing(_ override: MockOverride) -> MockOverride {
+    private func normalize(_ override: MockOverride) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
         }
-        let prefix = storedPathPrefix
         if !result.path.hasPrefix(prefix) {
             result.path = prefix + (result.path == "/" ? "" : result.path)
         }

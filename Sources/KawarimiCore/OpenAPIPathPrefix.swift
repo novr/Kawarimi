@@ -2,21 +2,26 @@ import Foundation
 
 /// servers URL・ConfigStore などで同じプレフィックス規則にそろえるための集約。
 public enum OpenAPIPathPrefix {
-    public static func normalizedPrefix(_ raw: String, defaultIfEmpty: String = "/api") -> String {
+    /// `servers` やプレフィックス未指定時のフォールバック（空入力を正規化するときの既定マウント path）。
+    public static let defaultMountPath = "/api"
+
+    /// - Parameter defaultIfEmpty: `raw` が空のときの代替。省略時は `defaultMountPath`。
+    public static func normalizedPrefix(_ raw: String, defaultIfEmpty: String? = nil) -> String {
+        let whenEmpty = defaultIfEmpty ?? defaultMountPath
         let trimmed = coreNormalize(raw)
         if trimmed.isEmpty {
-            let fallback = coreNormalize(defaultIfEmpty)
+            let fallback = coreNormalize(whenEmpty)
             if fallback.isEmpty {
-                return "/api"
+                return defaultMountPath
             }
             return fallback.hasPrefix("/") ? fallback : "/" + fallback
         }
         return trimmed
     }
 
-    /// OpenAPI ランタイムは `serverURL` の path だけ使うため、host は意味のない固定値でよい。
-    public static func serverURLForOpenAPIPathOnlyMount(pathPrefix raw: String) -> URL? {
-        let path = normalizedPrefix(raw, defaultIfEmpty: "/api")
+    /// `registerHandlers(..., serverURL:)` 向け。ランタイムは **path だけ**参照するので host は固定の無効ドメインでよい。
+    public static func stubServerURL(pathPrefix: String) -> URL? {
+        let path = normalizedPrefix(pathPrefix)
         var components = URLComponents()
         components.scheme = "https"
         components.host = "kawarimi.openapi.invalid"

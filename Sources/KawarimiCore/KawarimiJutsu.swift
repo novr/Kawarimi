@@ -219,16 +219,16 @@ public enum KawarimiJutsu {
         }
     }
 
-    static func apiPathPrefixFromOpenAPIDocument(_ document: OpenAPI.Document) -> String {
+    private static func pathPrefix(in document: OpenAPI.Document) -> String {
         guard let raw = document.servers.first?.urlTemplate.rawValue, !raw.isEmpty,
               let url = URL(string: raw) else {
-            return "/api"
+            return OpenAPIPathPrefix.defaultMountPath
         }
         let path = url.path
         if path.isEmpty {
-            return "/api"
+            return OpenAPIPathPrefix.defaultMountPath
         }
-        return OpenAPIPathPrefix.normalizedPrefix(path, defaultIfEmpty: "/api")
+        return OpenAPIPathPrefix.normalizedPrefix(path)
     }
 
     // MARK: - KawarimiSpec source emission
@@ -240,7 +240,7 @@ public enum KawarimiJutsu {
         let description = info.description
 
         let serverURLString = document.servers.first?.urlTemplate.rawValue ?? ""
-        let apiPathPrefix = apiPathPrefixFromOpenAPIDocument(document)
+        let apiPathPrefix = pathPrefix(in: document)
         let apiPathPrefixEscaped = escapeForSwiftStringLiteral(apiPathPrefix)
 
         let components = document.components

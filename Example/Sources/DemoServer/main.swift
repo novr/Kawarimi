@@ -5,7 +5,7 @@ import OpenAPIVapor
 import Vapor
 
 enum DemoServerError: Error {
-    case invalidOpenAPIServerURL
+    case invalidStubURL
 }
 
 @main
@@ -21,9 +21,8 @@ struct DemoServer {
         app.middleware.use(KawarimiInterceptorMiddleware(store: store))
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()
-        // ランタイムは path のみ参照するため `OpenAPIPathPrefix` でプレースホルダ host を使う。
-        guard let serverURL = OpenAPIPathPrefix.serverURLForOpenAPIPathOnlyMount(pathPrefix: await store.pathPrefix) else {
-            throw DemoServerError.invalidOpenAPIServerURL
+        guard let serverURL = OpenAPIPathPrefix.stubServerURL(pathPrefix: await store.pathPrefix) else {
+            throw DemoServerError.invalidStubURL
         }
         try handler.registerHandlers(on: transport, serverURL: serverURL)
         try await app.execute()
