@@ -21,7 +21,7 @@ public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     }
 }
 
-/// Henge API（`/__kawarimi/*`）用クライアント。Spec はジェネリックでデコードする。
+/// Henge API（`{baseURL}/__kawarimi/*`。`baseURL` は API のルート、例: `http://host:8080/api`）用クライアント。
 public struct KawarimiAPIClient: Sendable {
     public var baseURL: URL
     private let session: URLSession

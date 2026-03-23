@@ -8,6 +8,8 @@ public struct OverrideEditorView: View {
     private let fetchOverrides: () async throws -> [MockOverride]
     private let configureOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
+    /// Spec 取得後に `meta.apiPathPrefix` を書き戻す（OpenAPI タブのプレフィックスと揃える用）。
+    private let apiPathPrefixSync: Binding<String>?
 
     @State private var meta: (any SpecMetaProviding)?
     @State private var endpoints: [any SpecEndpointProviding] = []
@@ -28,12 +30,14 @@ public struct OverrideEditorView: View {
         specProvider: @escaping () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding]),
         fetchOverrides: @escaping () async throws -> [MockOverride],
         configureOverride: @escaping (MockOverride) async throws -> Void,
-        resetAllOverrides: @escaping () async throws -> Void
+        resetAllOverrides: @escaping () async throws -> Void,
+        apiPathPrefixSync: Binding<String>? = nil
     ) {
         self.specProvider = specProvider
         self.fetchOverrides = fetchOverrides
         self.configureOverride = configureOverride
         self.resetAllOverrides = resetAllOverrides
+        self.apiPathPrefixSync = apiPathPrefixSync
     }
 
     public var body: some View {
@@ -200,6 +204,9 @@ public struct OverrideEditorView: View {
             let overrides = try await fetchOverrides()
             meta = specResult.meta
             endpoints = specResult.endpoints
+            if let sync = apiPathPrefixSync {
+                sync.wrappedValue = specResult.meta.apiPathPrefix
+            }
             var codes: [String: Int] = [:]
             for endpoint in specResult.endpoints {
                 codes[rowKey(endpoint)] = -1
