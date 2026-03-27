@@ -91,13 +91,17 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     #expect(source.contains("return .ok(.init())"))
 }
 
-@Test func kawarimiHandlerUsesFatalErrorStubForStringEnumWhenPolicyIsDefault() throws {
+@Test func kawarimiHandlerUsesFatalErrorStubForStringEnumWhenPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture が見つかりません")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+        document: document,
+        namingStrategy: .defensive,
+        unsupportedHandlerStubPolicy: .fatalError
+    )
     #expect(source.contains("fatalError("))
     #expect(source.contains("onCreateItem"))
     #expect(!warnings.isEmpty)
@@ -105,7 +109,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     #expect(warnings.joined().contains("Kawarimi warning:"))
 }
 
-@Test func kawarimiHandlerThrowsForStringEnumWhenPolicyIsThrow() throws {
+@Test func kawarimiHandlerThrowsForStringEnumWhenAccessInternalEvenIfFatalErrorPolicy() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture が見つかりません")
         return
@@ -115,8 +119,24 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
         _ = try KawarimiJutsu.generateKawarimiHandlerSource(
             document: document,
             namingStrategy: .defensive,
-            unsupportedHandlerStubPolicy: .throw
+            accessModifier: .internal,
+            unsupportedHandlerStubPolicy: .fatalError
         )
+        Issue.record("internal では fatalError オプトインでも fail-fast になるべき")
+    } catch let e as KawarimiJutsuError {
+        #expect(e.description.contains("createItem"))
+        #expect(e.description.contains("enum"))
+    }
+}
+
+@Test func kawarimiHandlerThrowsForStringEnumWithDefaultFailFastPolicy() throws {
+    guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
+        Issue.record("fixture が見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    do {
+        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
         Issue.record("期待どおりエラーになりませんでした")
     } catch let e as KawarimiJutsuError {
         #expect(e.description.contains("createItem"))
@@ -124,18 +144,14 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     }
 }
 
-@Test func kawarimiHandlerThrowsOnMinimalReproOnEnumOperationWhenPolicyIsThrow() throws {
+@Test func kawarimiHandlerThrowsOnMinimalReproOnEnumOperationWithDefaultPolicy() throws {
     guard let url = fixtureURL(name: "openapi-minimal-repro", extension: "yaml") else {
         Issue.record("fixture が見つかりません")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     do {
-        _ = try KawarimiJutsu.generateKawarimiHandlerSource(
-            document: document,
-            namingStrategy: .defensive,
-            unsupportedHandlerStubPolicy: .throw
-        )
+        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
         Issue.record("enum 応答でエラーになるべき")
     } catch let e as KawarimiJutsuError {
         #expect(e.description.contains("createItem"))
@@ -162,7 +178,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     }
 }
 
-@Test func kawarimiUnsupportedHandlerStubParsesYaml() throws {
+@Test func kawarimiUnsupportedHandlerStubParsesYamlFatalError() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubPolicy-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -174,7 +190,24 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     """
     try spec.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
     let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
-    try "unsupportedHandlerStub: throw\n".write(toFile: config, atomically: true, encoding: .utf8)
+    try "unsupportedHandlerStub: fatalError\n".write(toFile: config, atomically: true, encoding: .utf8)
+    let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
+    #expect(loaded.unsupportedHandlerStubPolicy == .fatalError)
+}
+
+@Test func kawarimiUnsupportedHandlerStubDefaultsToThrowWhenKeyOmitted() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubOmit-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
+    let spec = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    paths: {}
+    """
+    try spec.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
+    let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
+    try "namingStrategy: defensive\n".write(toFile: config, atomically: true, encoding: .utf8)
     let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
     #expect(loaded.unsupportedHandlerStubPolicy == .throw)
 }

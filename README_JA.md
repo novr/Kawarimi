@@ -33,11 +33,11 @@ handler.onGetGreeting = { input in
 
 **要件:** 同一 SwiftPM パッケージ内の別ターゲット（テスト・アプリ・サーバ・別ライブラリなど）から API ターゲットを import する場合は、**`accessModifier` を `package` または `public`（Swift の可視性でいう `package` 以上）**にしてください。**`internal`** だと生成される `Operations.*`・`Client`・`Server`・`KawarimiHandler` が API モジュール内に閉じるため、import 側はコンパイルできません。
 
-**破壊的変更（0.4 以降）:** アップグレード後は再生成し、生成メソッド内に手編集していた内容は **`on…` への代入**に移してください。デフォルトスタブだけなら `KawarimiHandler()` のまま利用できます。
+**セマバ 0.x:** 破壊的変更があり得るので、アップグレード後は再生成し、差し替えは **`on…`** に寄せてください。`unsupportedHandlerStub` の挙動は §3 にまとめています。
 
 **生成エラー**には **`[METHOD /path]`** と、可能な範囲で **OpenAPI 上の schema 位置**（`responses.200` や `components.schemas.*` など）が含まれます。
 
-**ロードマップ（本リリース未実装）:** **文字列 enum の自動スタブ**（計画 B）は swift-openapi-generator のケース名と完全一致が必要。**合成 schema**（`allOf` / `oneOf` / …）は引き続き **生成失敗（C1）**。**テスト専用の劣化スタブ**（計画 D: コンパイル優先・`fatalError`）は未実装で、将来の明示オプトイン候補です。
+**ロードマップ（本リリース未実装）:** **文字列 enum の自動スタブ**（計画 B）は swift-openapi-generator のケース名と完全一致が必要。**合成 schema**（`allOf` / `oneOf` / …）は既定の **`throw`** では引き続き **生成失敗（C1）**。**`unsupportedHandlerStub: fatalError`** で「コンパイル優先・スタブ不能箇所は実行時 `fatalError`」を選べ、該当 operation ごとに stderr 警告が出ます。
 
 ## 使い方
 
@@ -47,7 +47,7 @@ handler.onGetGreeting = { input in
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.4.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.7.0"),
 ],
 targets: [
     .target(
@@ -71,7 +71,7 @@ targets: [
 
 Types/Client/Server の生成オプションは、`openapi.yaml` と**同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
 
-**Kawarimi がこのファイルから読むのは `namingStrategy`（`defensive` / `idiomatic`）、`accessModifier`（`public` / `package` / `internal`）、`unsupportedHandlerStub`（`fatalError` / `throw`）の 3 つです。** 前者 2 つは `KawarimiHandler` の `Operations.*` 参照と、`on…` / メソッドの可視性を swift-openapi-generator と揃えます。ファイルが無い、またはそれらのキー省略時は命名 **`defensive`**、アクセス **`public`**（ジェネレータ既定に合わせた Kawarimi 側の既定）です。**`unsupportedHandlerStub`** の既定は **`fatalError`** で、operation ごとに自動スタブを出せない場合は生成コードのクロージャ内で `fatalError(...)` とし、該当分だけ **stderr に警告**を出します（プラグイン／CLI の生成は成功のまま）。**`throw`** にするとその時点で生成失敗（ビルド失敗）にできます。その他のキーは主に公式ジェネレータ専用です。
+**Kawarimi がこのファイルから読むのは `namingStrategy`（`defensive` / `idiomatic`）、`accessModifier`（`public` / `package` / `internal`）、`unsupportedHandlerStub`（`fatalError` / `throw`）の 3 つです。** 前者 2 つは `KawarimiHandler` の `Operations.*` 参照と、`on…` / メソッドの可視性を swift-openapi-generator と揃えます。ファイルが無い、またはキー省略時は命名 **`defensive`**、アクセス **`public`**、**`unsupportedHandlerStub: throw`**（fail-fast）です。**`throw`:** スタブを出せない operation があると**生成失敗**。**`fatalError`:** **生成は成功**し、該当 operation のクロージャは **`fatalError(...)`** になり、CLI はその分 **stderr に警告**を出します（Xcode ではビルドログの Kawarimi ステップを確認）。その他のキーは主に公式ジェネレータ専用です。
 
 **要件（別ターゲットから import する場合）:** **`accessModifier: package`** または **`public`** を使うこと。**`internal`** は、生成 API をそのターゲット内だけで完結させる場合に限り有効です。
 
@@ -218,6 +218,6 @@ Types/Client/Server と Kawarimi（モック・ハンドラ）の生成順を保
 ## 要件・詳細
 
 - Swift 6.2+ / macOS 14+。
-- **KawarimiHandler スタブ:** 各 operation は **HTTP 200 または 201** で **`application/json`** かつ Kawarimi が単純な `.init(...)` に落とせる JSON schema を持つか、**200/201 で `content` を書かない**（ボディなし成功 — swift-openapi-generator と同様に `.ok(.init())` / `.created(.init())` を出す）、**または 204 のみ**（`.noContent`）である必要があります。`application/json` と書いてあるのに schema を解決できない、**JSON 以外の content のみ**、**レスポンスヘッダーだけ**でボディが無い、schema が **列挙（`allowedValues`）** や **allOf/oneOf/anyOf/not** などの場合は、コンパイル不能なコードを出さず**生成をエラーで中止**します。エラー文には **`[METHOD /path]`** と schema 位置のヒントが含まれることがあります。対応できない形は **fail-fast** のままなので、スキーマ分割・**`on…` での手実装**・自前 `APIProtocol` などで対処してください。
+- **KawarimiHandler スタブ（既定 `unsupportedHandlerStub: throw`）:** 各 operation は **HTTP 200 または 201** で **`application/json`** かつ Kawarimi が単純な `.init(...)` に落とせる JSON schema を持つか、**200/201 で `content` を書かない**（ボディなし成功 — swift-openapi-generator と同様に `.ok(.init())` / `.created(.init())` を出す）、**または 204 のみ**（`.noContent`）である必要があります。`application/json` と書いてあるのに schema を解決できない、**JSON 以外の content のみ**、**レスポンスヘッダーだけ**でボディが無い、schema が **列挙（`allowedValues`）** や **allOf/oneOf/anyOf/not** などの場合は、コンパイル不能なコードを出さず**生成をエラーで中止**します。エラー文には **`[METHOD /path]`** と schema 位置のヒントが含まれることがあります。**`unsupportedHandlerStub: fatalError`** のときはビルドは通りますが、該当 operation を呼ぶと**実行時に trap** します。スキーマ分割・**`on…` での手実装**・自前 `APIProtocol` などで対処してください。
 - **Kawarimi** モック（`Kawarimi.swift`）は従来どおり 200 + JSON + `components/schemas` の `$ref` を想定した動きです。
 - 詳しくはリポジトリを参照。

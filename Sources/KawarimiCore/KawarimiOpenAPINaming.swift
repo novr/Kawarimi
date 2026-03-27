@@ -42,10 +42,17 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
     public var accessModifier: KawarimiAccessModifier
     public var unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy
 
+    /// Used when `openapi-generator-config` is missing or when a key is omitted (matches swift-openapi-generator defaults for naming / access).
+    public static let defaults = KawarimiGeneratorConfigYAML(
+        namingStrategy: .defensive,
+        accessModifier: .public,
+        unsupportedHandlerStubPolicy: .throw
+    )
+
     public init(
-        namingStrategy: KawarimiNamingStrategy,
-        accessModifier: KawarimiAccessModifier,
-        unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy = .fatalError
+        namingStrategy: KawarimiNamingStrategy = Self.defaults.namingStrategy,
+        accessModifier: KawarimiAccessModifier = Self.defaults.accessModifier,
+        unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy = Self.defaults.unsupportedHandlerStubPolicy
     ) {
         self.namingStrategy = namingStrategy
         self.accessModifier = accessModifier
@@ -59,11 +66,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             dir.appendingPathComponent("openapi-generator-config.yml"),
         ]
         guard let configURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
-            return KawarimiGeneratorConfigYAML(
-                namingStrategy: .defensive,
-                accessModifier: .public,
-                unsupportedHandlerStubPolicy: .fatalError
-            )
+            return defaults
         }
         guard let data = FileManager.default.contents(atPath: configURL.path),
               let text = String(data: data, encoding: .utf8)
@@ -92,7 +95,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             }
             naming = strategy
         } else {
-            naming = .defensive
+            naming = Self.defaults.namingStrategy
         }
         let access: KawarimiAccessModifier
         if let raw = parsed.accessModifier?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
@@ -104,7 +107,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             }
             access = modifier
         } else {
-            access = .public
+            access = Self.defaults.accessModifier
         }
         let stubPolicy: KawarimiHandlerUnsupportedStubPolicy
         if let raw = parsed.unsupportedHandlerStub?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
@@ -117,7 +120,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             }
             stubPolicy = policy
         } else {
-            stubPolicy = .fatalError
+            stubPolicy = Self.defaults.unsupportedHandlerStubPolicy
         }
         return KawarimiGeneratorConfigYAML(
             namingStrategy: naming,

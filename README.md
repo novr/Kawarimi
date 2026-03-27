@@ -33,11 +33,11 @@ Closures are typed **`@Sendable (Operations.….Input) async throws -> Operation
 
 **Requirement:** if another SwiftPM target in the same package imports your API target (tests, app, server, another library), set **`accessModifier` to `package` or `public`** (`package` or higher in Swift’s visibility order). **`internal`** keeps generated `Operations.*`, `Client`, `Server`, and `KawarimiHandler` symbols inside the API module only, so those importers will not compile.
 
-**Breaking change (0.4 onward):** Regenerate after upgrading; move any edits you made inside generated methods into **`on…`** assignments. `public init()` with default stubs is unchanged for callers that only use `KawarimiHandler()`.
+**0.x semver:** Breaking changes may appear in any release—regenerate after upgrading and keep overrides on **`on…`**. **`unsupportedHandlerStub`** behavior is summarized in §3.
 
 **Generation errors** include **`[METHOD /path]`** and an **OpenAPI-oriented schema path** (e.g. `responses.200` and `components.schemas.*`) where applicable, to speed up spec fixes.
 
-**Roadmap (not in this release):** automatic stubs for **string enums** (plan B) would need strict alignment with swift-openapi-generator naming. **Composite schemas** (`allOf` / `oneOf` / …) stay **fail-fast (C1)**. A **test-only “degraded stub” mode** (plan D: compile-first, `fatalError` where stubs are impossible) is not implemented; it would be an explicit future opt-in if added.
+**Roadmap (not in this release):** automatic stubs for **string enums** (plan B) would need strict alignment with swift-openapi-generator naming. **Composite schemas** (`allOf` / `oneOf` / …) stay **fail-fast (C1)** under the default policy. Opt-in **`unsupportedHandlerStub: fatalError`** covers the “compile first, `fatalError` where stubs are impossible” trade-off, with stderr warnings per affected operation.
 
 ## Usage
 
@@ -47,7 +47,7 @@ Closures are typed **`@Sendable (Operations.….Input) async throws -> Operation
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.4.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.7.0"),
 ],
 targets: [
     .target(
@@ -71,7 +71,7 @@ Put one openapi.yaml in the target’s source directory. The build generates Typ
 
 To configure Types/Client/Server generation, add `openapi-generator-config.yaml` (or `.yml`) in the **same directory as `openapi.yaml`** and use [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration).
 
-**Kawarimi reads three keys from that file:** `namingStrategy` (`defensive` or `idiomatic`), **`accessModifier`** (`public`, `package`, or `internal`), and **`unsupportedHandlerStub`** (`fatalError` or `throw`). `namingStrategy` and `accessModifier` must match swift-openapi-generator so `KawarimiHandler`’s `Operations.*` references and member visibility stay aligned. If the file is missing or those keys are omitted, Kawarimi uses **`defensive`** naming and **`public`** access (generator defaults). **`unsupportedHandlerStub`** defaults to **`fatalError`**: when an operation cannot get an automatic handler stub, the generator emits a closure body that calls `fatalError(...)` and prints a **warning line to stderr** for each such operation (plugin/CLI build still succeeds). Use **`throw`** to fail generation instead (same as pre-0.4 behavior for unsupported stubs). Other keys (`generate`, `filter`, …) affect only swift-openapi-generator except as noted.
+**Kawarimi reads three keys from that file:** `namingStrategy` (`defensive` or `idiomatic`), **`accessModifier`** (`public`, `package`, or `internal`), and **`unsupportedHandlerStub`** (`fatalError` or `throw`). `namingStrategy` and `accessModifier` must match swift-openapi-generator so `KawarimiHandler`’s `Operations.*` references and member visibility stay aligned. If the file is missing or those keys are omitted, Kawarimi uses **`defensive`** naming, **`public`** access, and **`unsupportedHandlerStub: throw`** (fail-fast). **`throw`:** generation **fails** when a stub cannot be produced. **`fatalError`:** generation **succeeds**; affected operations get **`fatalError(...)`** in the generated closure and the CLI prints one **stderr warning** per such operation (easy to miss in Xcode—check the Kawarimi build step log). Other keys (`generate`, `filter`, …) affect only swift-openapi-generator except as noted.
 
 **Requirement (cross-target imports):** use **`accessModifier: package`** or **`public`** when any sibling target imports the API module. **`internal`** is only viable if the generated API is used entirely within that single target.
 
@@ -220,6 +220,6 @@ Ways to guarantee the order of generating Types/Client/Server vs Kawarimi (mock/
 ## Requirements and details
 
 - Swift 6.2+ / macOS 14+.
-- **KawarimiHandler stubs:** each operation needs **HTTP 200 or 201** with **`application/json`** and a JSON schema Kawarimi can turn into a trivial `.init(...)` expression, **or** **200/201 with no `content`** (empty success body — emits `.ok(.init())` / `.created(.init())` like swift-openapi-generator), **or** **204** only (`.noContent`). If `application/json` is declared but the schema cannot be resolved, if 200/201 declares **only non-JSON** content, if **response headers** are defined without a body, or if the schema uses **enums** (`allowedValues`), **allOf/oneOf/anyOf/not**, etc., generation **stops with an error** instead of emitting non-compiling code. Error text includes **`[METHOD /path]`** and schema location hints where possible. Unsupported shapes remain **fail-fast**; split the spec, customize via **`on…`**, or hand-roll `APIProtocol` if needed.
+- **KawarimiHandler stubs (default `unsupportedHandlerStub: throw`):** each operation needs **HTTP 200 or 201** with **`application/json`** and a JSON schema Kawarimi can turn into a trivial `.init(...)` expression, **or** **200/201 with no `content`** (empty success body — emits `.ok(.init())` / `.created(.init())` like swift-openapi-generator), **or** **204** only (`.noContent`). If `application/json` is declared but the schema cannot be resolved, if 200/201 declares **only non-JSON** content, if **response headers** are defined without a body, or if the schema uses **enums** (`allowedValues`), **allOf/oneOf/anyOf/not**, etc., generation **stops with an error** instead of emitting non-compiling code. Error text includes **`[METHOD /path]`** and schema location hints where possible. With **`unsupportedHandlerStub: fatalError`**, the build still succeeds but those operations **trap at runtime** if called; split the spec, customize via **`on…`**, or hand-roll `APIProtocol` if needed.
 - **Kawarimi** mock transport (`Kawarimi.swift`): still oriented toward 200 + JSON + `$ref` to `components/schemas` for response bodies (see examples).
 - See the repository for more.
