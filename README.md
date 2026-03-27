@@ -44,7 +44,11 @@ Put one openapi.yaml in the target’s source directory. The build generates Typ
 
 ### 3. Optional: official generator config
 
-To configure Types/Client/Server generation, add openapi-generator-config.yaml in the same directory and use [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration).
+To configure Types/Client/Server generation, add `openapi-generator-config.yaml` (or `.yml`) in the **same directory as `openapi.yaml`** and use [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration).
+
+**Kawarimi reads only one key from that file:** `namingStrategy` (`defensive` or `idiomatic`). This keeps `KawarimiHandler`’s `Operations.*` references aligned with swift-openapi-generator. If the file is missing or the key is omitted, Kawarimi uses **`defensive`**, matching the generator’s default. Other keys (`generate`, `accessModifier`, `filter`, …) affect only swift-openapi-generator, not Kawarimi’s generator.
+
+The `Kawarimi` CLI and `KawarimiPlugin` look for `openapi-generator-config.yaml` then `openapi-generator-config.yml` next to `openapi.yaml`.
 
 ### 4. Use mock in tests
 
@@ -189,5 +193,6 @@ Ways to guarantee the order of generating Types/Client/Server vs Kawarimi (mock/
 ## Requirements and details
 
 - Swift 6.2+ / macOS 14+.
-- Supported: 200 + `application/json` operations; schemas referencing `components/schemas` via `$ref`.
+- **KawarimiHandler stubs:** each operation needs **HTTP 200 or 201** with **`application/json`** and a JSON schema Kawarimi can turn into a trivial `.init(...)` expression, **or** **200/201 with no `content`** (empty success body — emits `.ok(.init())` / `.created(.init())` like swift-openapi-generator), **or** **204** only (`.noContent`). If `application/json` is declared but the schema cannot be resolved, if 200/201 declares **only non-JSON** content, if **response headers** are defined without a body, or if the schema uses **enums** (`allowedValues`), **allOf/oneOf/anyOf/not**, etc., generation **stops with an error** instead of emitting non-compiling code.
+- **Kawarimi** mock transport (`Kawarimi.swift`): still oriented toward 200 + JSON + `$ref` to `components/schemas` for response bodies (see examples).
 - See the repository for more.

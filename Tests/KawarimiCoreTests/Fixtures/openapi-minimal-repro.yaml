@@ -1,0 +1,65 @@
+openapi: 3.0.3
+info:
+  title: Kawarimi minimal reproduction
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+paths:
+  /greeting:
+    get:
+      operationId: getGreeting
+      summary: Simple JSON 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                properties:
+                  message:
+                    type: string
+                    example: hello
+  /agree:
+    post:
+      operationId: agreeToTerms
+      summary: 200 without JSON body (Kawarimi stub vs generator Output)
+      responses:
+        '200':
+          description: Success with no content block
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /items:
+    post:
+      operationId: createItem
+      summary: Enum in response body (string literal stub mismatch)
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - pending
+components:
+  schemas:
+    ErrorBody:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
