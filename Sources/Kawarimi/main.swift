@@ -16,6 +16,7 @@ struct Kawarimi {
 
         do {
             let generatorConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: inputPath)
+            let stubPolicy = try resolveUnsupportedHandlerStubPolicyFromEnv()
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
             let outputDir = URL(fileURLWithPath: outputDirPath)
             try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
@@ -23,7 +24,7 @@ struct Kawarimi {
                 document: document,
                 namingStrategy: generatorConfig.namingStrategy,
                 accessModifier: generatorConfig.accessModifier,
-                unsupportedHandlerStubPolicy: generatorConfig.unsupportedHandlerStubPolicy
+                unsupportedHandlerStubPolicy: stubPolicy
             )
             for line in handlerWarnings {
                 fputs("\(line)\n", stderr)
@@ -38,5 +39,21 @@ struct Kawarimi {
             fputs("Error: \(error)\n", stderr)
             exit(1)
         }
+    }
+
+    private static func resolveUnsupportedHandlerStubPolicyFromEnv() throws -> KawarimiHandlerUnsupportedStubPolicy {
+        guard let raw = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !raw.isEmpty
+        else {
+            return KawarimiGeneratorConfigYAML.defaults.unsupportedHandlerStubPolicy
+        }
+        guard let policy = KawarimiHandlerUnsupportedStubPolicy(rawValue: raw) else {
+            throw KawarimiJutsuError.generatorConfigInvalid(
+                path: "KAWARIMI_CONFIG",
+                reason: "未対応の unsupportedHandlerStub: \(raw)（fatalError または throw のみ）"
+            )
+        }
+        return policy
     }
 }
