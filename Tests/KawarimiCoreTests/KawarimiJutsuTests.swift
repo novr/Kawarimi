@@ -109,24 +109,22 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     #expect(warnings.joined().contains("Kawarimi warning:"))
 }
 
-@Test func kawarimiHandlerThrowsForStringEnumWhenAccessInternalEvenIfFatalErrorPolicy() throws {
+@Test func kawarimiHandlerUsesFatalErrorStubWhenAccessInternalAndPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture が見つかりません")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    do {
-        _ = try KawarimiJutsu.generateKawarimiHandlerSource(
-            document: document,
-            namingStrategy: .defensive,
-            accessModifier: .internal,
-            unsupportedHandlerStubPolicy: .fatalError
-        )
-        Issue.record("internal では fatalError オプトインでも fail-fast になるべき")
-    } catch let e as KawarimiJutsuError {
-        #expect(e.description.contains("createItem"))
-        #expect(e.description.contains("enum"))
-    }
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+        document: document,
+        namingStrategy: .defensive,
+        accessModifier: .internal,
+        unsupportedHandlerStubPolicy: .fatalError
+    )
+    #expect(source.contains("internal var onCreateItem:"))
+    #expect(source.contains("fatalError("))
+    #expect(!warnings.isEmpty)
+    #expect(warnings.joined().contains("createItem"))
 }
 
 @Test func kawarimiHandlerThrowsForStringEnumWithDefaultFailFastPolicy() throws {
