@@ -38,7 +38,6 @@ public struct KawarimiAPIClient: Sendable {
         }
     }
 
-    /// `T` は OpenAPI プラグインが生成した `SpecResponse` など、サーバの JSON と一致する型。
     public func fetchSpec<T: Decodable & Sendable>(as type: T.Type) async throws -> T {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("spec")
         let (data, response) = try await session.data(from: url)

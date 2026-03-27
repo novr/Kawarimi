@@ -2,10 +2,8 @@ import Foundation
 
 /// servers URL・ConfigStore などで同じプレフィックス規則にそろえるための集約。
 public enum OpenAPIPathPrefix {
-    /// `servers` やプレフィックス未指定時のフォールバック（空入力を正規化するときの既定マウント path）。
     public static let defaultMountPath = "/api"
 
-    /// - Parameter defaultIfEmpty: `raw` が空のときの代替。省略時は `defaultMountPath`。
     public static func normalizedPrefix(_ raw: String, defaultIfEmpty: String? = nil) -> String {
         let whenEmpty = defaultIfEmpty ?? defaultMountPath
         let trimmed = coreNormalize(raw)

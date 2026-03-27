@@ -1,11 +1,8 @@
 # swift-openapi-generator: generate は配列で指定する（Sequence）
 # https://github.com/apple/swift-openapi-generator#configuration
 #
-# Kawarimi はこのファイルから namingStrategy のみ参照する（省略時は defensive）。
-# idiomatic にすると KawarimiHandler の Operations.* 型名がパスカルケース側に揃う。
 generate:
   - types
   - client
   - server
-# KawarimiPlugin の package ハンドラが Operations.* を参照するため、同じ access に揃える
 accessModifier: package

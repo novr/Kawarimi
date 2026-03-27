@@ -57,6 +57,8 @@ import Testing
     let handlerGenerated = try String(contentsOf: handlerURL, encoding: .utf8)
     #expect(handlerGenerated.contains("public struct KawarimiHandler"), "KawarimiHandler.swift に型名が含まれること")
     #expect(handlerGenerated.contains("APIProtocol"))
+    #expect(handlerGenerated.contains("public var onGetGreeting:"), "witness 用 on… プロパティが含まれること")
+    #expect(handlerGenerated.contains("try await onGetGreeting(input)"))
     #expect(handlerGenerated.contains("getGreeting"), "openapi の operationId に対応するメソッドが含まれること")
     #expect(handlerGenerated.contains("deleteItem"), "DELETE 204 系 operation がハンドラに含まれること")
 }

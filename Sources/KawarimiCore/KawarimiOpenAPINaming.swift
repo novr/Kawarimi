@@ -11,40 +11,59 @@
 import Foundation
 import Yams
 
-/// Mirrors `swift-openapi-generator`’s `namingStrategy` values (1.10.x).
+/// Must match swift-openapi-generator so `Operations.*` / method names align.
 public enum KawarimiNamingStrategy: String, Sendable, CaseIterable, Codable, Equatable {
-    /// Default for `swift-openapi-generator` when `namingStrategy` is omitted.
     case defensive
     case idiomatic
 }
 
-extension KawarimiNamingStrategy {
-    /// Swift type name for `Operations.<Name>` (nested operation namespace).
-    public func swiftOperationTypeName(forOperationId operationID: String) -> String {
+/// Must match swift-openapi-generator so handler members can use `Operations.*` types.
+public enum KawarimiAccessModifier: String, Sendable, CaseIterable, Codable, Equatable {
+    case `public`
+    case package
+    case `internal`
+
+    var swiftKeyword: String {
         switch self {
-        case .defensive: DefensiveSafeNameGenerator().swiftTypeName(for: operationID)
-        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: operationID)
+        case .public: return "public"
+        case .package: return "package"
+        case .internal: return "internal"
         }
     }
+}
 
-    /// Swift method name for `APIProtocol` / `KawarimiHandler` methods.
-    public func swiftOperationMethodName(forOperationId operationID: String) -> String {
-        switch self {
-        case .defensive: DefensiveSafeNameGenerator().swiftMemberName(for: operationID)
-        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftMemberName(for: operationID)
-        }
+public enum KawarimiHandlerUnsupportedStubPolicy: String, Sendable, CaseIterable, Codable, Equatable {
+    case fatalError
+    case `throw`
+}
+
+public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
+    public var namingStrategy: KawarimiNamingStrategy
+    public var accessModifier: KawarimiAccessModifier
+    public var unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy
+
+    public init(
+        namingStrategy: KawarimiNamingStrategy,
+        accessModifier: KawarimiAccessModifier,
+        unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy = .fatalError
+    ) {
+        self.namingStrategy = namingStrategy
+        self.accessModifier = accessModifier
+        self.unsupportedHandlerStubPolicy = unsupportedHandlerStubPolicy
     }
 
-    /// Reads only `namingStrategy` from `openapi-generator-config.yaml` or `.yml` next to the OpenAPI file.
-    /// If no config file exists, or the key is omitted, returns `.defensive` (generator default).
-    public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiNamingStrategy {
+    public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiGeneratorConfigYAML {
         let dir = URL(fileURLWithPath: openAPIYAMLPath).deletingLastPathComponent()
         let candidates = [
             dir.appendingPathComponent("openapi-generator-config.yaml"),
             dir.appendingPathComponent("openapi-generator-config.yml"),
         ]
         guard let configURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
-            return .defensive
+            return KawarimiGeneratorConfigYAML(
+                namingStrategy: .defensive,
+                accessModifier: .public,
+                unsupportedHandlerStubPolicy: .fatalError
+            )
         }
         guard let data = FileManager.default.contents(atPath: configURL.path),
               let text = String(data: data, encoding: .utf8)
@@ -54,32 +73,86 @@ extension KawarimiNamingStrategy {
                 reason: "ファイルを読み込めませんでした"
             )
         }
-        let parsed: OpenAPIGeneratorConfigNamingSlice
+        let parsed: OpenAPIGeneratorConfigKawarimiSlice
         do {
-            parsed = try YAMLDecoder().decode(OpenAPIGeneratorConfigNamingSlice.self, from: text)
+            parsed = try YAMLDecoder().decode(OpenAPIGeneratorConfigKawarimiSlice.self, from: text)
         } catch {
             throw KawarimiJutsuError.generatorConfigInvalid(
                 path: configURL.path,
                 reason: String(describing: error)
             )
         }
-        guard let raw = parsed.namingStrategy?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return .defensive
+        let naming: KawarimiNamingStrategy
+        if let raw = parsed.namingStrategy?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            guard let strategy = KawarimiNamingStrategy(rawValue: raw) else {
+                throw KawarimiJutsuError.generatorConfigInvalid(
+                    path: configURL.path,
+                    reason: "未対応の namingStrategy: \(raw)（defensive または idiomatic のみ）"
+                )
+            }
+            naming = strategy
+        } else {
+            naming = .defensive
         }
-        guard let strategy = KawarimiNamingStrategy(rawValue: raw) else {
-            throw KawarimiJutsuError.generatorConfigInvalid(
-                path: configURL.path,
-                reason: "未対応の namingStrategy: \(raw)（defensive または idiomatic のみ）"
-            )
+        let access: KawarimiAccessModifier
+        if let raw = parsed.accessModifier?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            guard let modifier = KawarimiAccessModifier(rawValue: raw) else {
+                throw KawarimiJutsuError.generatorConfigInvalid(
+                    path: configURL.path,
+                    reason: "未対応の accessModifier: \(raw)（public / package / internal のみ）"
+                )
+            }
+            access = modifier
+        } else {
+            access = .public
         }
-        return strategy
+        let stubPolicy: KawarimiHandlerUnsupportedStubPolicy
+        if let raw = parsed.unsupportedHandlerStub?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            guard let policy = KawarimiHandlerUnsupportedStubPolicy(rawValue: raw) else {
+                throw KawarimiJutsuError.generatorConfigInvalid(
+                    path: configURL.path,
+                    reason:
+                        "未対応の unsupportedHandlerStub: \(raw)（fatalError または throw のみ）"
+                )
+            }
+            stubPolicy = policy
+        } else {
+            stubPolicy = .fatalError
+        }
+        return KawarimiGeneratorConfigYAML(
+            namingStrategy: naming,
+            accessModifier: access,
+            unsupportedHandlerStubPolicy: stubPolicy
+        )
     }
 }
 
-// MARK: - Config YAML (Kawarimi reads `namingStrategy` only; other keys are ignored)
+extension KawarimiNamingStrategy {
+    public func swiftOperationTypeName(forOperationId operationID: String) -> String {
+        switch self {
+        case .defensive: DefensiveSafeNameGenerator().swiftTypeName(for: operationID)
+        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: operationID)
+        }
+    }
 
-private struct OpenAPIGeneratorConfigNamingSlice: Decodable {
+    public func swiftOperationMethodName(forOperationId operationID: String) -> String {
+        switch self {
+        case .defensive: DefensiveSafeNameGenerator().swiftMemberName(for: operationID)
+        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftMemberName(for: operationID)
+        }
+    }
+
+    public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiNamingStrategy {
+        try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIYAMLPath).namingStrategy
+    }
+}
+
+// MARK: - Config YAML
+
+private struct OpenAPIGeneratorConfigKawarimiSlice: Decodable {
     var namingStrategy: String?
+    var accessModifier: String?
+    var unsupportedHandlerStub: String?
 }
 
 // MARK: - String helpers (from Swift OpenAPI Generator)
@@ -104,7 +177,6 @@ private protocol SafeNameGenerator {
     func swiftMemberName(for documentedName: String) -> String
 }
 
-/// SOAR-0001-style defensive naming.
 private struct DefensiveSafeNameGenerator: SafeNameGenerator {
     func swiftTypeName(for documentedName: String) -> String { swiftName(for: documentedName) }
     func swiftMemberName(for documentedName: String) -> String { swiftName(for: documentedName) }
@@ -163,7 +235,6 @@ private struct DefensiveSafeNameGenerator: SafeNameGenerator {
     ]
 }
 
-/// SOAR-0013-style idiomatic naming (falls back to defensive).
 private struct IdiomaticSafeNameGenerator: SafeNameGenerator {
     var defensive: DefensiveSafeNameGenerator
 
