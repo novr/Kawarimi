@@ -53,6 +53,17 @@ import Testing
     #expect(decoded.overrides[1].body == nil)
 }
 
+@Test func kawarimiConfigDecodesUnsupportedHandlerStubWithoutOverrides() throws {
+    let json = """
+    {
+      "unsupportedHandlerStub": "fatalError"
+    }
+    """.data(using: .utf8)!
+    let decoded = try JSONDecoder().decode(KawarimiConfig.self, from: json)
+    #expect(decoded.overrides.isEmpty)
+    #expect(decoded.unsupportedHandlerStub == "fatalError")
+}
+
 @Test func mockOverrideEquatable() {
     let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, mockId: "m", body: "{}")
     let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, mockId: "m", body: "{}")

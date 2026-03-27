@@ -176,7 +176,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     }
 }
 
-@Test func kawarimiUnsupportedHandlerStubParsesYamlFatalError() throws {
+@Test func kawarimiUnsupportedHandlerStubInYamlIsIgnoredAndDefaultsToThrow() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubPolicy-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -190,7 +190,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
     try "unsupportedHandlerStub: fatalError\n".write(toFile: config, atomically: true, encoding: .utf8)
     let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
-    #expect(loaded.unsupportedHandlerStubPolicy == .fatalError)
+    #expect(loaded.unsupportedHandlerStubPolicy == .throw)
 }
 
 @Test func kawarimiUnsupportedHandlerStubDefaultsToThrowWhenKeyOmitted() throws {
@@ -208,24 +208,6 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     try "namingStrategy: defensive\n".write(toFile: config, atomically: true, encoding: .utf8)
     let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
     #expect(loaded.unsupportedHandlerStubPolicy == .throw)
-}
-
-@Test func kawarimiUnsupportedHandlerStubRejectsUnknownValue() throws {
-    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubPolicyBad-\(UUID().uuidString)")
-    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: tmp) }
-    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
-    let spec = """
-    openapi: 3.0.3
-    info: { title: T, version: '1' }
-    paths: {}
-    """
-    try spec.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
-    let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
-    try "unsupportedHandlerStub: crash\n".write(toFile: config, atomically: true, encoding: .utf8)
-    #expect(throws: KawarimiJutsuError.self) {
-        _ = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
-    }
 }
 
 @Test func kawarimiAccessModifierRejectsUnknownValue() throws {

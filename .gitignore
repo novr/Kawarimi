@@ -9,6 +9,6 @@ DerivedData/
 docs/
 
 ## Example
-Example/config.json
+Example/kawarimi.json
 Example/.swiftpm
 Example/Package.resolved

@@ -109,23 +109,10 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
         } else {
             access = Self.defaults.accessModifier
         }
-        let stubPolicy: KawarimiHandlerUnsupportedStubPolicy
-        if let raw = parsed.unsupportedHandlerStub?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
-            guard let policy = KawarimiHandlerUnsupportedStubPolicy(rawValue: raw) else {
-                throw KawarimiJutsuError.generatorConfigInvalid(
-                    path: configURL.path,
-                    reason:
-                        "未対応の unsupportedHandlerStub: \(raw)（fatalError または throw のみ）"
-                )
-            }
-            stubPolicy = policy
-        } else {
-            stubPolicy = Self.defaults.unsupportedHandlerStubPolicy
-        }
         return KawarimiGeneratorConfigYAML(
             namingStrategy: naming,
             accessModifier: access,
-            unsupportedHandlerStubPolicy: stubPolicy
+            unsupportedHandlerStubPolicy: Self.defaults.unsupportedHandlerStubPolicy
         )
     }
 }
@@ -155,7 +142,6 @@ extension KawarimiNamingStrategy {
 private struct OpenAPIGeneratorConfigKawarimiSlice: Decodable {
     var namingStrategy: String?
     var accessModifier: String?
-    var unsupportedHandlerStub: String?
 }
 
 // MARK: - String helpers (from Swift OpenAPI Generator)

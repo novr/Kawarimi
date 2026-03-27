@@ -16,6 +16,7 @@ struct Kawarimi {
 
         do {
             let generatorConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: inputPath)
+            let stubPolicy = try resolveUnsupportedHandlerStubPolicyFromKawarimiConfig(openAPIPath: inputPath)
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
             let outputDir = URL(fileURLWithPath: outputDirPath)
             try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
@@ -23,7 +24,7 @@ struct Kawarimi {
                 document: document,
                 namingStrategy: generatorConfig.namingStrategy,
                 accessModifier: generatorConfig.accessModifier,
-                unsupportedHandlerStubPolicy: generatorConfig.unsupportedHandlerStubPolicy
+                unsupportedHandlerStubPolicy: stubPolicy
             )
             for line in handlerWarnings {
                 fputs("\(line)\n", stderr)
@@ -38,5 +39,43 @@ struct Kawarimi {
             fputs("Error: \(error)\n", stderr)
             exit(1)
         }
+    }
+
+    private static func resolveUnsupportedHandlerStubPolicyFromKawarimiConfig(
+        openAPIPath: String
+    ) throws -> KawarimiHandlerUnsupportedStubPolicy {
+        let config = try loadKawarimiConfig(openAPIPath: openAPIPath)
+        guard let raw = config.unsupportedHandlerStub?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return KawarimiGeneratorConfigYAML.defaults.unsupportedHandlerStubPolicy
+        }
+        guard let policy = KawarimiHandlerUnsupportedStubPolicy(rawValue: raw) else {
+            throw KawarimiJutsuError.generatorConfigInvalid(
+                path: kawarimiConfigPath(openAPIPath: openAPIPath),
+                reason: "未対応の unsupportedHandlerStub: \(raw)（fatalError または throw のみ）"
+            )
+        }
+        return policy
+    }
+
+    private static func loadKawarimiConfig(openAPIPath: String) throws -> KawarimiConfig {
+        let configPath = kawarimiConfigPath(openAPIPath: openAPIPath)
+        guard let data = FileManager.default.contents(atPath: configPath) else {
+            return KawarimiConfig()
+        }
+        do {
+            return try JSONDecoder().decode(KawarimiConfig.self, from: data)
+        } catch {
+            throw KawarimiJutsuError.generatorConfigInvalid(
+                path: configPath,
+                reason: "kawarimi.json の JSON を読み込めませんでした: \(error)"
+            )
+        }
+    }
+
+    private static func kawarimiConfigPath(openAPIPath: String) -> String {
+        URL(fileURLWithPath: openAPIPath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("kawarimi.json")
+            .path
     }
 }
