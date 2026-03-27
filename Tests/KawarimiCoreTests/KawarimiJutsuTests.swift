@@ -2,13 +2,17 @@ import Foundation
 import KawarimiCore
 import Testing
 
+private func fixtureURL(name: String, extension ext: String, subdirectory: String = "Fixtures") -> URL? {
+    Bundle.module.url(forResource: name, withExtension: ext, subdirectory: subdirectory)
+}
+
 @Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
-    guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
+    guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let source = KawarimiJutsu.generateKawarimiHandlerSource(document: document)
+    let source = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
 
     #expect(source.contains("public struct KawarimiHandler"))
     #expect(source.contains("APIProtocol"))
@@ -22,6 +26,20 @@ import Testing
     #expect(source.contains(".created("))
     #expect(source.contains(".noContent("))
     #expect(source.contains("import OpenAPIRuntime"))
+    #expect(source.contains("Operations.getGreeting"))
+}
+
+@Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
+    guard let openAPIURL = fixtureURL(name: "openapi", extension: "yaml", subdirectory: "Fixtures/IdiomaticConfig") else {
+        Issue.record("IdiomaticConfig/openapi.yaml が見つかりません")
+        return
+    }
+    let strategy = try KawarimiNamingStrategy.loadBesideOpenAPIYAML(atPath: openAPIURL.path)
+    #expect(strategy == .idiomatic)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: openAPIURL.path)
+    let source = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: strategy)
+    #expect(source.contains("Operations.GetGreeting"))
+    #expect(source.contains("func getGreeting"))
 }
 
 @Test func kawarimiJutsuErrorDescription() {
@@ -31,7 +49,7 @@ import Testing
 }
 
 @Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
-    guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
+    guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")
         return
     }
@@ -56,8 +74,68 @@ import Testing
     }
 }
 
+@Test func kawarimiHandlerSupports200WithNoContentBlock() throws {
+    guard let url = fixtureURL(name: "openapi-200-no-json", extension: "yaml") else {
+        Issue.record("fixture が見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(source.contains("agreeToTerms"))
+    #expect(source.contains("return .ok(.init())"))
+}
+
+@Test func kawarimiHandlerThrowsForStringEnumInResponse() throws {
+    guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
+        Issue.record("fixture が見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    do {
+        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+        Issue.record("期待どおりエラーになりませんでした")
+    } catch let e as KawarimiJutsuError {
+        #expect(e.description.contains("createItem"))
+        #expect(e.description.contains("enum"))
+    }
+}
+
+@Test func kawarimiHandlerThrowsOnMinimalReproOnEnumOperation() throws {
+    guard let url = fixtureURL(name: "openapi-minimal-repro", extension: "yaml") else {
+        Issue.record("fixture が見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    do {
+        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+        Issue.record("enum 応答でエラーになるべき")
+    } catch let e as KawarimiJutsuError {
+        #expect(e.description.contains("createItem"))
+    } catch {
+        Issue.record("Unexpected error: \(error)")
+    }
+}
+
+@Test func kawarimiNamingStrategyRejectsUnknownValue() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiNaming-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    paths: {}
+    """
+    try yaml.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
+    let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
+    try "namingStrategy: fancy\n".write(toFile: config, atomically: true, encoding: .utf8)
+    #expect(throws: KawarimiJutsuError.self) {
+        _ = try KawarimiNamingStrategy.loadBesideOpenAPIYAML(atPath: openAPIPath)
+    }
+}
+
 @Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
-    guard let url = Bundle.module.url(forResource: "openapi", withExtension: "yaml") else {
+    guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")
         return
     }

@@ -15,10 +15,15 @@ struct Kawarimi {
         let outputDirPath = args[2]
 
         do {
+            let namingStrategy = try KawarimiNamingStrategy.loadBesideOpenAPIYAML(atPath: inputPath)
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
             let outputDir = URL(fileURLWithPath: outputDirPath)
             try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
-            try KawarimiJutsu.generateKawarimiHandlerSource(document: document).write(to: outputDir.appendingPathComponent("KawarimiHandler.swift"), atomically: true, encoding: .utf8)
+            try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: namingStrategy).write(
+                to: outputDir.appendingPathComponent("KawarimiHandler.swift"),
+                atomically: true,
+                encoding: .utf8
+            )
             try KawarimiJutsu.generateKawarimiSpecSource(document: document).write(to: outputDir.appendingPathComponent("KawarimiSpec.swift"), atomically: true, encoding: .utf8)
         } catch {
             fputs("Error: \(error)\n", stderr)

@@ -22,13 +22,23 @@ struct KawarimiPlugin: BuildToolPlugin {
         let outputFiles = outputNames.map { outputDirURL.appendingPathComponent($0) }
         let arguments = [inputURL.path, outputDirURL.path]
 
+        var inputFiles: [URL] = [inputURL]
+        let configYAML = targetDirURL.appendingPathComponent("openapi-generator-config.yaml")
+        let configYML = targetDirURL.appendingPathComponent("openapi-generator-config.yml")
+        if FileManager.default.fileExists(atPath: configYAML.path) {
+            inputFiles.append(configYAML)
+        }
+        if FileManager.default.fileExists(atPath: configYML.path) {
+            inputFiles.append(configYML)
+        }
+
         let tool = try context.tool(named: "Kawarimi")
         return [
             .buildCommand(
                 displayName: "Kawarimi: Generate Mock and Handler from OpenAPI",
                 executable: tool.url,
                 arguments: arguments,
-                inputFiles: [inputURL],
+                inputFiles: inputFiles,
                 outputFiles: outputFiles
             ),
         ]

@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: Enum response fixture
+  version: 1.0.0
+paths:
+  /items:
+    post:
+      operationId: createItem
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - active
+                      - pending

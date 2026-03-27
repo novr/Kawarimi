@@ -44,7 +44,11 @@ targets: [
 
 ### 3. オプション: 公式 generator の設定
 
-Types/Client/Server の生成オプションは、同じディレクトリに openapi-generator-config.yaml を置いて [swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
+Types/Client/Server の生成オプションは、`openapi.yaml` と**同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
+
+**Kawarimi がこのファイルから読むのは `namingStrategy`（`defensive` / `idiomatic`）だけです。** `KawarimiHandler` の `Operations.*` 参照を swift-openapi-generator の命名と揃えます。ファイルが無い、またはキー省略時はジェネレータ既定どおり **`defensive`** です。`generate` や `accessModifier` など他キーは公式ジェネレータ専用で、Kawarimi の生成には影響しません。
+
+`Kawarimi` CLI / `KawarimiPlugin` は `openapi.yaml` と同じ場所の `openapi-generator-config.yaml` を優先し、無ければ `openapi-generator-config.yml` を探します。
 
 ### 4. テストでモックを使う
 
@@ -187,5 +191,6 @@ Types/Client/Server と Kawarimi（モック・ハンドラ）の生成順を保
 ## 要件・詳細
 
 - Swift 6.2+ / macOS 14+。
-- 生成対象: 200 + `application/json` の operation、`$ref` で `components/schemas` を参照する schema。
+- **KawarimiHandler スタブ:** 各 operation は **HTTP 200 または 201** で **`application/json`** かつ Kawarimi が単純な `.init(...)` に落とせる JSON schema を持つか、**200/201 で `content` を書かない**（ボディなし成功 — swift-openapi-generator と同様に `.ok(.init())` / `.created(.init())` を出す）、**または 204 のみ**（`.noContent`）である必要があります。`application/json` と書いてあるのに schema を解決できない、**JSON 以外の content のみ**、**レスポンスヘッダーだけ**でボディが無い、schema が **列挙（`allowedValues`）** や **allOf/oneOf/anyOf/not** などの場合は、コンパイル不能なコードを出さず**生成をエラーで中止**します。
+- **Kawarimi** モック（`Kawarimi.swift`）は従来どおり 200 + JSON + `components/schemas` の `$ref` を想定した動きです。
 - 詳しくはリポジトリを参照。

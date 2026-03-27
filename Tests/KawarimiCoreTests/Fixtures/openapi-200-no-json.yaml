@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: 200 without JSON fixture
+  version: 1.0.0
+paths:
+  /agree:
+    post:
+      operationId: agreeToTerms
+      responses:
+        '200':
+          description: Success with no content block
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: string
