@@ -12,7 +12,7 @@ enum DemoServerError: Error {
 struct DemoServer {
     static func main() async throws {
         let app = try await Application.make()
-        let configPath = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "config.json"
+        let configPath = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json"
         let store = try KawarimiConfigStore(
             configPath: configPath,
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
