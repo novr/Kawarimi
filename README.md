@@ -71,7 +71,7 @@ Put one openapi.yaml in the target’s source directory. The build generates Typ
 
 To configure Types/Client/Server generation, add `openapi-generator-config.yaml` (or `.yml`) in the **same directory as `openapi.yaml`** and use [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration).
 
-**Kawarimi reads three keys from that file:** `namingStrategy` (`defensive` or `idiomatic`), **`accessModifier`** (`public`, `package`, or `internal`), and **`unsupportedHandlerStub`** (`fatalError` or `throw`). `namingStrategy` and `accessModifier` must match swift-openapi-generator so `KawarimiHandler`’s `Operations.*` references and member visibility stay aligned. If the file is missing or those keys are omitted, Kawarimi uses **`defensive`** naming, **`public`** access, and **`unsupportedHandlerStub: throw`** (fail-fast). **`throw`:** generation **fails** when a stub cannot be produced. **`fatalError`:** generation **succeeds**; affected operations get **`fatalError(...)`** in the generated closure and the CLI prints one **stderr warning** per such operation (easy to miss in Xcode—check the Kawarimi build step log). Other keys (`generate`, `filter`, …) affect only swift-openapi-generator except as noted.
+**Kawarimi reads two keys from that file:** `namingStrategy` (`defensive` or `idiomatic`) and **`accessModifier`** (`public`, `package`, or `internal`). They must match swift-openapi-generator so `KawarimiHandler`’s `Operations.*` references and member visibility stay aligned. If the file is missing or those keys are omitted, Kawarimi uses **`defensive`** naming and **`public`** access. Configure `unsupportedHandlerStub` via the `KAWARIMI_CONFIG` environment variable (`throw` or `fatalError`); default is **`throw`** (fail-fast). **`throw`:** generation **fails** when a stub cannot be produced. **`fatalError`:** generation **succeeds**; affected operations get **`fatalError(...)`** in the generated closure and the CLI prints one **stderr warning** per such operation (easy to miss in Xcode—check the Kawarimi build step log). Other keys (`generate`, `filter`, …) affect only swift-openapi-generator except as noted.
 
 **Requirement (cross-target imports):** use **`accessModifier: package`** or **`public`** when any sibling target imports the API module. **`internal`** is only viable if the generated API is used entirely within that single target.
 
@@ -157,6 +157,8 @@ The file format uses `KawarimiConfig` (overrides array).
 **Run DemoServer with the Example directory as the current working directory** so `config.json` is read and written there (e.g. `cd Example && swift run DemoServer`).
 
 Set `KAWARIMI_CONFIG` to override the path.
+
+`KAWARIMI_CONFIG` is also used by Kawarimi generation as `unsupportedHandlerStub` (`throw` / `fatalError`). If omitted, it defaults to `throw`.
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 

@@ -71,7 +71,7 @@ targets: [
 
 Types/Client/Server の生成オプションは、`openapi.yaml` と**同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
 
-**Kawarimi がこのファイルから読むのは `namingStrategy`（`defensive` / `idiomatic`）、`accessModifier`（`public` / `package` / `internal`）、`unsupportedHandlerStub`（`fatalError` / `throw`）の 3 つです。** 前者 2 つは `KawarimiHandler` の `Operations.*` 参照と、`on…` / メソッドの可視性を swift-openapi-generator と揃えます。ファイルが無い、またはキー省略時は命名 **`defensive`**、アクセス **`public`**、**`unsupportedHandlerStub: throw`**（fail-fast）です。**`throw`:** スタブを出せない operation があると**生成失敗**。**`fatalError`:** **生成は成功**し、該当 operation のクロージャは **`fatalError(...)`** になり、CLI はその分 **stderr に警告**を出します（Xcode ではビルドログの Kawarimi ステップを確認）。その他のキーは主に公式ジェネレータ専用です。
+**Kawarimi がこのファイルから読むのは `namingStrategy`（`defensive` / `idiomatic`）と `accessModifier`（`public` / `package` / `internal`）の 2 つです。** 前者 2 つは `KawarimiHandler` の `Operations.*` 参照と、`on…` / メソッドの可視性を swift-openapi-generator と揃えます。ファイルが無い、またはキー省略時は命名 **`defensive`**、アクセス **`public`** です。`unsupportedHandlerStub` はこのファイルではなく環境変数 `KAWARIMI_CONFIG`（`throw` / `fatalError`）で指定します。未指定時は **`throw`**（fail-fast）です。**`throw`:** スタブを出せない operation があると**生成失敗**。**`fatalError`:** **生成は成功**し、該当 operation のクロージャは **`fatalError(...)`** になり、CLI はその分 **stderr に警告**を出します（Xcode ではビルドログの Kawarimi ステップを確認）。その他のキーは主に公式ジェネレータ専用です。
 
 **要件（別ターゲットから import する場合）:** **`accessModifier: package`** または **`public`** を使うこと。**`internal`** は、生成 API をそのターゲット内だけで完結させる場合に限り有効です。
 
@@ -157,6 +157,8 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 **DemoServer は Example ディレクトリをカレントにして起動してください**（`config.json` の読み書き先を揃える。例: `cd Example && swift run DemoServer`）。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
+
+`KAWARIMI_CONFIG` は Kawarimi 生成時には `unsupportedHandlerStub` の指定にも使います（`throw` / `fatalError`）。未指定時は `throw` です。
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
