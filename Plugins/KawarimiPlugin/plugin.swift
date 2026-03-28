@@ -31,6 +31,14 @@ struct KawarimiPlugin: BuildToolPlugin {
         if FileManager.default.fileExists(atPath: configYML.path) {
             inputFiles.append(configYML)
         }
+        let kawarimiGenYAML = targetDirURL.appendingPathComponent("kawarimi-generator-config.yaml")
+        let kawarimiGenYML = targetDirURL.appendingPathComponent("kawarimi-generator-config.yml")
+        if FileManager.default.fileExists(atPath: kawarimiGenYAML.path) {
+            inputFiles.append(kawarimiGenYAML)
+        }
+        if FileManager.default.fileExists(atPath: kawarimiGenYML.path) {
+            inputFiles.append(kawarimiGenYML)
+        }
 
         let tool = try context.tool(named: "Kawarimi")
         return [

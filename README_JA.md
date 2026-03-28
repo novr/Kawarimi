@@ -62,7 +62,8 @@ targets: [
 Types/Client/Server の生成オプションは、`openapi.yaml` と**同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration) で指定する。
 
 Kawarimi が読むキーは `namingStrategy` と `accessModifier` です。
-`unsupportedHandlerStub` は `kawarimi.json`（`throw` / `fatalError`）で指定します。未指定時は `throw` です。
+
+`handlerStubPolicy`（`throw` / `fatalError`、省略時 `throw`）は `openapi.yaml` と同じディレクトリの `kawarimi-generator-config.yaml`（または `.yml`）で指定します。
 
 `Kawarimi` CLI / `KawarimiPlugin` は `openapi.yaml` と同じ場所の `openapi-generator-config.yaml` を優先し、無ければ `openapi-generator-config.yml` を探します。
 
@@ -147,13 +148,18 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
-Kawarimi 生成時の `unsupportedHandlerStub` は `kawarimi.json` から読み取ります。
+`kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` は `kawarimi-generator-config.yaml`）。
+
+`kawarimi-generator-config.yaml` の例:
+
+```yaml
+handlerStubPolicy: throw
+```
 
 `kawarimi.json` の例:
 
 ```json
 {
-  "unsupportedHandlerStub": "throw",
   "overrides": []
 }
 ```
@@ -196,5 +202,5 @@ swift run DemoApp      # SwiftUI: OpenAPI + Henge（任意）
 ## 補足
 
 - Swift 6.2+ / macOS 14+。
-- `unsupportedHandlerStub: throw` はスタブ生成不能な operation で生成を失敗させます。
-- `unsupportedHandlerStub: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。
+- `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
+- `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。

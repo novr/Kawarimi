@@ -16,7 +16,7 @@ struct Kawarimi {
 
         do {
             let generatorConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: inputPath)
-            let stubPolicy = try resolveUnsupportedHandlerStubPolicyFromKawarimiConfig(openAPIPath: inputPath)
+            let stubPolicy = try resolveHandlerStubPolicy(openAPIPath: inputPath)
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
             let outputDir = URL(fileURLWithPath: outputDirPath)
             try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
@@ -24,7 +24,7 @@ struct Kawarimi {
                 document: document,
                 namingStrategy: generatorConfig.namingStrategy,
                 accessModifier: generatorConfig.accessModifier,
-                unsupportedHandlerStubPolicy: stubPolicy
+                handlerStubPolicy: stubPolicy
             )
             for line in handlerWarnings {
                 fputs("\(line)\n", stderr)
@@ -41,41 +41,21 @@ struct Kawarimi {
         }
     }
 
-    private static func resolveUnsupportedHandlerStubPolicyFromKawarimiConfig(
-        openAPIPath: String
-    ) throws -> KawarimiHandlerUnsupportedStubPolicy {
-        let config = try loadKawarimiConfig(openAPIPath: openAPIPath)
-        guard let raw = config.unsupportedHandlerStub?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
-            return KawarimiGeneratorConfigYAML.defaults.unsupportedHandlerStubPolicy
+    private static func resolveHandlerStubPolicy(openAPIPath: String) throws -> KawarimiHandlerStubPolicy {
+        if let yaml = KawarimiGeneratorConfigFileYAML.handlerStubPolicyBesideOpenAPIYAML(atPath: openAPIPath) {
+            return try parseHandlerStubPolicy(raw: yaml.value, configPath: yaml.path)
         }
-        guard let policy = KawarimiHandlerUnsupportedStubPolicy(rawValue: raw) else {
+        return KawarimiGeneratorConfigYAML.defaults.handlerStubPolicy
+    }
+
+    private static func parseHandlerStubPolicy(raw: String, configPath: String) throws -> KawarimiHandlerStubPolicy {
+        guard let policy = KawarimiHandlerStubPolicy(rawValue: raw) else {
             throw KawarimiJutsuError.generatorConfigInvalid(
-                path: kawarimiConfigPath(openAPIPath: openAPIPath),
-                reason: "未対応の unsupportedHandlerStub: \(raw)（fatalError または throw のみ）"
+                path: configPath,
+                reason: "未対応の handlerStubPolicy: \(raw)（fatalError または throw のみ）"
             )
         }
         return policy
     }
 
-    private static func loadKawarimiConfig(openAPIPath: String) throws -> KawarimiConfig {
-        let configPath = kawarimiConfigPath(openAPIPath: openAPIPath)
-        guard let data = FileManager.default.contents(atPath: configPath) else {
-            return KawarimiConfig()
-        }
-        do {
-            return try JSONDecoder().decode(KawarimiConfig.self, from: data)
-        } catch {
-            throw KawarimiJutsuError.generatorConfigInvalid(
-                path: configPath,
-                reason: "kawarimi.json の JSON を読み込めませんでした: \(error)"
-            )
-        }
-    }
-
-    private static func kawarimiConfigPath(openAPIPath: String) -> String {
-        URL(fileURLWithPath: openAPIPath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("kawarimi.json")
-            .path
-    }
 }

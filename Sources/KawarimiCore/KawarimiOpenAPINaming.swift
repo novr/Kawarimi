@@ -32,7 +32,7 @@ public enum KawarimiAccessModifier: String, Sendable, CaseIterable, Codable, Equ
     }
 }
 
-public enum KawarimiHandlerUnsupportedStubPolicy: String, Sendable, CaseIterable, Codable, Equatable {
+public enum KawarimiHandlerStubPolicy: String, Sendable, CaseIterable, Codable, Equatable {
     case fatalError
     case `throw`
 }
@@ -40,23 +40,23 @@ public enum KawarimiHandlerUnsupportedStubPolicy: String, Sendable, CaseIterable
 public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
     public var namingStrategy: KawarimiNamingStrategy
     public var accessModifier: KawarimiAccessModifier
-    public var unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy
+    public var handlerStubPolicy: KawarimiHandlerStubPolicy
 
     /// Used when `openapi-generator-config` is missing or when a key is omitted (matches swift-openapi-generator defaults for naming / access).
     public static let defaults = KawarimiGeneratorConfigYAML(
         namingStrategy: .defensive,
         accessModifier: .public,
-        unsupportedHandlerStubPolicy: .throw
+        handlerStubPolicy: .throw
     )
 
     public init(
         namingStrategy: KawarimiNamingStrategy = Self.defaults.namingStrategy,
         accessModifier: KawarimiAccessModifier = Self.defaults.accessModifier,
-        unsupportedHandlerStubPolicy: KawarimiHandlerUnsupportedStubPolicy = Self.defaults.unsupportedHandlerStubPolicy
+        handlerStubPolicy: KawarimiHandlerStubPolicy = Self.defaults.handlerStubPolicy
     ) {
         self.namingStrategy = namingStrategy
         self.accessModifier = accessModifier
-        self.unsupportedHandlerStubPolicy = unsupportedHandlerStubPolicy
+        self.handlerStubPolicy = handlerStubPolicy
     }
 
     public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiGeneratorConfigYAML {
@@ -112,7 +112,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
         return KawarimiGeneratorConfigYAML(
             namingStrategy: naming,
             accessModifier: access,
-            unsupportedHandlerStubPolicy: Self.defaults.unsupportedHandlerStubPolicy
+            handlerStubPolicy: Self.defaults.handlerStubPolicy
         )
     }
 }

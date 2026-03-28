@@ -43,22 +43,18 @@ public struct MockOverride: Codable, Sendable, Equatable {
 
 public struct KawarimiConfig: Codable, Sendable {
     public var overrides: [MockOverride]
-    public var unsupportedHandlerStub: String?
 
-    public init(overrides: [MockOverride] = [], unsupportedHandlerStub: String? = nil) {
+    public init(overrides: [MockOverride] = []) {
         self.overrides = overrides
-        self.unsupportedHandlerStub = unsupportedHandlerStub
     }
 
     enum CodingKeys: String, CodingKey {
         case overrides
-        case unsupportedHandlerStub
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.overrides = try container.decodeIfPresent([MockOverride].self, forKey: .overrides) ?? []
-        self.unsupportedHandlerStub = try container.decodeIfPresent(String.self, forKey: .unsupportedHandlerStub)
     }
 }
 
