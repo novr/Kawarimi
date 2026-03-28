@@ -1,0 +1,3 @@
+# Kawarimi の生成専用設定（openapi.yaml と同じディレクトリ）。
+#
+# handlerStubPolicy: throw   # 省略時は throw（fail-fast）

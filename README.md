@@ -62,7 +62,8 @@ Put one openapi.yaml in the target’s source directory. The build generates Typ
 To configure Types/Client/Server generation, add `openapi-generator-config.yaml` (or `.yml`) in the **same directory as `openapi.yaml`** and use [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration).
 
 Kawarimi reads `namingStrategy` and `accessModifier` from this file.
-Configure `unsupportedHandlerStub` in `kawarimi.json` (`throw` / `fatalError`). Default is `throw`.
+
+Set `handlerStubPolicy` (`throw` / `fatalError`, default `throw`) in `kawarimi-generator-config.yaml` (or `.yml`) next to `openapi.yaml`.
 
 The `Kawarimi` CLI and `KawarimiPlugin` look for `openapi-generator-config.yaml` then `openapi-generator-config.yml` next to `openapi.yaml`.
 
@@ -147,13 +148,18 @@ The file format uses `KawarimiConfig` (overrides array).
 
 Set `KAWARIMI_CONFIG` to override the path.
 
-Kawarimi generation reads `unsupportedHandlerStub` from `kawarimi.json`.
+`kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy`.
+
+Example `kawarimi-generator-config.yaml`:
+
+```yaml
+handlerStubPolicy: throw
+```
 
 Example `kawarimi.json`:
 
 ```json
 {
-  "unsupportedHandlerStub": "throw",
   "overrides": []
 }
 ```
@@ -196,5 +202,5 @@ swift run DemoApp      # SwiftUI: OpenAPI + Henge (optional)
 ## Notes
 
 - Swift 6.2+ / macOS 14+.
-- `unsupportedHandlerStub: throw` fails generation when a stub cannot be produced.
-- `unsupportedHandlerStub: fatalError` keeps generation successful and traps at runtime for unsupported operations.
+- `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
+- `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.

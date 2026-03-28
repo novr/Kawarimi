@@ -100,7 +100,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
         document: document,
         namingStrategy: .defensive,
-        unsupportedHandlerStubPolicy: .fatalError
+        handlerStubPolicy: .fatalError
     )
     #expect(source.contains("fatalError("))
     #expect(source.contains("onCreateItem"))
@@ -119,7 +119,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
         document: document,
         namingStrategy: .defensive,
         accessModifier: .internal,
-        unsupportedHandlerStubPolicy: .fatalError
+        handlerStubPolicy: .fatalError
     )
     #expect(source.contains("internal var onCreateItem:"))
     #expect(source.contains("fatalError("))
@@ -176,7 +176,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     }
 }
 
-@Test func kawarimiUnsupportedHandlerStubInYamlIsIgnoredAndDefaultsToThrow() throws {
+@Test func kawarimiHandlerStubPolicyInOpenAPIGeneratorConfigIsIgnoredAndDefaultsToThrow() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubPolicy-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -188,12 +188,12 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     """
     try spec.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
     let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
-    try "unsupportedHandlerStub: fatalError\n".write(toFile: config, atomically: true, encoding: .utf8)
+    try "handlerStubPolicy: fatalError\n".write(toFile: config, atomically: true, encoding: .utf8)
     let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
-    #expect(loaded.unsupportedHandlerStubPolicy == .throw)
+    #expect(loaded.handlerStubPolicy == .throw)
 }
 
-@Test func kawarimiUnsupportedHandlerStubDefaultsToThrowWhenKeyOmitted() throws {
+@Test func kawarimiHandlerStubPolicyDefaultsToThrowWhenGeneratorKeyOmitted() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubOmit-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -207,7 +207,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     let config = tmp.appendingPathComponent("openapi-generator-config.yaml").path
     try "namingStrategy: defensive\n".write(toFile: config, atomically: true, encoding: .utf8)
     let loaded = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIPath)
-    #expect(loaded.unsupportedHandlerStubPolicy == .throw)
+    #expect(loaded.handlerStubPolicy == .throw)
 }
 
 @Test func kawarimiAccessModifierRejectsUnknownValue() throws {
