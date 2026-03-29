@@ -202,6 +202,6 @@ swift run DemoServer   # in another terminal; SwiftUI app: open Example/DemoApp.
 
 ## Notes
 
-- Swift 6.2+ / macOS 14+.
+- Swift 6.1+ (matches `swift-tools-version` in `Package.swift`; GitHub Actions `macos-latest` ships Swift 6.1.x). **Example/DemoPackage** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
 - `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
 - `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.

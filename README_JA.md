@@ -202,6 +202,6 @@ swift run DemoServer   # 別ターミナルで。SwiftUI は Example/DemoApp.xco
 
 ## 補足
 
-- Swift 6.2+ / macOS 14+。
+- Swift 6.1+（`Package.swift` の `swift-tools-version` に合わせる。GitHub Actions の `macos-latest` は Swift 6.1 系）。**Example/DemoPackage** は **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
 - `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
 - `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。
