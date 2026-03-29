@@ -3,7 +3,8 @@ info:
   title: "GreetingService"
   version: "1.0.0"
 servers:
-  - url: "https://localhost:8080/api"
+  # Use IPv4 loopback so clients do not hit ::1 while the server binds 127.0.0.1 only.
+  - url: "http://127.0.0.1:8080/api"
     description: "Example"
 paths:
   /greet:

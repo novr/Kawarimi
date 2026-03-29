@@ -1,14 +1,15 @@
+#if os(macOS)
 import AppKit
+#elseif canImport(UIKit)
+import UIKit
+#endif
 import DemoAPI
 import Foundation
 import KawarimiCore
 import SwiftUI
 
-/// Spec に沿って URL・クエリ・ボディを組み立て任意メソッドで HTTP を送る（GET 専用ではない）。
+/// Builds URL, query, and body from the spec and sends HTTP for any method (not GET-only).
 struct OpenAPIExecuteView: View {
-    @Binding var serverBaseURL: String
-    @Binding var apiPathPrefix: String
-
     @State private var operationId: String = KawarimiSpec.endpoints.first?.operationId ?? ""
     @State private var pathParams: [String: String] = [:]
     @State private var queryString: String = ""
@@ -18,13 +19,7 @@ struct OpenAPIExecuteView: View {
 
     private var endpoints: [KawarimiSpec.Endpoint] { KawarimiSpec.endpoints }
 
-    private var clientURL: URL? {
-        ServerURLNormalization.clientURL(
-            serverBaseURL: serverBaseURL,
-            apiPathPrefix: apiPathPrefix,
-            meta: KawarimiSpec.meta
-        )
-    }
+    private var clientURL: URL? { KawarimiExampleConfig.clientBaseURL }
 
     private var endpoint: KawarimiSpec.Endpoint? {
         endpoints.first { $0.operationId == operationId }
@@ -32,19 +27,15 @@ struct OpenAPIExecuteView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("OpenAPI の実行")
+            Text("OpenAPI request")
                 .font(.headline)
-            HStack {
-                Text("Server URL:")
-                TextField(KawarimiSpec.meta.serverURL, text: $serverBaseURL)
-                    .textFieldStyle(.roundedBorder)
-            }
-            HStack {
-                Text("API prefix:")
-                TextField(KawarimiSpec.meta.apiPathPrefix, text: $apiPathPrefix)
-                    .textFieldStyle(.roundedBorder)
-            }
-            Text("実際のベース: \(clientURL?.absoluteString ?? "（無効）")")
+            Text("Base URL (from OpenAPI meta)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(clientURL?.absoluteString ?? "(invalid)")
+                .font(.body.monospaced())
+                .lineLimit(2)
+                .textSelection(.enabled)
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -61,7 +52,7 @@ struct OpenAPIExecuteView: View {
             if let ep = endpoint {
                 let names = bracedParamNames(in: ep.path)
                 if !names.isEmpty {
-                    Text("パスパラメータ")
+                    Text("Path parameters")
                         .font(.subheadline)
                     ForEach(names, id: \.self) { name in
                         HStack {
@@ -73,7 +64,7 @@ struct OpenAPIExecuteView: View {
                 }
 
                 HStack {
-                    Text("Query (任意):")
+                    Text("Query (optional):")
                     TextField("limit=20&offset=0", text: $queryString)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -88,7 +79,7 @@ struct OpenAPIExecuteView: View {
                 }
             }
 
-            Button("実行") {
+            Button("Run") {
                 Task { await performRequest() }
             }
             .disabled(clientURL == nil || isRunning || endpoint == nil)
@@ -104,11 +95,13 @@ struct OpenAPIExecuteView: View {
                         .padding(8)
                 }
                 .frame(maxHeight: 280)
-                .background(Color(nsColor: .textBackgroundColor))
+                .background(resultPanelBackground)
             }
         }
         .padding()
+#if os(macOS)
         .frame(minWidth: 400, minHeight: 320)
+#endif
         .onAppear {
             if operationId.isEmpty, let first = endpoints.first?.operationId {
                 operationId = first
@@ -142,6 +135,7 @@ struct OpenAPIExecuteView: View {
         queryString = ""
     }
 
+    @MainActor
     private func performRequest() async {
         guard let base = clientURL, let ep = endpoint else { return }
 
@@ -168,12 +162,12 @@ struct OpenAPIExecuteView: View {
         }
 
         if path.contains("{") {
-            resultText = "Error: パスに未置換の `{…}` があります（パスパラメータを入力してください）"
+            resultText = "Error: path still contains `{…}` placeholders (fill path parameters)"
             return
         }
 
         guard var url = append(base: base, path: path) else {
-            resultText = "Error: URL の組み立てに失敗しました"
+            resultText = "Error: failed to build URL"
             return
         }
 
@@ -212,6 +206,16 @@ struct OpenAPIExecuteView: View {
         } catch {
             resultText = "Error: \(error.localizedDescription)"
         }
+    }
+
+    private var resultPanelBackground: Color {
+        #if os(macOS)
+        Color(nsColor: .textBackgroundColor)
+        #elseif canImport(UIKit)
+        Color(uiColor: .secondarySystemBackground)
+        #else
+        Color.gray.opacity(0.12)
+        #endif
     }
 
     private func bracedParamNames(in path: String) -> [String] {

@@ -1,3 +1,4 @@
+#if os(macOS)
 import DemoAPI
 import KawarimiCore
 import Vapor
@@ -54,3 +55,4 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         )
     }
 }
+#endif

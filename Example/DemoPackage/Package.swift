@@ -3,12 +3,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "Example",
+    name: "DemoPackage",
     platforms: [
         .macOS(.v14),
+        .iOS(.v17),
+    ],
+    products: [
+        .library(name: "DemoAPI", targets: ["DemoAPI"]),
     ],
     dependencies: [
-        .package(name: "Kawarimi", path: ".."),
+        .package(name: "Kawarimi", path: "../.."),
         .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
         .package(url: "https://github.com/vapor/swift-openapi-vapor", from: "1.0.0"),
@@ -31,17 +35,12 @@ let package = Package(
             dependencies: [
                 "DemoAPI",
                 .product(name: "KawarimiCore", package: "Kawarimi"),
-                .product(name: "OpenAPIVapor", package: "swift-openapi-vapor"),
-                .product(name: "Vapor", package: "vapor"),
-            ],
-            swiftSettings: [.unsafeFlags(["-parse-as-library"])]
-        ),
-        .executableTarget(
-            name: "DemoApp",
-            dependencies: [
-                "DemoAPI",
-                .product(name: "KawarimiCore", package: "Kawarimi"),
-                .product(name: "KawarimiHenge", package: "Kawarimi"),
+                .product(
+                    name: "OpenAPIVapor",
+                    package: "swift-openapi-vapor",
+                    condition: .when(platforms: [.macOS])
+                ),
+                .product(name: "Vapor", package: "vapor", condition: .when(platforms: [.macOS])),
             ],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),

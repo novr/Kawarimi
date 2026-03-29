@@ -3,16 +3,9 @@ import KawarimiHenge
 import SwiftUI
 
 struct HengeRootView: View {
-    @Binding var serverBaseURL: String
-    @Binding var apiPathPrefix: String
-
-    /// Henge は OpenAPI 実行と同じ base（`clientURL` = オリジン + `apiPathPrefix`）を使わないと `__kawarimi` に届かない。
+    /// Must match the OpenAPI client base URL or requests will not reach `__kawarimi`.
     private var baseURL: URL {
-        ServerURLNormalization.clientURL(
-            serverBaseURL: serverBaseURL,
-            apiPathPrefix: apiPathPrefix,
-            meta: KawarimiSpec.meta
-        )!
+        KawarimiExampleConfig.clientBaseURL!
     }
 
     private var client: KawarimiAPIClient {
@@ -21,15 +14,14 @@ struct HengeRootView: View {
 
     var body: some View {
         KawarimiConfigView(
-            serverURL: $serverBaseURL,
+            serverURL: KawarimiExampleConfig.serverBaseURL,
             specProvider: {
                 let spec: SpecResponse = try await client.fetchSpec(as: SpecResponse.self)
                 return (meta: spec.meta, endpoints: spec.endpoints)
             },
             fetchOverrides: { try await client.fetchOverrides() },
             configureOverride: { try await client.configure(override: $0) },
-            resetAllOverrides: { try await client.reset() },
-            apiPathPrefixSync: $apiPathPrefix
+            resetAllOverrides: { try await client.reset() }
         )
     }
 }
