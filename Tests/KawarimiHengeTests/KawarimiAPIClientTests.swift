@@ -2,7 +2,7 @@ import Foundation
 import KawarimiHenge
 import Testing
 
-/// `URL.host` を HTTP ステータスとして返す（`http://500/` 等）ので、本番と無関係な擬似 URL で検証できる。
+/// Uses `URL.host` as the HTTP status (`http://500/`, etc.) so tests avoid real endpoints.
 private final class MockKawarimiURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
