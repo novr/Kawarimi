@@ -8,6 +8,7 @@ public enum KawarimiConfigStoreError: Error, Sendable {
 }
 
 public actor KawarimiConfigStore {
+    /// 常に絶対パス。`Data.write(to:)` は相対の `file://` で 518 になり得るため init で解決する。
     private let configPath: String
     private let prefix: String
     private var cachedOverrides: [MockOverride]
@@ -20,9 +21,17 @@ public actor KawarimiConfigStore {
         if components.contains("..") {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
         }
-        self.configPath = configPath
+        let expanded = (configPath as NSString).expandingTildeInPath
+        let absolute: String
+        if (expanded as NSString).isAbsolutePath {
+            absolute = (expanded as NSString).standardizingPath
+        } else {
+            let cwd = FileManager.default.currentDirectoryPath
+            absolute = (cwd as NSString).appendingPathComponent(expanded)
+        }
+        self.configPath = absolute
         self.prefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
-        if let data = FileManager.default.contents(atPath: configPath),
+        if let data = FileManager.default.contents(atPath: absolute),
            let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
             self.cachedOverrides = config.overrides
         } else {
@@ -83,7 +92,7 @@ public actor KawarimiConfigStore {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)
-        let url = URL(fileURLWithPath: configPath)
-        try data.write(to: url)
+        let url = URL(fileURLWithPath: configPath, isDirectory: false)
+        try data.write(to: url, options: .atomic)
     }
 }

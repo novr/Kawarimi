@@ -9,7 +9,7 @@ public protocol SpecMetaProviding: Sendable {
     var apiPathPrefix: String { get }
 }
 
-public protocol SpecMockResponseProviding: Sendable {
+public protocol SpecMockResponseProviding: Identifiable, Sendable {
     var statusCode: Int { get }
     var contentType: String { get }
     var body: String { get }
@@ -18,9 +18,17 @@ public protocol SpecMockResponseProviding: Sendable {
     var description: String? { get }
 }
 
-public protocol SpecEndpointProviding: Sendable {
+public protocol SpecEndpointProviding: Identifiable, Sendable {
     var path: String { get }
     var method: String { get }
     var operationId: String { get }
     var responseList: [any SpecMockResponseProviding] { get }
+}
+
+extension SpecMockResponseProviding {
+    public var id: Int { statusCode }
+}
+
+extension SpecEndpointProviding {
+    public var id: String { operationId }
 }

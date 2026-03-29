@@ -8,15 +8,15 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public var exampleId: String?
     public var mockId: String?
     public var isEnabled: Bool
-    /// 非空なら spec の responseMap より優先して返す。空文字は未指定扱いで spec にフォールバック。
+    /// 非空なら spec の例より優先。空文字は「未指定」とみなし spec に戻す。
     public var body: String?
-    /// nil かつ body ありのときミドルウェアは `application/json` にする。
+    /// body があるのに nil のとき、サーバー側で JSON とみなす。
     public var contentType: String?
 
     public var hasEffectiveCustomBody: Bool { body.map { !$0.isEmpty } ?? false }
 
-    /// 設定と転送での過大ペイロードを防ぐ（UTF-8 バイト）。
-    public static let maxBodyLength = 1_000_000  // 1 MiB
+    /// 設定ファイルと HTTP で巨大 JSON を運ばないための上限（UTF-8 バイト）。
+    public static let maxBodyLength = 1_000_000
 
     public init(
         name: String? = nil,
@@ -58,13 +58,8 @@ public struct KawarimiConfig: Codable, Sendable {
     }
 }
 
-// MARK: - Interceptor sort order
-
 extension MockOverride {
-    /// インターセプタで同一リクエストに複数マッチしたときの並び（先頭が採用される）。
-    ///
-    /// 比較キー（昇順）: `path` → `mockId` 非 nil を nil より先 → `mockId` 文字列 → `statusCode` → `name` → `exampleId`。
-    /// キーが等しい要素は安定ソートで `hits` の相対順を維持する。
+    /// 複数ヒット時は先頭だけ使うため、常に同じ優先順で並べる（同順位は入力順を保つ安定ソート）。
     public static func sortedForInterceptorTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
         hits.sorted { interceptorTieBreakKey($0) < interceptorTieBreakKey($1) }
     }
