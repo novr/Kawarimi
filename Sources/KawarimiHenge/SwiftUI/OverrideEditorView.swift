@@ -6,6 +6,9 @@ private func validationMessageIsError(_ msg: String) -> Bool {
 }
 
 struct OverrideEditorView: View {
+    private let serverURL: String
+    private let onRefresh: () -> Void
+    private let onResetAll: () -> Void
     private let meta: (any SpecMetaProviding)?
     private let endpoints: [any SpecEndpointProviding]
     private let overrides: [MockOverride]
@@ -16,8 +19,12 @@ struct OverrideEditorView: View {
     private let errorMessage: Binding<String?>
 
     @State private var store = OverrideEditorStore()
+    @State private var confirmResetAll = false
 
     init(
+        serverURL: String,
+        onRefresh: @escaping () -> Void,
+        onResetAll: @escaping () -> Void,
         meta: (any SpecMetaProviding)?,
         endpoints: [any SpecEndpointProviding],
         overrides: [MockOverride],
@@ -27,6 +34,9 @@ struct OverrideEditorView: View {
         configureOverride: @escaping (MockOverride) async throws -> Void,
         errorMessage: Binding<String?>
     ) {
+        self.serverURL = serverURL
+        self.onRefresh = onRefresh
+        self.onResetAll = onResetAll
         self.meta = meta
         self.endpoints = endpoints
         self.overrides = overrides
@@ -53,6 +63,16 @@ struct OverrideEditorView: View {
         .task(id: overridesRevision) {
             store.resyncDetailAfterOverridesRefresh(endpoints: endpoints, overrides: overrides)
         }
+        .confirmationDialog(
+            "Reset all overrides?",
+            isPresented: $confirmResetAll,
+            titleVisibility: .visible
+        ) {
+            Button("Reset All", role: .destructive) { onResetAll() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("All mock overrides on the server will be cleared. This cannot be undone here.")
+        }
     }
 
     private var validationMessageBinding: Binding<String?> {
@@ -75,6 +95,25 @@ struct OverrideEditorView: View {
 
     private var listContent: some View {
         VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(serverURL)
+                    .font(.body.monospaced())
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    Button("Refresh", action: onRefresh)
+                    Button("Reset All", role: .destructive) { confirmResetAll = true }
+                    Spacer(minLength: 0)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -90,11 +129,6 @@ struct OverrideEditorView: View {
                                 )
                                 .tag(item.rowKey)
                             }
-                        }
-                        Section {
-                            Text("If multiple overrides match the same request, the server picks the first after sorting by path, mockId, HTTP status, and more (ties keep config list order). Logs show a warning and the ordering.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                     } else {
                         Text("No spec loaded. Provide spec via specProvider.")
@@ -217,9 +251,11 @@ private struct OverrideDetailColumnView: View {
     let onApply: () -> Void
     let onReset: () -> Void
 
+    @State private var confirmResetEndpoint = false
+
     private var endpoint: any SpecEndpointProviding { endpointItem.endpoint }
 
-    private var pickerStatusBinding: Binding<Int> {
+    private var responseSelectionBinding: Binding<Int> {
         Binding(
             get: { mock.isEnabled ? mock.statusCode : -1 },
             set: { newCode in
@@ -258,68 +294,76 @@ private struct OverrideDetailColumnView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text("\(endpoint.method) \(endpoint.path)")
-                        .font(.headline)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
                     if hasUnsavedChanges {
-                        Text("Not saved")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.orange.opacity(0.15), in: Capsule())
-                    }
-                }
-                Picker("Response", selection: pickerStatusBinding) {
-                    Text("Off (Spec)").tag(-1)
-                    ForEach(endpointItem.mockResponsePickerItems) { item in
-                        Text("HTTP \(item.response.statusCode)").tag(item.response.statusCode)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                if !mock.isEnabled {
-                    Text("When off, responses follow the spec examples. Choose a status to enable an override, edit the body, then Save to apply on the server.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    GroupBox {
-                        VStack(alignment: .leading, spacing: 8) {
-                            TextEditor(text: bodyTextBinding)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(minHeight: 120)
-                            TextField("Content-Type", text: contentTypeBinding, prompt: Text("application/json"))
-                            if let msg = validationMessage {
-                                Text(msg)
-                                    .font(.caption)
-                                    .foregroundStyle(validationMessageIsError(msg) ? .red : .secondary)
-                            }
-                            HStack(spacing: 8) {
-                                Button("Validate", action: onValidate)
-                                Button("Format", action: onFormat)
-                                Spacer(minLength: 0)
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.regular)
+                        HStack {
+                            Text("Not saved")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.orange)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(.orange.opacity(0.15), in: Capsule())
+                            Spacer(minLength: 0)
                         }
-                    } label: {
-                        Label("Response body (JSON)", systemImage: "curlybraces")
-                            .font(.subheadline)
                     }
-                }
+                    Picker("Response", selection: responseSelectionBinding) {
+                        Text("Spec").tag(-1)
+                        ForEach(endpointItem.mockResponsePickerItems) { item in
+                            Text("\(item.response.statusCode)").tag(item.response.statusCode)
+                        }
+                    }
+                    .pickerStyle(.menu)
 
-                HStack(spacing: 12) {
-                    Button("Save", action: onApply)
-                        .buttonStyle(.borderedProminent)
-                    Button("Reset", role: .destructive, action: onReset)
-                        .buttonStyle(.bordered)
-                    Spacer(minLength: 0)
+                    if mock.isEnabled {
+                        GroupBox {
+                            VStack(alignment: .leading, spacing: 8) {
+                                TextEditor(text: bodyTextBinding)
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(minHeight: 120)
+                                TextField("Content-Type", text: contentTypeBinding, prompt: Text("application/json"))
+                                if let msg = validationMessage {
+                                    Text(msg)
+                                        .font(.caption)
+                                        .foregroundStyle(validationMessageIsError(msg) ? .red : .secondary)
+                                }
+                                HStack(spacing: 8) {
+                                    Button("Validate", action: onValidate)
+                                    Button("Format", action: onFormat)
+                                    Spacer(minLength: 0)
+                                }
+                                .buttonStyle(.bordered)
+                                .controlSize(.regular)
+                            }
+                        } label: {
+                            Label("Response body (JSON)", systemImage: "curlybraces")
+                                .font(.subheadline)
+                        }
+                    }
+
+                    HStack(spacing: 12) {
+                        Button("Save", action: onApply)
+                            .buttonStyle(.borderedProminent)
+                        Button("Reset", role: .destructive) { confirmResetEndpoint = true }
+                            .buttonStyle(.bordered)
+                        Spacer(minLength: 0)
+                    }
+                    .controlSize(.regular)
                 }
-                .controlSize(.regular)
+                .padding()
             }
-            .padding()
+            .navigationTitle("\(endpoint.method) \(endpoint.path)")
+            .confirmationDialog(
+                "Reset this endpoint?",
+                isPresented: $confirmResetEndpoint,
+                titleVisibility: .visible
+            ) {
+                Button("Reset", role: .destructive) { onReset() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The override for this operation will be cleared on the server.")
+            }
         }
     }
 }

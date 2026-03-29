@@ -34,45 +34,25 @@ public struct KawarimiConfigView: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            serverURLBar
-            Divider()
-            OverrideEditorView(
-                meta: meta,
-                endpoints: endpoints,
-                overrides: overridesSnapshot,
-                isLoading: isLoading,
-                specLoadID: specLoadID,
-                overridesRevision: overridesRevision,
-                configureOverride: { override in
-                    try await configureOverride(override)
-                    await refreshOverridesOnly()
-                },
-                errorMessage: $errorMessage
-            )
-        }
+        OverrideEditorView(
+            serverURL: serverURL,
+            onRefresh: { Task { await loadSpecAndOverrides() } },
+            onResetAll: { Task { await performResetAll() } },
+            meta: meta,
+            endpoints: endpoints,
+            overrides: overridesSnapshot,
+            isLoading: isLoading,
+            specLoadID: specLoadID,
+            overridesRevision: overridesRevision,
+            configureOverride: { override in
+                try await configureOverride(override)
+                await refreshOverridesOnly()
+            },
+            errorMessage: $errorMessage
+        )
         .task {
             await loadSpecAndOverrides()
         }
-    }
-
-    private var serverURLBar: some View {
-        HStack {
-            Text("Server base URL:")
-            Text(serverURL)
-                .font(.body.monospaced())
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .textSelection(.enabled)
-            Button("Refresh") {
-                Task { await loadSpecAndOverrides() }
-            }
-            Button("Reset All") {
-                Task { await performResetAll() }
-            }
-            .foregroundStyle(.red)
-        }
-        .padding()
     }
 
     private func loadSpecAndOverrides() async {
