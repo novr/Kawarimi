@@ -37,7 +37,7 @@ handler.onGetGreeting = { input in
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.1"),
 ],
 targets: [
     .target(
@@ -202,6 +202,6 @@ swift run DemoServer   # 別ターミナルで。SwiftUI は Example/DemoApp.xco
 
 ## 補足
 
-- Swift 6.1+（`Package.swift` の `swift-tools-version` に合わせる。GitHub Actions の `macos-latest` は Swift 6.1 系）。**Example/DemoPackage** は **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
+- Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。**Example/DemoPackage** は **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
 - `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
 - `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。

@@ -13,8 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show Swift version
-        run: swift --version
+      - name: Select Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: "6.2"
 
       - name: Run tests
         run: swift test

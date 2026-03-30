@@ -37,7 +37,7 @@ If another target imports your API target, use `accessModifier: package` or `pub
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.1"),
 ],
 targets: [
     .target(
@@ -202,6 +202,6 @@ swift run DemoServer   # in another terminal; SwiftUI app: open Example/DemoApp.
 
 ## Notes
 
-- Swift 6.1+ (matches `swift-tools-version` in `Package.swift`; GitHub Actions `macos-latest` ships Swift 6.1.x). **Example/DemoPackage** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
+- Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); with **6.1**, SwiftPM can **reject** that graph when your package depends on the plugin—use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**. **Example/DemoPackage** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
 - `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
 - `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.
