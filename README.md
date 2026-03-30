@@ -183,7 +183,7 @@ The SwiftUI sample lives in **`Example/DemoApp/`** and is built with **`Example/
 
 **Server URL** and **API prefix** are **fixed** to `KawarimiSpec.meta` (`KawarimiExampleConfig` in the app).
 
-The Example `openapi.yaml` uses **HTTP** with **`127.0.0.1`** (e.g. `http://127.0.0.1:8080/api`) so clients do not resolve `localhost` to **`::1`** while Vapor listens on **IPv4 loopback** only. **`DemoApp-Info.plist`** (next to `DemoApp.xcodeproj`, not inside the synced `DemoApp/` folder) sets **NSAppTransportSecurity → NSAllowsLocalNetworking** so ATS allows cleartext to local hosts. **`DemoApp-Entitlements.entitlements`** enables **App Sandbox** with **`com.apple.security.network.client`** so URLSession can reach local servers (without it, `connectx` fails with *Operation not permitted*).
+The Example `openapi.yaml` uses **HTTP** with **`127.0.0.1`** (e.g. `http://127.0.0.1:8080/api`) so clients do not resolve `localhost` to **`::1`** while Vapor listens on **IPv4 loopback** only. **`DemoApp-Info.plist`** (next to `DemoApp.xcodeproj`, not inside the synced `DemoApp/` folder) sets **NSAppTransportSecurity → NSAllowsLocalNetworking** so ATS allows cleartext to local hosts. **`DemoApp.entitlements`** enables **App Sandbox** with **`com.apple.security.network.client`** so URLSession can reach local servers (without it, `connectx` fails with *Operation not permitted*).
 
 Point the host at your machine so that URL matches your DemoServer (see `openapi.yaml` `servers`).
 

@@ -183,7 +183,7 @@ SwiftUI のサンプルは **`Example/DemoApp/`** にあり、**`Example/DemoApp
 
 **Server URL** と **API prefix** は `KawarimiSpec.meta` に**固定**（アプリ内は `KawarimiExampleConfig`）。
 
-Example の `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。**`DemoApp-Info.plist`**（同期対象の `DemoApp/` ではなく `DemoApp.xcodeproj` と同階層）で **NSAppTransportSecurity → NSAllowsLocalNetworking** を有効にし、ATS がローカル向け平文 HTTP を許可します。**`DemoApp-Entitlements.entitlements`** で **App Sandbox** と **`com.apple.security.network.client`** を有効にし、URLSession がローカルサーバーへ接続できるようにしています（無いと `connectx` が *Operation not permitted* になります）。
+Example の `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。**`DemoApp-Info.plist`**（同期対象の `DemoApp/` ではなく `DemoApp.xcodeproj` と同階層）で **NSAppTransportSecurity → NSAllowsLocalNetworking** を有効にし、ATS がローカル向け平文 HTTP を許可します。**`DemoApp.entitlements`** で **App Sandbox** と **`com.apple.security.network.client`** を有効にし、URLSession がローカルサーバーへ接続できるようにしています（無いと `connectx` が *Operation not permitted* になります）。
 
 手元で DemoServer を動かすときは、`openapi.yaml` の `servers` と実際のホストが一致するようにしてください。
 
