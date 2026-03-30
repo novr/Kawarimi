@@ -96,7 +96,7 @@ let response = try await client.getGreeting(...)
 
 Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
 
-On the server, use **KawarimiCore** (`KawarimiConfigStore`, `KawarimiInterceptorMiddleware`) and register the **Henge API** routes (see Example `DemoServer`).
+On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes. **Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product**—copy or adapt Example [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see Example `DemoServer`).
 
 ### Vapor-related packages (server)
 
@@ -137,6 +137,8 @@ let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environm
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
+
+`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library: it implements Vapor’s `AsyncMiddleware` by skipping `__kawarimi` admin paths, matching enabled overrides (path template, method, optional `x-kawarimi-mockId`), resolving the body from the override or `KawarimiSpec.responseMap`, and either returning a synthetic `Response` or calling `next`. Use that file as the **authoritative sample** when writing your own middleware.
 
 | Endpoint | Description |
 |---|---|

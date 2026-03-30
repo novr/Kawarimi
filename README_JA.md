@@ -96,7 +96,7 @@ let response = try await client.getGreeting(...)
 
 アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
 
-サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`KawarimiInterceptorMiddleware`）と、**Henge API** として公開するルート（Example `DemoServer` 参照）を組み合わせます。
+サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`PathTemplate`、`MockOverride` など）と、**Henge API** ルートを組み合わせます。**オーバーライドを適用する Vapor の `AsyncMiddleware` は KawarimiCore の製品ではありません**—実装の参照として Example の [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) をコピー／改変するか、`DemoServer` と同様に自分で書いてください。
 
 ### Vapor 向けに使う外部パッケージ（サーバ）
 
@@ -137,6 +137,8 @@ let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environm
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
+
+`KawarimiInterceptorMiddleware` はライブラリではなく **Example の `DemoServer` 用コード**です。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド・任意の `x-kawarimi-mockId`）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
 
 | エンドポイント | 説明 |
 |---|---|
