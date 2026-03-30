@@ -138,7 +138,7 @@ registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
-`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library: it implements Vapor’s `AsyncMiddleware` by skipping `__kawarimi` admin paths, matching enabled overrides (path template, method, optional `x-kawarimi-mockId`), resolving the body from the override or `KawarimiSpec.responseMap`, and either returning a synthetic `Response` or calling `next`. Use that file as the **authoritative sample** when writing your own middleware.
+`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library: it implements Vapor’s `AsyncMiddleware` by skipping `__kawarimi` admin paths, matching enabled overrides (path template, method), resolving the body from the override or `KawarimiSpec.responseMap`, and either returning a synthetic `Response` or calling `next`. Use that file as the **authoritative sample** when writing your own middleware.
 
 | Endpoint | Description |
 |---|---|
@@ -166,7 +166,7 @@ Example **`DemoAPITests`** covers the `Kawarimi` path.
 
 **`DemoApp`** (SwiftUI) uses **KawarimiHenge** for the Henge tab and the OpenAPI tab for HTTP against a running server.
 
-If you need **one** client that switches real vs mock at runtime, or always sends `x-kawarimi-mockId`, implement a small `ClientTransport` wrapper in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
+If you need **one** client that switches real vs mock at runtime, implement a small `ClientTransport` wrapper in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
 
 ### kawarimi.json / KAWARIMI_CONFIG
 
@@ -196,7 +196,7 @@ Example `kawarimi.json`:
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
-If several overrides match the same request (same path template + method + `x-kawarimi-mockId` rule), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry: `path`, then non-`nil` `mockId` before `nil`, then `mockId` string, `statusCode`, `name`, `exampleId`. Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
+If several overrides match the same request (same path template + method), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry: `path`, then `statusCode`, then `name`, then `exampleId`. Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
 
 **DemoServer** passes `pathPrefix` from `KawarimiSpec.meta.apiPathPrefix` (from the OpenAPI `servers[0].url` path), so the mount matches the spec without a separate env var.
 

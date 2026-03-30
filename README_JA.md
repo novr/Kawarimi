@@ -138,7 +138,7 @@ registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
-`KawarimiInterceptorMiddleware` はライブラリではなく **Example の `DemoServer` 用コード**です。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド・任意の `x-kawarimi-mockId`）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
+`KawarimiInterceptorMiddleware` はライブラリではなく **Example の `DemoServer` 用コード**です。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
 
 | エンドポイント | 説明 |
 |---|---|
@@ -166,7 +166,7 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 
 **`DemoApp`**（SwiftUI）の Henge タブは **KawarimiHenge**、OpenAPI タブは起動中サーバーへの HTTP 用です。
 
-**1つの**クライアントで実／モックを実行時に切り替えたい、常に `x-kawarimi-mockId` を付けたい場合は、アプリ側で `ClientTransport` に準拠する薄いラッパーを自作し、`URLSessionTransport` に委譲しつつ `baseURL` やヘッダーを選ぶ形にしてください。
+**1つの**クライアントで実／モックを実行時に切り替えたい場合は、アプリ側で `ClientTransport` に準拠する薄いラッパーを自作し、`URLSessionTransport` に委譲しつつ `baseURL` やヘッダーを選ぶ形にしてください。
 
 ### kawarimi.json / KAWARIMI_CONFIG
 
@@ -196,7 +196,7 @@ handlerStubPolicy: throw
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
-同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッド・`x-kawarimi-mockId` の条件が一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。比較順は `path` → **`mockId` が非 nil を nil より先** → `mockId` 文字列 → `statusCode` → `name` → `exampleId` です。キーが同順位のときは Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。
+同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。比較順は `path` → `statusCode` → `name` → `exampleId` です。キーが同順位のときは Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。
 
 **DemoServer** は `KawarimiSpec.meta.apiPathPrefix`（OpenAPI `servers[0].url` のパス由来）を `pathPrefix` に渡すため、Spec とマウントが一致し、別の環境変数は不要です。
 

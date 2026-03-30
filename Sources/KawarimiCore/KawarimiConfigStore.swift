@@ -84,7 +84,6 @@ public actor KawarimiConfigStore {
     private func matches(_ existing: MockOverride, _ new: MockOverride) -> Bool {
         existing.path == new.path
             && existing.method == new.method
-            && existing.mockId == new.mockId
     }
 
     private func persist() throws {

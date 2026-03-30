@@ -6,7 +6,6 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public var method: String
     public var statusCode: Int
     public var exampleId: String?
-    public var mockId: String?
     public var isEnabled: Bool
     /// 非空なら spec の例より優先。空文字は「未指定」とみなし spec に戻す。
     public var body: String?
@@ -24,7 +23,6 @@ public struct MockOverride: Codable, Sendable, Equatable {
         method: String,
         statusCode: Int,
         exampleId: String? = nil,
-        mockId: String? = nil,
         isEnabled: Bool = true,
         body: String? = nil,
         contentType: String? = nil
@@ -34,7 +32,6 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.method = method
         self.statusCode = statusCode
         self.exampleId = exampleId
-        self.mockId = mockId
         self.isEnabled = isEnabled
         self.body = body
         self.contentType = contentType
@@ -65,12 +62,10 @@ extension MockOverride {
     }
 
     private static func interceptorTieBreakKey(_ o: MockOverride)
-        -> (String, Int, String, Int, String, String)
+        -> (String, Int, String, String)
     {
         (
             o.path,
-            o.mockId == nil ? 1 : 0,
-            o.mockId ?? "",
             o.statusCode,
             o.name ?? "",
             o.exampleId ?? ""

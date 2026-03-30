@@ -9,7 +9,6 @@ import Testing
         method: "GET",
         statusCode: 200,
         exampleId: nil,
-        mockId: nil,
         isEnabled: true,
         body: "{\"message\":\"Hello\"}",
         contentType: "application/json"
@@ -54,9 +53,9 @@ import Testing
 }
 
 @Test func mockOverrideEquatable() {
-    let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, mockId: "m", body: "{}")
-    let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, mockId: "m", body: "{}")
-    let c = MockOverride(path: "/api/x", method: "GET", statusCode: 200, mockId: "m", body: "{\"x\":1}")
+    let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")
+    let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")
+    let c = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{\"x\":1}")
     #expect(a == b)
     #expect(a != c)
 }
@@ -130,7 +129,6 @@ struct MockOverrideInterceptorTieBreakTests {
         method: String = "GET",
         statusCode: Int = 200,
         exampleId: String? = nil,
-        mockId: String? = nil,
         name: String? = nil
     ) -> MockOverride {
         MockOverride(
@@ -139,7 +137,6 @@ struct MockOverrideInterceptorTieBreakTests {
             method: method,
             statusCode: statusCode,
             exampleId: exampleId,
-            mockId: mockId,
             isEnabled: true
         )
     }
@@ -153,37 +150,19 @@ struct MockOverrideInterceptorTieBreakTests {
         #expect(sorted.map(\MockOverride.path) == ["/api/apple", "/api/middle", "/api/zebra"])
     }
 
-    @Test("non-nil mockId before nil when path matches")
-    func mockIdNonNilBeforeNil() {
-        let generic = ov(path: "/api/items/{id}", statusCode: 200, mockId: nil)
-        let named = ov(path: "/api/items/{id}", statusCode: 200, mockId: "profile-a")
-        let sorted = MockOverride.sortedForInterceptorTieBreak([generic, named])
-        #expect(sorted.first?.mockId == "profile-a")
-        #expect(sorted.last?.mockId == nil)
-    }
-
-    @Test("mockId string ascending when both set")
-    func mockIdLexicographic() {
-        let z = ov(path: "/x", mockId: "zebra")
-        let a = ov(path: "/x", mockId: "alpha")
-        let m = ov(path: "/x", mockId: "mid")
-        let sorted = MockOverride.sortedForInterceptorTieBreak([z, a, m])
-        #expect(sorted.map(\MockOverride.mockId) == ["alpha", "mid", "zebra"])
-    }
-
-    @Test("statusCode ascending when path and mockId equal")
+    @Test("statusCode ascending when path matches")
     func statusCodeAscending() {
-        let five = ov(path: "/api/x", statusCode: 500, mockId: "m")
-        let two = ov(path: "/api/x", statusCode: 200, mockId: "m")
-        let four = ov(path: "/api/x", statusCode: 404, mockId: "m")
+        let five = ov(path: "/api/x", statusCode: 500)
+        let two = ov(path: "/api/x", statusCode: 200)
+        let four = ov(path: "/api/x", statusCode: 404)
         let sorted = MockOverride.sortedForInterceptorTieBreak([five, two, four])
         #expect(sorted.map(\MockOverride.statusCode) == [200, 404, 500])
     }
 
     @Test("name then exampleId when earlier keys equal")
     func nameAndExampleId() {
-        let b = ov(path: "/p", statusCode: 200, exampleId: "e2", mockId: "m", name: "b")
-        let a = ov(path: "/p", statusCode: 200, exampleId: "e2", mockId: "m", name: "a")
+        let b = ov(path: "/p", statusCode: 200, exampleId: "e2", name: "b")
+        let a = ov(path: "/p", statusCode: 200, exampleId: "e2", name: "a")
         let sorted = MockOverride.sortedForInterceptorTieBreak([b, a])
         #expect(sorted.map(\MockOverride.name) == ["a", "b"])
     }
@@ -191,17 +170,16 @@ struct MockOverrideInterceptorTieBreakTests {
     @Test("full key order is stable across input permutations")
     func permutationStable() {
         let entries = [
-            ov(path: "/b", statusCode: 200, mockId: nil, name: "n1"),
-            ov(path: "/a", statusCode: 201, mockId: "z", name: "n2"),
-            ov(path: "/a", statusCode: 200, mockId: "z", name: "n1"),
-            ov(path: "/a", statusCode: 200, mockId: nil, name: "n0"),
+            ov(path: "/b", statusCode: 200, name: "n1"),
+            ov(path: "/a", statusCode: 201, name: "n2"),
+            ov(path: "/a", statusCode: 200, name: "n1"),
+            ov(path: "/a", statusCode: 200, name: "n0"),
         ]
         let expected = MockOverride.sortedForInterceptorTieBreak(entries)
         for _ in 0 ..< 10 {
             let shuffled = entries.shuffled()
             let got = MockOverride.sortedForInterceptorTieBreak(shuffled)
             #expect(got.map(\MockOverride.path) == expected.map(\MockOverride.path))
-            #expect(got.map(\MockOverride.mockId) == expected.map(\MockOverride.mockId))
             #expect(got.map(\MockOverride.statusCode) == expected.map(\MockOverride.statusCode))
             #expect(got.map(\MockOverride.name) == expected.map(\MockOverride.name))
         }
