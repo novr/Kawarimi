@@ -98,6 +98,20 @@ Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfi
 
 On the server, use **KawarimiCore** (`KawarimiConfigStore`, `KawarimiInterceptorMiddleware`) and register the **Henge API** routes (see Example `DemoServer`).
 
+### Vapor-related packages (server)
+
+Kawarimi does not ship a Vapor product; combine your generated API target with the usual OpenAPI + Vapor stack:
+
+| Piece | Link / notes |
+| --- | --- |
+| Web framework | [github.com/vapor/vapor](https://github.com/vapor/vapor) |
+| Generated server ↔ Vapor | [github.com/vapor/swift-openapi-vapor](https://github.com/vapor/swift-openapi-vapor) (`OpenAPIVapor`) |
+| Runtime for generated code | [github.com/apple/swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) |
+| OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
+| Henge file store + matching | **KawarimiCore** (this package) |
+
+Example wiring: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift) (`DemoServer` target). Reference implementation sources: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift).
+
 ### Generated file: KawarimiSpec.swift
 
 `KawarimiSpec` is generated into your API target and exposes:

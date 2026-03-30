@@ -98,6 +98,20 @@ let response = try await client.getGreeting(...)
 
 サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`KawarimiInterceptorMiddleware`）と、**Henge API** として公開するルート（Example `DemoServer` 参照）を組み合わせます。
 
+### Vapor 向けに使う外部パッケージ（サーバ）
+
+Kawarimi 単体に Vapor 用プロダクトはありません。生成した API ターゲットに、定番の OpenAPI + Vapor の組み合わせを載せます。
+
+| 役割 | リンク / メモ |
+| --- | --- |
+| Web フレームワーク | [github.com/vapor/vapor](https://github.com/vapor/vapor) |
+| 生成 Server と Vapor の橋渡し | [github.com/vapor/swift-openapi-vapor](https://github.com/vapor/swift-openapi-vapor)（`OpenAPIVapor`） |
+| 生成コードのランタイム | [github.com/apple/swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) |
+| OpenAPI からのコード生成 | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
+| Henge の設定ストア・マッチング | **KawarimiCore**（本パッケージ） |
+
+依存の具体例: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift)（`DemoServer` ターゲット）。実装の参照: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。
+
 ### 生成ファイル: KawarimiSpec.swift
 
 `KawarimiSpec` は API ターゲットに生成され、以下を公開します:
