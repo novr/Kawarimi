@@ -24,6 +24,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Greeting"
+              example:
+                message: "Hello from spec example"
   /items:
     get:
       tags: ["Items"]

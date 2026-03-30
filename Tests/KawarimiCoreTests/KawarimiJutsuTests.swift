@@ -6,6 +6,61 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     Bundle.module.url(forResource: name, withExtension: ext, subdirectory: subdirectory)
 }
 
+// MARK: - Generated KawarimiSpec body JSON (JSONDecoder)
+
+/// 任意の JSON 値を `JSONDecoder` で受理する（トップレベルが object / array / string / number / bool / null）。
+private struct AnyJSON: Decodable {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { return }
+        if (try? c.decode(Bool.self)) != nil { return }
+        if (try? c.decode(Int.self)) != nil { return }
+        if (try? c.decode(Double.self)) != nil { return }
+        if (try? c.decode(String.self)) != nil { return }
+        if (try? c.decode([String: AnyJSON].self)) != nil { return }
+        if (try? c.decode([AnyJSON].self)) != nil { return }
+        throw DecodingError.dataCorruptedError(in: c, debugDescription: "Unsupported JSON value")
+    }
+}
+
+/// 生成ソース内の `MockResponse` の `body: "..."` を、operationId が一致するエンドポイントの先頭レスポンスから取り出す。
+private func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
+    let needle = "operationId: \"\(operationId)\""
+    guard let opRange = source.range(of: needle) else { return nil }
+    let after = source[opRange.upperBound...]
+    guard let bodyLabel = after.range(of: "body: \"") else { return nil }
+    var i = bodyLabel.upperBound
+    var result = ""
+    var escaped = false
+    while i < after.endIndex {
+        let ch = after[i]
+        if escaped {
+            switch ch {
+            case "\"": result.append("\"")
+            case "\\": result.append("\\")
+            case "n": result.append("\n")
+            case "r": result.append("\r")
+            case "t": result.append("\t")
+            default: result.append(ch)
+            }
+            escaped = false
+        } else if ch == "\\" {
+            escaped = true
+        } else if ch == "\"" {
+            break
+        } else {
+            result.append(ch)
+        }
+        i = after.index(after: i)
+    }
+    return result.isEmpty ? nil : result
+}
+
+private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
+    let data = Data(json.utf8)
+    _ = try JSONDecoder().decode(AnyJSON.self, from: data)
+}
+
 @Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml がテストリソースに見つかりません")
@@ -252,4 +307,23 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     #expect(source.contains("listItems"))
     #expect(source.contains("/items/{id}"))
     #expect(source.contains("responseMap"))
+    // Media Type の example をモック本文に優先反映
+    #expect(source.contains("Hello from spec example"))
+    let greetBody = try #require(mockResponseBodyJSONString(operationId: "getGreeting", in: source))
+    try assertJSONDecoderAcceptsMockBody(greetBody)
+}
+
+@Test func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
+    guard let url = fixtureURL(name: "openapi-spec-mock-fallbacks", extension: "yaml") else {
+        Issue.record("openapi-spec-mock-fallbacks.yaml が見つかりません")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("enum_health_active"))
+    #expect(source.contains("oneof_branch_a"))
+    let healthBody = try #require(mockResponseBodyJSONString(operationId: "getHealthEnum", in: source))
+    let unionBody = try #require(mockResponseBodyJSONString(operationId: "getUnionOneOf", in: source))
+    try assertJSONDecoderAcceptsMockBody(healthBody)
+    try assertJSONDecoderAcceptsMockBody(unionBody)
 }
