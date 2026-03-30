@@ -1,7 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// 失敗時にレスポンス本文の断片を載せ、ログ・UI で切り分けしやすくする。
+/// Includes a short body prefix in `localizedDescription` when present so failures are easier to diagnose.
 public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     public var statusCode: Int
     public var data: Data?
@@ -21,7 +21,7 @@ public struct KawarimiAPIError: Error, LocalizedError, Sendable {
     }
 }
 
-/// `baseURL` は API マウント先まで含める（`__kawarimi` はその直下）。
+/// Appends `__kawarimi/...` under `baseURL` (include the API mount point in the base URL).
 public struct KawarimiAPIClient: Sendable {
     public var baseURL: URL
     private let session: URLSession

@@ -1,3 +1,4 @@
+#if os(macOS)
 import DemoAPI
 import Foundation
 import KawarimiCore
@@ -70,3 +71,4 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
 
     nest(parent: app, segmentIndex: 0)
 }
+#endif

@@ -80,7 +80,7 @@ let response = try await client.getGreeting(...)
 
 **Runtime** mock switching—overrides without recompiling—is a **KawarimiHenge** feature.
 
-Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`, `OverrideEditorView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
+Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
 
 On the server, use **KawarimiCore** (`KawarimiConfigStore`, `KawarimiInterceptorMiddleware`) and register the **Henge API** routes (see Example `DemoServer`).
 
@@ -144,7 +144,7 @@ If you need **one** client that switches real vs mock at runtime, or always send
 
 The file format uses `KawarimiConfig` (overrides array).
 
-**Run DemoServer with the Example directory as the current working directory** so `kawarimi.json` is read and written there (e.g. `cd Example && swift run DemoServer`).
+**Run DemoServer with `Example/DemoPackage` as the current working directory** so `kawarimi.json` is read and written there (e.g. `cd Example/DemoPackage && swift run DemoServer`).
 
 Set `KAWARIMI_CONFIG` to override the path.
 
@@ -173,34 +173,35 @@ If several overrides match the same request (same path template + method + `x-ka
 For your own server, pass the same prefix you use in `registerHandlers` / OpenAPI `servers`.
 
 ```bash
-cd Example && swift run DemoServer   # kawarimi.json in Example/
+cd Example/DemoPackage && swift run DemoServer   # kawarimi.json in Example/DemoPackage/
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
-### DemoApp (SwiftUI, macOS)
+### DemoApp (SwiftUI, macOS / iOS)
 
-Run `swift run DemoApp` to open a window: **KawarimiHenge** lists endpoints and lets you switch mock responses via a picker—no terminal required.
+The SwiftUI sample lives in **`Example/DemoApp/`** and is built with **`Example/DemoApp.xcodeproj`** (e.g. `xed Example/DemoApp.xcodeproj`). It links **`DemoAPI`** from **`Example/DemoPackage`** and **KawarimiCore** / **KawarimiHenge** from the repo root package—**`DemoPackage` itself has no SwiftUI dependency**.
 
-**Server URL** and **API prefix** default to `KawarimiSpec.meta` and are **persisted** in UserDefaults.
+**Server URL** and **API prefix** are **fixed** to `KawarimiSpec.meta` (`KawarimiExampleConfig` in the app).
 
-Point the host at your machine (e.g. `http://localhost:8080`) when running DemoServer locally.
+The Example `openapi.yaml` uses **HTTP** with **`127.0.0.1`** (e.g. `http://127.0.0.1:8080/api`) so clients do not resolve `localhost` to **`::1`** while Vapor listens on **IPv4 loopback** only. **`DemoApp-Info.plist`** (next to `DemoApp.xcodeproj`, not inside the synced `DemoApp/` folder) sets **NSAppTransportSecurity → NSAllowsLocalNetworking** so ATS allows cleartext to local hosts. **`DemoApp.entitlements`** enables **App Sandbox** with **`com.apple.security.network.client`** so URLSession can reach local servers (without it, `connectx` fails with *Operation not permitted*).
+
+Point the host at your machine so that URL matches your DemoServer (see `openapi.yaml` `servers`).
 
 ## Example
 
-The **`Example/` Swift package** is a **macOS-only sample**: it is not hardened for production.
+**`Example/DemoPackage/`** ships **`DemoAPI`** (OpenAPI-generated types + Kawarimi plugin) and **`DemoServer`** (Vapor on macOS). The SwiftUI app is only in **`Example/DemoApp/`** via Xcode. This sample is not hardened for production.
 
 **`__kawarimi`** admin endpoints have **no authentication**.
 
-**`DemoApp`** can issue HTTP requests to **any URL** you enter—use only in trusted environments and add your own auth / network controls for real deployments.
+**`DemoApp`** sends OpenAPI try-out requests to the **spec-defined base URL** only; use only in trusted environments and add your own auth / network controls for real deployments.
 
 ```bash
-cd Example && swift build
-swift run DemoServer   # in another terminal
-swift run DemoApp      # SwiftUI: OpenAPI + Henge (optional)
+cd Example/DemoPackage && swift build
+swift run DemoServer   # in another terminal; SwiftUI app: open Example/DemoApp.xcodeproj
 ```
 
 ## Notes
 
-- Swift 6.2+ / macOS 14+.
+- Swift 6.1+ (matches `swift-tools-version` in `Package.swift`; GitHub Actions `macos-latest` ships Swift 6.1.x). **Example/DemoPackage** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
 - `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
 - `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.

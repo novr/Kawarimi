@@ -1,3 +1,4 @@
+#if os(macOS)
 import DemoAPI
 import Foundation
 import KawarimiCore
@@ -28,3 +29,15 @@ struct DemoServer {
         try await app.execute()
     }
 }
+#else
+import Darwin
+
+/// Vapor サーバーは macOS のみ。iOS 向けにパッケージ全体を解決するためのスタブ。
+@main
+enum DemoServer {
+    static func main() {
+        fputs("DemoServer runs on macOS only.\n", stderr)
+        exit(1)
+    }
+}
+#endif

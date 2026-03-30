@@ -1,18 +1,17 @@
+import DemoAPI
 import Foundation
 import KawarimiCore
 
-/// Example は **Server URL** と **API prefix** を別フィールドで持つ。`meta` は入力が解決できないときのフォールバック（`servers.url` / `apiPathPrefix`）。
-enum ServerURLNormalization {
-    static func clientURL(
-        serverBaseURL: String,
-        apiPathPrefix: String,
-        meta: some SpecMetaProviding
-    ) -> URL? {
+/// Demo wiring: keep OpenAPI `servers` / `x-kawarimi` aligned with the demo server.
+enum KawarimiExampleConfig {
+    static var serverBaseURL: String { KawarimiSpec.meta.serverURL }
+    static var apiPathPrefix: String { KawarimiSpec.meta.apiPathPrefix }
+
+    /// Client base URL: origin plus `apiPathPrefix` (avoids double-appending paths).
+    static var clientBaseURL: URL? {
         resolve(origin: serverBaseURL, pathPrefix: apiPathPrefix)
-            ?? resolve(origin: meta.serverURL, pathPrefix: meta.apiPathPrefix)
     }
 
-    /// オリジンに path が無いときだけ正規化したマウント path を付ける。URL の path がそれと同じなら付けない（pathPrefix の二重付与を防ぐ）。
     private static func resolve(origin: String, pathPrefix: String) -> URL? {
         let trimmed = origin.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed), url.scheme != nil else { return nil }

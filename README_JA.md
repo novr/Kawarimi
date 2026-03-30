@@ -80,7 +80,7 @@ let response = try await client.getGreeting(...)
 
 **実行時**にオーバーライドを切り替えて再コンパイルなしでモックを変える流れは、**KawarimiHenge** の機能です。
 
-アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`、`OverrideEditorView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
+アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
 
 サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`KawarimiInterceptorMiddleware`）と、**Henge API** として公開するルート（Example `DemoServer` 参照）を組み合わせます。
 
@@ -144,7 +144,7 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 
 ファイル形式は `KawarimiConfig`（overrides 配列）です。
 
-**DemoServer は Example ディレクトリをカレントにして起動してください**（`kawarimi.json` の読み書き先を揃える。例: `cd Example && swift run DemoServer`）。
+**DemoServer は `Example/DemoPackage` をカレントにして起動してください**（`kawarimi.json` の読み書き先を揃える。例: `cd Example/DemoPackage && swift run DemoServer`）。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
@@ -173,34 +173,35 @@ handlerStubPolicy: throw
 独自サーバーでは `registerHandlers` や OpenAPI `servers` と同じプレフィックスを `KawarimiConfigStore` に渡してください。
 
 ```bash
-cd Example && swift run DemoServer   # kawarimi.json は Example/ に作成
+cd Example/DemoPackage && swift run DemoServer   # kawarimi.json は Example/DemoPackage/ に作成
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
-### DemoApp（SwiftUI・macOS）
+### DemoApp（SwiftUI・macOS / iOS）
 
-`swift run DemoApp` でウィンドウが開きます。**KawarimiHenge** で実行中サーバーのエンドポイント一覧とピッカーによるモック切り替えができます（ターミナル不要）。
+SwiftUI のサンプルは **`Example/DemoApp/`** にあり、**`Example/DemoApp.xcodeproj`** でビルドします（例: `xed Example/DemoApp.xcodeproj`）。**`DemoPackage` の `DemoAPI`** とリポジトリルートの **KawarimiCore / KawarimiHenge** にリンクしており、**`DemoPackage` 側に SwiftUI 依存はありません**。
 
-**Server URL** と **API prefix** は `KawarimiSpec.meta` を初期値とし、**UserDefaults** に保存されます。
+**Server URL** と **API prefix** は `KawarimiSpec.meta` に**固定**（アプリ内は `KawarimiExampleConfig`）。
 
-手元で DemoServer を動かすときはホストを `http://localhost:8080` などに合わせてください。
+Example の `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。**`DemoApp-Info.plist`**（同期対象の `DemoApp/` ではなく `DemoApp.xcodeproj` と同階層）で **NSAppTransportSecurity → NSAllowsLocalNetworking** を有効にし、ATS がローカル向け平文 HTTP を許可します。**`DemoApp.entitlements`** で **App Sandbox** と **`com.apple.security.network.client`** を有効にし、URLSession がローカルサーバーへ接続できるようにしています（無いと `connectx` が *Operation not permitted* になります）。
+
+手元で DemoServer を動かすときは、`openapi.yaml` の `servers` と実際のホストが一致するようにしてください。
 
 ## Example
 
-**`Example/` Swift パッケージ**は **macOS 専用のサンプル**です。本番向けの安全対策は含みません。
+**`Example/DemoPackage/`** は **OpenAPI 生成の `DemoAPI`** と **macOS 向け `DemoServer`（Vapor）** を含みます。SwiftUI アプリは **Xcode の `Example/DemoApp/`** のみです。本番向けの安全対策は含みません。
 
 **`__kawarimi`** 管理 API に**認証はありません**。
 
-**`DemoApp`** は入力した**任意の URL** へ HTTP を送れます。信頼できる環境でのみ使い、実運用では認証・ネットワーク制御を自前で追加してください。
+**`DemoApp`** の OpenAPI 実行は **Spec で定義されたベース URL** に向けます。信頼できる環境でのみ使い、実運用では認証・ネットワーク制御を自前で追加してください。
 
 ```bash
-cd Example && swift build
-swift run DemoServer   # 別ターミナルで
-swift run DemoApp      # SwiftUI: OpenAPI + Henge（任意）
+cd Example/DemoPackage && swift build
+swift run DemoServer   # 別ターミナルで。SwiftUI は Example/DemoApp.xcodeproj を開く
 ```
 
 ## 補足
 
-- Swift 6.2+ / macOS 14+。
+- Swift 6.1+（`Package.swift` の `swift-tools-version` に合わせる。GitHub Actions の `macos-latest` は Swift 6.1 系）。**Example/DemoPackage** は **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
 - `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
 - `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。
