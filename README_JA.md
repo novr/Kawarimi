@@ -31,6 +31,20 @@ handler.onGetGreeting = { input in
 
 ## 使い方
 
+### 導入パターン
+
+#### 簡易
+
+- **`openapi.yaml` を置いたライブラリターゲット（例: `MyAPI`）1 つ**に **OpenAPIGenerator** と **KawarimiPlugin** を付ける。ビルドで Types / Client / Server / Kawarimi 系が**同一モジュール**に生成される。
+- **クライアントアプリ**は `MyAPI` のみ依存。**サーバ**（例: Vapor）は `MyAPI` に加え **Vapor**、Henge 用なら **KawarimiCore** とルート配線（Example の `DemoServer` 参照）を足す。
+- **利点:** `Package.swift` が最小で、設定も一箇所。**注意:** アプリが Server を呼ばなくても、**生成された Server ソースは同じモジュールに含まれる**。バイナリ肥大やレイヤ境界は、分割するまで緩い。
+
+#### 推奨
+
+- **`openapi.yaml` は 1 本に固定**し、**クライアント用とサーバ用でジェネレータの切り方を分ける**（ターゲットを分け、`openapi-generator-config.yaml` を用途別にするなど）。**アプリ向け**は Types + Client（必要なら Kawarimi／モック）、**サーバ向け**は Types + Server。**同じ Types を 2 モジュールに二重生成しない**よう、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)に沿って構成する。
+- **KawarimiPlugin** は、正とする **`openapi.yaml` を持つターゲット**に付ける（yaml をコピーして二系統にすると同期コストが増える）。
+- **利点:** 依存関係と成果物の境界が明確で、クライアントに Server 実装を載せない方針にしやすい。**注意:** ターゲットや設定が増える。**CI でクライアント側・サーバ側の両方をビルド**し、仕様変更が片方だけ壊れないようにする。
+
 ### 1. 依存とプラグインを追加する
 
 ```swift

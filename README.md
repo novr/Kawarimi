@@ -31,6 +31,20 @@ If another target imports your API target, use `accessModifier: package` or `pub
 
 ## Usage
 
+### Integration patterns
+
+#### Simple
+
+- Use **one** library target (e.g. `MyAPI`) with `openapi.yaml`, **OpenAPIGenerator**, and **KawarimiPlugin**. The build emits Types, Client, Server, and Kawarimi artifacts in that single module.
+- Your **client app** depends on `MyAPI` only; your **server** (e.g. Vapor) depends on `MyAPI` plus **Vapor** and, for Henge, **KawarimiCore** (and route wiring as in the Example).
+- **Pros:** smallest `Package.swift`, one config location. **Cons:** generated **Server** sources still live in the same module the app imports—even if unused—so binary size and “layer discipline” are looser until you split generation.
+
+#### Recommended
+
+- Treat **`openapi.yaml` as the single source of truth**, then use **separate generator setups** (extra targets and/or `openapi-generator-config.yaml` per target) so the **client** product generates **Types + Client** (and Kawarimi/mock where needed) **without** shipping **Server** into the app, while the **server** generates **Types + Server**. Follow [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration) so you do **not** duplicate the same Types in two modules by mistake.
+- Attach **KawarimiPlugin** to the target that owns the canonical `openapi.yaml` (avoid copying the spec unless you accept sync overhead).
+- **Pros:** clearer boundaries and dependency graphs; client packages need not pull server-only code. **Cons:** more moving parts; **CI should build both** client and server targets so spec edits cannot break only one side.
+
 ### 1. Add dependencies and plugins
 
 ```swift
