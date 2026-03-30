@@ -70,17 +70,29 @@ public enum KawarimiJutsu {
     private static func defaultResponseJSON(operation: OpenAPI.Operation, components: OpenAPI.Components) -> String {
         guard let responseEither = operation.responses[status: 200],
               let response = components[responseEither],
-              let content = response.content[.json],
-              let schemaEither = content.schema else {
+              let content = response.content[.json] else {
             return "{}"
         }
-        guard let ref = schemaEither.reference,
-              let name = ref.name,
-              let key = OpenAPI.ComponentKey(rawValue: name),
-              let schema = components.schemas[key] else {
-            return "{}"
+        return mockJSONBodyFromJSONMediaType(content: content, components: components)
+    }
+
+    /// `application/json` の Media Type: `example` / `examples` で JSON が取れるときはそれをモック本文にし、なければ schema から合成する。
+    private static func mockJSONBodyFromJSONMediaType(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
+        if let exampleJSON = exampleToJSONString(content.example) {
+            return exampleJSON
         }
-        return defaultJSONForSchema(schema, components: components)
+        guard let schemaEither = content.schema else { return "{}" }
+        switch schemaEither {
+        case .a(let ref):
+            guard let name = ref.name,
+                  let key = OpenAPI.ComponentKey(rawValue: name),
+                  let schema = components.schemas[key] else {
+                return "{}"
+            }
+            return defaultJSONForSchema(schema, components: components)
+        case .b(let schema):
+            return defaultJSONForSchema(schema, components: components)
+        }
     }
 
     private static func resolveSchema(_ schema: JSONSchema, components: OpenAPI.Components) -> JSONSchema? {
@@ -94,6 +106,13 @@ public enum KawarimiJutsu {
 
     private static func defaultJSONForSchema(_ schema: JSONSchema, components: OpenAPI.Components) -> String {
         let resolved = resolveSchema(schema, components: components) ?? schema
+
+        if let exampleJSON = exampleToJSONString(resolved.example) {
+            return exampleJSON
+        }
+        if let defaultJSON = exampleToJSONString(resolved.defaultValue) {
+            return defaultJSON
+        }
 
         if let objectContext = resolved.objectContext {
             let pairs = objectContext.properties.map { name, propSchema -> String in
@@ -112,15 +131,47 @@ public enum KawarimiJutsu {
             return "[\(itemJSON)]"
         }
 
-        if let exampleJSON = exampleToJSONString(resolved.example) {
-            return exampleJSON
+        switch resolved.value {
+        case .one(of: let schemas, core: _), .any(of: let schemas, core: _):
+            for sub in schemas {
+                let j = defaultJSONForSchema(sub, components: components)
+                if !isVacuousJSONMock(j) { return j }
+            }
+            if let first = schemas.first {
+                return defaultJSONForSchema(first, components: components)
+            }
+            return "{}"
+        case .all(of: let schemas, core: _):
+            if let first = schemas.first {
+                return defaultJSONForSchema(first, components: components)
+            }
+            return "{}"
+        case .not:
+            return "{}"
+        default:
+            break
         }
+
+        if let allowed = resolved.allowedValues, let first = allowed.first,
+           let j = exampleToJSONString(first) {
+            return j
+        }
+
         switch resolved.jsonType {
         case .some(.string): return "\"\""
         case .some(.integer): return "0"
         case .some(.number): return "0.0"
         case .some(.boolean): return "false"
-        default: return "\"\""
+        default: return "{}"
+        }
+    }
+
+    /// オブジェクト合成や oneOf の別枝を試すときの「中身がない」プレースホルダ判定。
+    private static func isVacuousJSONMock(_ json: String) -> Bool {
+        let t = json.trimmingCharacters(in: .whitespacesAndNewlines)
+        switch t {
+        case "{}", "\"\"", "0", "0.0", "false", "[]": return true
+        default: return false
         }
     }
 
@@ -582,14 +633,7 @@ public enum KawarimiJutsu {
     }
 
     private static func responseBodyJSON(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
-        guard let schemaEither = content.schema else { return "{}" }
-        if let ref = schemaEither.reference,
-           let name = ref.name,
-           let key = OpenAPI.ComponentKey(rawValue: name),
-           let schema = components.schemas[key] {
-            return defaultJSONForSchema(schema, components: components)
-        }
-        return "{}"
+        mockJSONBodyFromJSONMediaType(content: content, components: components)
     }
 
     private static func swiftInitializerForSchema(

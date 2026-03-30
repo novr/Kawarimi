@@ -1,0 +1,34 @@
+openapi: "3.0.4"
+info:
+  title: "SpecMockFallbacks"
+  version: "1.0.0"
+servers:
+  - url: "https://localhost:8080/api"
+paths:
+  /health:
+    get:
+      operationId: "getHealthEnum"
+      responses:
+        "200":
+          description: "enum without example — mock JSON uses first allowed value"
+          content:
+            application/json:
+              schema:
+                type: string
+                enum: [enum_health_active, inactive]
+  /union:
+    get:
+      operationId: "getUnionOneOf"
+      responses:
+        "200":
+          description: "oneOf without example — first non-vacuous branch"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: string
+                    enum: [oneof_branch_a, oneof_branch_b]
+                  - type: object
+                    properties:
+                      x:
+                        type: integer

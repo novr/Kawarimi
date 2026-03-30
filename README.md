@@ -122,6 +122,20 @@ KawarimiSpec.endpoints   // all endpoints with their possible responses
 KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 ```
 
+### Mock JSON for `KawarimiSpec` and `Kawarimi` transport
+
+For each `application/json` response, Kawarimi embeds a JSON string in `KawarimiSpec` (and uses the **200** response for the generated `Kawarimi` `ClientTransport` mock). The string is chosen in this order:
+
+1. **Media Type Object** — `example`, or the first value resolved from `examples` (OpenAPI 3 disallows both at once; OpenAPIKit fills `example` when only `examples` is set).
+2. **JSON Schema on that media type** — `example`, then `default`.
+3. **Shape-based synthesis** — recurse through `object` / `array` properties (placeholder values for primitives when needed).
+4. **`oneOf` / `anyOf`** — first branch whose result is not an empty placeholder (`{}`, `""`, `0`, `false`, `[]`); if every branch is placeholder-like, the first branch is used.
+5. **`allOf`** — first subschema (heuristic when no explicit example).
+6. **`enum` (`allowedValues`)** — first value, encoded as JSON.
+7. **Primitives** — string `""`, number `0`, etc.; unknown shapes fall back to `{}`.
+
+`KawarimiHandler` stub generation is separate: some schemas (e.g. certain enums) still require manual `on…` handlers or `handlerStubPolicy` even when the mock JSON above is available.
+
 ### Henge API (DemoServer / `{pathPrefix}/__kawarimi/*`)
 
 **Henge API** is the HTTP surface that **KawarimiHenge**’s `KawarimiAPIClient` talks to (the name “Henge” is the feature).
@@ -159,7 +173,7 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
 
 Use **two** generated `Client` instances if you want both in-process examples and a live server:
 
-- `Kawarimi()` — no network; responses from OpenAPI `example` values.
+- `Kawarimi()` — no network; responses use the mock JSON rules above (per-operation 200 + `application/json`).
 - `URLSessionTransport()` from [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) against your `DemoServer` (add that product to your target).
 
 Example **`DemoAPITests`** covers the `Kawarimi` path.
