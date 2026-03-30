@@ -31,6 +31,20 @@ handler.onGetGreeting = { input in
 
 ## 使い方
 
+### 導入パターン
+
+#### 簡易
+
+- **`openapi.yaml` を置いたライブラリターゲット（例: `MyAPI`）1 つ**に **OpenAPIGenerator** と **KawarimiPlugin** を付ける。ビルドで Types / Client / Server / Kawarimi 系が**同一モジュール**に生成される。
+- **クライアントアプリ**は `MyAPI` のみ依存。**サーバ**（例: Vapor）は `MyAPI` に加え **Vapor**、Henge 用なら **KawarimiCore** とルート配線（Example の `DemoServer` 参照）を足す。
+- **利点:** `Package.swift` が最小で、設定も一箇所。**注意:** アプリが Server を呼ばなくても、**生成された Server ソースは同じモジュールに含まれる**。バイナリ肥大やレイヤ境界は、分割するまで緩い。
+
+#### 推奨
+
+- **`openapi.yaml` は 1 本に固定**し、**クライアント用とサーバ用でジェネレータの切り方を分ける**（ターゲットを分け、`openapi-generator-config.yaml` を用途別にするなど）。**アプリ向け**は Types + Client（必要なら Kawarimi／モック）、**サーバ向け**は Types + Server。**同じ Types を 2 モジュールに二重生成しない**よう、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)に沿って構成する。
+- **KawarimiPlugin** は、正とする **`openapi.yaml` を持つターゲット**に付ける（yaml をコピーして二系統にすると同期コストが増える）。
+- **利点:** 依存関係と成果物の境界が明確で、クライアントに Server 実装を載せない方針にしやすい。**注意:** ターゲットや設定が増える。**CI でクライアント側・サーバ側の両方をビルド**し、仕様変更が片方だけ壊れないようにする。
+
 ### 1. 依存とプラグインを追加する
 
 ```swift
@@ -82,7 +96,21 @@ let response = try await client.getGreeting(...)
 
 アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
 
-サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`KawarimiInterceptorMiddleware`）と、**Henge API** として公開するルート（Example `DemoServer` 参照）を組み合わせます。
+サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`PathTemplate`、`MockOverride` など）と、**Henge API** ルートを組み合わせます。**オーバーライドを適用する Vapor の `AsyncMiddleware` は KawarimiCore の製品ではありません**—実装の参照として Example の [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) をコピー／改変するか、`DemoServer` と同様に自分で書いてください。
+
+### Vapor 向けに使う外部パッケージ（サーバ）
+
+Kawarimi 単体に Vapor 用プロダクトはありません。生成した API ターゲットに、定番の OpenAPI + Vapor の組み合わせを載せます。
+
+| 役割 | リンク / メモ |
+| --- | --- |
+| Web フレームワーク | [github.com/vapor/vapor](https://github.com/vapor/vapor) |
+| 生成 Server と Vapor の橋渡し | [github.com/vapor/swift-openapi-vapor](https://github.com/vapor/swift-openapi-vapor)（`OpenAPIVapor`） |
+| 生成コードのランタイム | [github.com/apple/swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) |
+| OpenAPI からのコード生成 | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
+| Henge の設定ストア・マッチング | **KawarimiCore**（本パッケージ） |
+
+依存の具体例: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift)（`DemoServer` ターゲット）。実装の参照: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。
 
 ### 生成ファイル: KawarimiSpec.swift
 
@@ -109,6 +137,8 @@ let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environm
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
+
+`KawarimiInterceptorMiddleware` はライブラリではなく **Example の `DemoServer` 用コード**です。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド・任意の `x-kawarimi-mockId`）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
 
 | エンドポイント | 説明 |
 |---|---|

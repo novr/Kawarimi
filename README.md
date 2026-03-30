@@ -31,6 +31,20 @@ If another target imports your API target, use `accessModifier: package` or `pub
 
 ## Usage
 
+### Integration patterns
+
+#### Simple
+
+- Use **one** library target (e.g. `MyAPI`) with `openapi.yaml`, **OpenAPIGenerator**, and **KawarimiPlugin**. The build emits Types, Client, Server, and Kawarimi artifacts in that single module.
+- Your **client app** depends on `MyAPI` only; your **server** (e.g. Vapor) depends on `MyAPI` plus **Vapor** and, for Henge, **KawarimiCore** (and route wiring as in the Example).
+- **Pros:** smallest `Package.swift`, one config location. **Cons:** generated **Server** sources still live in the same module the app imports—even if unused—so binary size and “layer discipline” are looser until you split generation.
+
+#### Recommended
+
+- Treat **`openapi.yaml` as the single source of truth**, then use **separate generator setups** (extra targets and/or `openapi-generator-config.yaml` per target) so the **client** product generates **Types + Client** (and Kawarimi/mock where needed) **without** shipping **Server** into the app, while the **server** generates **Types + Server**. Follow [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration) so you do **not** duplicate the same Types in two modules by mistake.
+- Attach **KawarimiPlugin** to the target that owns the canonical `openapi.yaml` (avoid copying the spec unless you accept sync overhead).
+- **Pros:** clearer boundaries and dependency graphs; client packages need not pull server-only code. **Cons:** more moving parts; **CI should build both** client and server targets so spec edits cannot break only one side.
+
 ### 1. Add dependencies and plugins
 
 ```swift
@@ -82,7 +96,21 @@ let response = try await client.getGreeting(...)
 
 Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
 
-On the server, use **KawarimiCore** (`KawarimiConfigStore`, `KawarimiInterceptorMiddleware`) and register the **Henge API** routes (see Example `DemoServer`).
+On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes. **Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product**—copy or adapt Example [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see Example `DemoServer`).
+
+### Vapor-related packages (server)
+
+Kawarimi does not ship a Vapor product; combine your generated API target with the usual OpenAPI + Vapor stack:
+
+| Piece | Link / notes |
+| --- | --- |
+| Web framework | [github.com/vapor/vapor](https://github.com/vapor/vapor) |
+| Generated server ↔ Vapor | [github.com/vapor/swift-openapi-vapor](https://github.com/vapor/swift-openapi-vapor) (`OpenAPIVapor`) |
+| Runtime for generated code | [github.com/apple/swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) |
+| OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
+| Henge file store + matching | **KawarimiCore** (this package) |
+
+Example wiring: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift) (`DemoServer` target). Reference implementation sources: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift).
 
 ### Generated file: KawarimiSpec.swift
 
@@ -109,6 +137,8 @@ let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environm
 registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
+
+`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library: it implements Vapor’s `AsyncMiddleware` by skipping `__kawarimi` admin paths, matching enabled overrides (path template, method, optional `x-kawarimi-mockId`), resolving the body from the override or `KawarimiSpec.responseMap`, and either returning a synthetic `Response` or calling `next`. Use that file as the **authoritative sample** when writing your own middleware.
 
 | Endpoint | Description |
 |---|---|

@@ -104,9 +104,12 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     )
     #expect(source.contains("fatalError("))
     #expect(source.contains("onCreateItem"))
+    #expect(source.contains("// Kawarimi: handlerStubPolicy fatalError"))
+    #expect(source.contains("//   [POST /items] createItem"))
     #expect(!warnings.isEmpty)
     #expect(warnings.joined().contains("createItem"))
     #expect(warnings.joined().contains("Kawarimi warning:"))
+    #expect(warnings.joined().contains("Summary: 1 operation"))
 }
 
 @Test func kawarimiHandlerUsesFatalErrorStubWhenAccessInternalAndPolicyIsFatalError() throws {
@@ -123,8 +126,10 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
     )
     #expect(source.contains("internal var onCreateItem:"))
     #expect(source.contains("fatalError("))
+    #expect(source.contains("// Kawarimi: handlerStubPolicy fatalError"))
     #expect(!warnings.isEmpty)
     #expect(warnings.joined().contains("createItem"))
+    #expect(warnings.joined().contains("Summary: 1 operation"))
 }
 
 @Test func kawarimiHandlerThrowsForStringEnumWithDefaultFailFastPolicy() throws {
