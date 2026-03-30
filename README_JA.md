@@ -51,7 +51,7 @@ handler.onGetGreeting = { input in
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.2"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.9.3"),
 ],
 targets: [
     .target(
