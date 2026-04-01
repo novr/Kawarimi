@@ -42,20 +42,78 @@ private func methodBadgeBackground(_ method: String) -> Color {
     }
 }
 
-// MARK: - Stitch "Improved" surfaces (project 2669550661863236037)
+// MARK: - Explorer surfaces
 
-private enum StitchExplorerPalette {
-    /// Material-style lavender surface
-    static let surface = Color(red: 0.925, green: 0.929, blue: 0.98)
-    static let surfaceLow = Color(red: 0.949, green: 0.953, blue: 1.0)
-    static let primaryBlue = Color(red: 0.075, green: 0.427, blue: 0.925)
+private enum ExplorerPalette {
+    #if os(iOS)
+    private static let lightSurface = UIColor(red: 0.925, green: 0.929, blue: 0.98, alpha: 1)
+    private static let lightSurfaceElevated = UIColor(red: 0.949, green: 0.953, blue: 1.0, alpha: 1)
+    #endif
+
+    /// List / chrome underlay
+    static var surface: Color {
+        #if os(iOS)
+        Color(UIColor { tc in
+            tc.userInterfaceStyle == .dark ? .systemGroupedBackground : lightSurface
+        })
+        #else
+        Color(nsColor: .windowBackgroundColor)
+        #endif
+    }
+
+    /// URL field, search field, raised rows
+    static var surfaceElevated: Color {
+        #if os(iOS)
+        Color(UIColor { tc in
+            tc.userInterfaceStyle == .dark ? .secondarySystemGroupedBackground : lightSurfaceElevated
+        })
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
+    }
+
+    /// URLs and network icon — `link` stays legible on dark grouped backgrounds
+    static var linkAccent: Color {
+        #if os(iOS)
+        Color(UIColor.link)
+        #else
+        Color(nsColor: .linkColor)
+        #endif
+    }
+
+    /// Content-type chip etc.
+    static var subtleAccentFill: Color {
+        Color.accentColor.opacity(0.14)
+    }
+
+    /// RESPONSE STATUS chip tray
+    static var chipStripTray: Color {
+        #if os(iOS)
+        Color(UIColor.secondarySystemFill)
+        #else
+        Color(nsColor: .quaternaryLabelColor).opacity(0.15)
+        #endif
+    }
+
+    /// Selected status chip (not pure white in dark mode)
+    static var chipSelectedFill: Color {
+        #if os(iOS)
+        Color(UIColor.tertiarySystemGroupedBackground)
+        #else
+        Color(nsColor: .selectedContentBackgroundColor)
+        #endif
+    }
 }
 
 private var explorerListCardFill: Color {
+    ExplorerPalette.surfaceElevated
+}
+
+private var groupedFieldStroke: Color {
     #if os(iOS)
-    Color(UIColor.secondarySystemGroupedBackground)
+    Color(UIColor.separator)
     #else
-    Color(nsColor: .controlBackgroundColor)
+    Color(nsColor: .separatorColor)
     #endif
 }
 
@@ -91,6 +149,8 @@ struct OverrideEditorView: View {
     @State private var searchText = ""
     @State private var compactPath: [EndpointRowKey] = []
     @State private var compactDoneUnsavedPresented = false
+
+    private static let explorerHorizontalMargin: CGFloat = 20
 
     init(
         serverURL: String,
@@ -162,7 +222,7 @@ struct OverrideEditorView: View {
             .fill(explorerListCardFill)
             .shadow(color: Color.black.opacity(0.07), radius: 6, x: 0, y: 2)
             .padding(.vertical, 4)
-            .padding(.horizontal, 6)
+            .padding(.horizontal, 4)
     }
 
     var body: some View {
@@ -288,7 +348,7 @@ struct OverrideEditorView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                        .listRowInsets(EdgeInsets(top: 6, leading: Self.explorerHorizontalMargin, bottom: 6, trailing: Self.explorerHorizontalMargin))
                         .listRowBackground(explorerListRowCardBackground)
                     }
                 } header: {
@@ -301,7 +361,7 @@ struct OverrideEditorView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(StitchExplorerPalette.surface)
+        .background(ExplorerPalette.surface)
         .listRowSeparator(.hidden)
     }
 
@@ -350,7 +410,7 @@ struct OverrideEditorView: View {
                             showChevron: false
                         )
                         .tag(item.rowKey)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                        .listRowInsets(EdgeInsets(top: 6, leading: Self.explorerHorizontalMargin, bottom: 6, trailing: Self.explorerHorizontalMargin))
                         .listRowBackground(explorerListRowCardBackground)
                     }
                 } header: {
@@ -363,7 +423,7 @@ struct OverrideEditorView: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(StitchExplorerPalette.surface)
+        .background(ExplorerPalette.surface)
         .listRowSeparator(.hidden)
     }
 
@@ -380,7 +440,7 @@ struct OverrideEditorView: View {
         }
         .textCase(nil)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
+        .listRowInsets(EdgeInsets(top: 8, leading: Self.explorerHorizontalMargin, bottom: 4, trailing: Self.explorerHorizontalMargin))
     }
 
     // MARK: - Shared chrome
@@ -392,7 +452,7 @@ struct OverrideEditorView: View {
                 serverStatusCard
                 searchField
             }
-            .padding(.horizontal)
+            .padding(.horizontal, Self.explorerHorizontalMargin)
             .padding(.top, explorerTightVertical ? 4 : 8)
             .padding(.bottom, explorerTightVertical ? 6 : 10)
             Divider()
@@ -403,7 +463,7 @@ struct OverrideEditorView: View {
 
     private var headerChromeBackground: some View {
         Rectangle()
-            .fill(StitchExplorerPalette.surface)
+            .fill(ExplorerPalette.surface)
     }
 
     private var serverStatusCard: some View {
@@ -411,10 +471,10 @@ struct OverrideEditorView: View {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: "network")
                     .font(.body.weight(.medium))
-                    .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                    .foregroundStyle(ExplorerPalette.linkAccent)
                 Text(serverURL)
                     .font(.body.monospaced())
-                    .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                    .foregroundStyle(ExplorerPalette.linkAccent)
                     .lineLimit(explorerTightVertical ? 2 : 3)
                     .truncationMode(.middle)
                     .textSelection(.enabled)
@@ -424,11 +484,11 @@ struct OverrideEditorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(StitchExplorerPalette.surfaceLow)
+                    .fill(ExplorerPalette.surfaceElevated)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                    .strokeBorder(groupedFieldStroke, lineWidth: 1)
             )
 
             Button {
@@ -454,11 +514,11 @@ struct OverrideEditorView: View {
         .padding(explorerTightVertical ? 8 : 12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(StitchExplorerPalette.surfaceLow)
+                .fill(ExplorerPalette.surfaceElevated)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                .strokeBorder(groupedFieldStroke, lineWidth: 1)
         )
     }
 
@@ -467,7 +527,7 @@ struct OverrideEditorView: View {
             if let error = errorMessage.wrappedValue {
                 Text(error)
                     .foregroundStyle(.red)
-                    .padding(.horizontal)
+                    .padding(.horizontal, Self.explorerHorizontalMargin)
                     .padding(.bottom, 8)
             }
         }
@@ -821,7 +881,7 @@ private struct OverrideDetailColumnView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "curlybraces")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(StitchExplorerPalette.primaryBlue.opacity(0.9))
+                                    .foregroundStyle(ExplorerPalette.linkAccent)
                                 TextField("application/json", text: contentTypeBinding)
                                     .font(.caption.monospaced())
                                     .multilineTextAlignment(.trailing)
@@ -832,7 +892,7 @@ private struct OverrideDetailColumnView: View {
                             .padding(.vertical, 6)
                             .background(
                                 Capsule(style: .continuous)
-                                    .fill(StitchExplorerPalette.primaryBlue.opacity(0.12))
+                                    .fill(ExplorerPalette.subtleAccentFill)
                             )
                         }
 
@@ -849,7 +909,7 @@ private struct OverrideDetailColumnView: View {
             .padding(detailTightVertical ? 10 : 16)
             .padding(.bottom, detailTightVertical ? 72 : 96)
         }
-        .background(StitchExplorerPalette.surface)
+        .background(ExplorerPalette.surface)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomToolbar
         }
@@ -873,7 +933,7 @@ private struct OverrideDetailColumnView: View {
                                 .font(.subheadline.weight(selected ? .semibold : .regular))
                                 .foregroundStyle(
                                     selected
-                                        ? (opt.id == -1 ? Color.primary : StitchExplorerPalette.primaryBlue)
+                                        ? (opt.id == -1 ? Color.primary : Color.accentColor)
                                         : Color.secondary
                                 )
                         }
@@ -881,11 +941,11 @@ private struct OverrideDetailColumnView: View {
                         .padding(.vertical, detailTightVertical ? 7 : 10)
                         .background(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(selected ? Color.white : Color.clear)
+                                .fill(selected ? ExplorerPalette.chipSelectedFill : Color.clear)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                                .strokeBorder(groupedFieldStroke, lineWidth: 1)
                         )
                     }
                     .buttonStyle(.plain)
@@ -895,7 +955,7 @@ private struct OverrideDetailColumnView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.primary.opacity(0.06))
+                .fill(ExplorerPalette.chipStripTray)
         )
     }
 
@@ -1053,7 +1113,7 @@ private struct EndpointRowView: View {
                             .frame(width: 6, height: 6)
                         Text("\(statusCode)")
                             .font(.caption.monospaced().weight(.semibold))
-                            .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                            .foregroundStyle(.primary)
                     }
                 }
             }
@@ -1065,7 +1125,8 @@ private struct EndpointRowView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .contentShape(Rectangle())
     }
 }
