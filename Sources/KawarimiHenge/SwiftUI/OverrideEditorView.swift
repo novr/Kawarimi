@@ -1,8 +1,73 @@
 import KawarimiCore
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit) && !os(iOS)
+import AppKit
+#endif
+
 private func validationMessageIsError(_ msg: String) -> Bool {
     msg.hasPrefix("Invalid")
+}
+
+private func httpStatusPhrase(_ statusCode: Int) -> String {
+    switch statusCode {
+    case 100: return "Continue"
+    case 200: return "OK"
+    case 201: return "Created"
+    case 204: return "No Content"
+    case 400: return "Bad Request"
+    case 401: return "Unauthorized"
+    case 403: return "Forbidden"
+    case 404: return "Not Found"
+    case 409: return "Conflict"
+    case 422: return "Unprocessable Entity"
+    case 500: return "Internal Server Error"
+    case 502: return "Bad Gateway"
+    case 503: return "Service Unavailable"
+    default:
+        return HTTPURLResponse.localizedString(forStatusCode: statusCode).capitalized
+    }
+}
+
+private func methodBadgeBackground(_ method: String) -> Color {
+    switch method.uppercased() {
+    case "GET": return Color(red: 0.22, green: 0.52, blue: 0.95)
+    case "POST": return Color(red: 0.12, green: 0.52, blue: 0.32)
+    case "PUT", "PATCH": return Color(red: 0.98, green: 0.58, blue: 0.12)
+    case "DELETE": return Color(red: 0.92, green: 0.26, blue: 0.28)
+    default: return Color(white: 0.55)
+    }
+}
+
+// MARK: - Stitch "Improved" surfaces (project 2669550661863236037)
+
+private enum StitchExplorerPalette {
+    /// Material-style lavender surface
+    static let surface = Color(red: 0.925, green: 0.929, blue: 0.98)
+    static let surfaceLow = Color(red: 0.949, green: 0.953, blue: 1.0)
+    static let primaryBlue = Color(red: 0.075, green: 0.427, blue: 0.925)
+}
+
+private var explorerListCardFill: Color {
+    #if os(iOS)
+    Color(UIColor.secondarySystemGroupedBackground)
+    #else
+    Color(nsColor: .controlBackgroundColor)
+    #endif
+}
+
+private extension ToolbarItemPlacement {
+    /// `navigationBarTrailing` is unavailable on macOS.
+    static var kawarimiTrailing: ToolbarItemPlacement {
+        #if os(iOS)
+        .navigationBarTrailing
+        #else
+        .primaryAction
+        #endif
+    }
 }
 
 struct OverrideEditorView: View {
@@ -18,8 +83,14 @@ struct OverrideEditorView: View {
     private let configureOverride: (MockOverride) async throws -> Void
     private let errorMessage: Binding<String?>
 
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     @State private var store = OverrideEditorStore()
     @State private var confirmResetAll = false
+    @State private var searchText = ""
+    @State private var compactPath: [EndpointRowKey] = []
+    @State private var compactDoneUnsavedPresented = false
 
     init(
         serverURL: String,
@@ -47,15 +118,87 @@ struct OverrideEditorView: View {
         self.errorMessage = errorMessage
     }
 
+    /// Use stack navigation whenever width *or* height is compact. iPhone landscape often reports
+    /// `horizontalSizeClass == .regular` while `verticalSizeClass == .compact`, which would pick
+    /// `NavigationSplitView` and leave the sidebar drawn over the detail.
+    private var useCompactNavigation: Bool {
+        #if os(iOS)
+        if horizontalSizeClass == .compact { return true }
+        if verticalSizeClass == .compact { return true }
+        return false
+        #else
+        horizontalSizeClass == .compact
+        #endif
+    }
+
+    /// Shorter vertical space (e.g. iPhone landscape): tighter header and detail padding.
+    private var explorerTightVertical: Bool {
+        #if os(iOS)
+        verticalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
+
     private var endpointItems: [SpecEndpointItem] {
         store.endpointItems(endpoints: endpoints)
     }
 
+    private var filteredEndpointItems: [SpecEndpointItem] {
+        let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return endpointItems }
+        let lower = q.lowercased()
+        return endpointItems.filter { item in
+            let ep = item.endpoint
+            if ep.path.lowercased().contains(lower) { return true }
+            if ep.method.lowercased().contains(lower) { return true }
+            if ep.operationId.lowercased().contains(lower) { return true }
+            return false
+        }
+    }
+
+    private var explorerListRowCardBackground: some View {
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+            .fill(explorerListCardFill)
+            .shadow(color: Color.black.opacity(0.07), radius: 6, x: 0, y: 2)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 6)
+    }
+
     var body: some View {
-        NavigationSplitView {
-            listContent
-        } detail: {
-            detailContent
+        Group {
+            if useCompactNavigation {
+                NavigationStack(path: $compactPath) {
+                    compactExplorerRoot
+                        #if os(iOS)
+                        .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                        .toolbar {
+                            ToolbarItem(placement: .principal) {
+                                Label("Explorer", systemImage: "square.grid.2x2")
+                                    .font(.headline.weight(.semibold))
+                                    .labelStyle(.titleAndIcon)
+                            }
+                            ToolbarItem(placement: .kawarimiTrailing) {
+                                Button("Refresh", action: onRefresh)
+                            }
+                        }
+                        .navigationDestination(for: EndpointRowKey.self) { key in
+                            compactDetailDestination(for: key)
+                        }
+                }
+                .onChange(of: compactPath) { _, newPath in
+                    if newPath.isEmpty {
+                        store.clearSelection()
+                    }
+                }
+            } else {
+                NavigationSplitView {
+                    splitSidebarContent
+                } detail: {
+                    splitDetailContent
+                }
+            }
         }
         .task(id: specLoadID) {
             store.resyncDetailAfterSpecReload(endpoints: endpoints, overrides: overrides)
@@ -72,6 +215,21 @@ struct OverrideEditorView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("All mock overrides on the server will be cleared. This cannot be undone here.")
+        }
+        .confirmationDialog(
+            "Unsaved changes",
+            isPresented: $compactDoneUnsavedPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Save") {
+                Task { await saveAndCompactPopIfSuccess() }
+            }
+            Button("Discard", role: .destructive) {
+                compactPop()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Save mock changes before leaving this screen?")
         }
     }
 
@@ -93,49 +251,219 @@ struct OverrideEditorView: View {
         )
     }
 
-    private var listContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(serverURL)
-                    .font(.body.monospaced())
-                    .lineLimit(2)
-                    .truncationMode(.middle)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                HStack(spacing: 8) {
-                    Button("Refresh", action: onRefresh)
-                    Button("Reset All", role: .destructive) { confirmResetAll = true }
-                    Spacer(minLength: 0)
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-            }
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
+    // MARK: - Compact root
 
+    private var compactExplorerRoot: some View {
+        VStack(alignment: .leading, spacing: 0) {
             if isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(selection: selectionBinding) {
-                    if let meta {
-                        Section("API: \(meta.title) v\(meta.version)") {
-                            ForEach(endpointItems) { item in
-                                EndpointRowView(
-                                    item: item,
-                                    statusCode: store.displayedListStatus(for: item.rowKey, overrides: overrides),
-                                    hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey
-                                )
-                                .tag(item.rowKey)
-                            }
-                        }
-                    } else {
-                        Text("No spec loaded. Provide spec via specProvider.")
-                            .foregroundStyle(.secondary)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        explorerHeaderSafeAreaInset
                     }
-                }
+            } else {
+                compactEndpointList
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        explorerHeaderSafeAreaInset
+                    }
             }
+            errorBanner
+        }
+    }
+
+    private var compactEndpointList: some View {
+        List {
+            if let meta {
+                Section {
+                    ForEach(filteredEndpointItems) { item in
+                        Button {
+                            store.applySelection(item.rowKey, endpoints: endpoints, overrides: overrides)
+                            compactPath = [item.rowKey]
+                        } label: {
+                            EndpointRowView(
+                                item: item,
+                                statusCode: store.displayedListStatus(for: item.rowKey, overrides: overrides),
+                                hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
+                                showChevron: true
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                        .listRowBackground(explorerListRowCardBackground)
+                    }
+                } header: {
+                    explorerSectionHeader(meta: meta)
+                }
+            } else {
+                Text("No spec loaded. Provide spec via specProvider.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(StitchExplorerPalette.surface)
+        .listRowSeparator(.hidden)
+    }
+
+    // MARK: - Split sidebar
+
+    private var splitSidebarContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        explorerHeaderSafeAreaInset
+                    }
+            } else {
+                splitEndpointList
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        explorerHeaderSafeAreaInset
+                    }
+            }
+            errorBanner
+        }
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Label("Explorer", systemImage: "square.grid.2x2")
+                    .font(.headline.weight(.semibold))
+                    .labelStyle(.titleAndIcon)
+            }
+            ToolbarItem(placement: .kawarimiTrailing) {
+                Button("Refresh", action: onRefresh)
+            }
+        }
+    }
+
+    private var splitEndpointList: some View {
+        List(selection: selectionBinding) {
+            if let meta {
+                Section {
+                    ForEach(filteredEndpointItems) { item in
+                        EndpointRowView(
+                            item: item,
+                            statusCode: store.displayedListStatus(for: item.rowKey, overrides: overrides),
+                            hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
+                            showChevron: false
+                        )
+                        .tag(item.rowKey)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                        .listRowBackground(explorerListRowCardBackground)
+                    }
+                } header: {
+                    explorerSectionHeader(meta: meta)
+                }
+            } else {
+                Text("No spec loaded. Provide spec via specProvider.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .background(StitchExplorerPalette.surface)
+        .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder
+    private func explorerSectionHeader(meta: any SpecMetaProviding) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("AVAILABLE ENDPOINTS")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+                .tracking(0.6)
+            Text("API: \(meta.title) v\(meta.version)")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .textCase(nil)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 4, trailing: 0))
+    }
+
+    // MARK: - Shared chrome
+
+    /// Pinned above the endpoint `List` via `safeAreaInset` so rows never draw under the search bar.
+    private var explorerHeaderSafeAreaInset: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: explorerTightVertical ? 8 : 12) {
+                serverStatusCard
+                searchField
+            }
+            .padding(.horizontal)
+            .padding(.top, explorerTightVertical ? 4 : 8)
+            .padding(.bottom, explorerTightVertical ? 6 : 10)
+            Divider()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(headerChromeBackground)
+    }
+
+    private var headerChromeBackground: some View {
+        Rectangle()
+            .fill(StitchExplorerPalette.surface)
+    }
+
+    private var serverStatusCard: some View {
+        VStack(alignment: .leading, spacing: explorerTightVertical ? 8 : 10) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "network")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                Text(serverURL)
+                    .font(.body.monospaced())
+                    .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                    .lineLimit(explorerTightVertical ? 2 : 3)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                Spacer(minLength: 0)
+            }
+            .padding(explorerTightVertical ? 8 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(StitchExplorerPalette.surfaceLow)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+            )
+
+            Button {
+                confirmResetAll = true
+            } label: {
+                Label("Reset all overrides", systemImage: "arrow.counterclockwise")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.secondary)
+            .controlSize(explorerTightVertical ? .small : .regular)
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search endpoints, methods, or descriptions", text: $searchText)
+                .textFieldStyle(.plain)
+        }
+        .padding(explorerTightVertical ? 8 : 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(StitchExplorerPalette.surfaceLow)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    private var errorBanner: some View {
+        Group {
             if let error = errorMessage.wrappedValue {
                 Text(error)
                     .foregroundStyle(.red)
@@ -145,8 +473,10 @@ struct OverrideEditorView: View {
         }
     }
 
+    // MARK: - Detail (split)
+
     @ViewBuilder
-    private var detailContent: some View {
+    private var splitDetailContent: some View {
         if let d = store.detail,
            let item = store.specItem(for: d.endpointRowKey, endpoints: endpoints) {
             OverrideDetailColumnView(
@@ -155,6 +485,9 @@ struct OverrideEditorView: View {
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: d.isDirty,
+                embedNavigationStack: true,
+                showToolbarRefresh: true,
+                onRefresh: onRefresh,
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
                 onApply: { Task { await applyWithBody(endpointItem: item) } },
@@ -164,6 +497,87 @@ struct OverrideEditorView: View {
             Text("Select an endpoint")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func compactDetailDestination(for key: EndpointRowKey) -> some View {
+        if let item = store.specItem(for: key, endpoints: endpoints) {
+            OverrideDetailColumnView(
+                endpointItem: item,
+                overrides: overrides,
+                mock: mockBinding(for: item),
+                validationMessage: validationMessageBinding,
+                hasUnsavedChanges: store.detail?.isDirty == true && store.detail?.endpointRowKey == key,
+                embedNavigationStack: false,
+                showToolbarRefresh: false,
+                onRefresh: onRefresh,
+                onValidate: { store.validateBody() },
+                onFormat: { store.formatBody() },
+                onApply: { Task { await applyWithBody(endpointItem: item) } },
+                onReset: { Task { await clearOverride(endpointItem: item) } }
+            )
+            .onAppear {
+                if store.detail?.endpointRowKey != key {
+                    store.applySelection(key, endpoints: endpoints, overrides: overrides)
+                }
+            }
+            .navigationTitle("\(item.endpoint.method) \(item.endpoint.path)")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .kawarimiTrailing) {
+                    HStack(spacing: 12) {
+                        Button("Refresh", action: onRefresh)
+                        Button("Done") {
+                            handleCompactDone(for: item)
+                        }
+                        .fontWeight(.semibold)
+                    }
+                }
+            }
+            #if os(iOS)
+            .toolbar(.hidden, for: .tabBar)
+            #endif
+        } else {
+            ContentUnavailableView("Unknown endpoint", systemImage: "questionmark.circle")
+                .onAppear {
+                    store.applySelection(key, endpoints: endpoints, overrides: overrides)
+                }
+                #if os(iOS)
+                .toolbar(.hidden, for: .tabBar)
+                #endif
+        }
+    }
+
+    private func handleCompactDone(for item: SpecEndpointItem) {
+        guard let d = store.detail, d.endpointRowKey == item.rowKey else {
+            compactPop()
+            return
+        }
+        if d.isDirty {
+            compactDoneUnsavedPresented = true
+        } else {
+            compactPop()
+        }
+    }
+
+    private func compactPop() {
+        compactPath = []
+        store.clearSelection()
+    }
+
+    private func saveAndCompactPopIfSuccess() async {
+        guard let key = store.detail?.endpointRowKey,
+              let item = store.specItem(for: key, endpoints: endpoints)
+        else {
+            compactPop()
+            return
+        }
+        await applyWithBody(endpointItem: item)
+        if errorMessage.wrappedValue == nil {
+            compactPop()
         }
     }
 
@@ -246,14 +660,48 @@ private struct OverrideDetailColumnView: View {
     @Binding var mock: MockOverride
     @Binding var validationMessage: String?
     let hasUnsavedChanges: Bool
+    let embedNavigationStack: Bool
+    let showToolbarRefresh: Bool
+    let onRefresh: () -> Void
     let onValidate: () -> Void
     let onFormat: () -> Void
     let onApply: () -> Void
     let onReset: () -> Void
 
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     @State private var confirmResetEndpoint = false
 
     private var endpoint: any SpecEndpointProviding { endpointItem.endpoint }
+
+    private var detailTightVertical: Bool {
+        #if os(iOS)
+        verticalSizeClass == .compact
+        #else
+        false
+        #endif
+    }
+
+    private struct MockStatusChipOption: Identifiable {
+        let id: Int
+        let label: String
+    }
+
+    private var mockStatusChipOptions: [MockStatusChipOption] {
+        var out = [MockStatusChipOption(id: -1, label: "Spec")]
+        var seen = Set<Int>()
+        for item in endpointItem.mockResponsePickerItems {
+            let c = item.response.statusCode
+            if seen.insert(c).inserted {
+                out.append(MockStatusChipOption(id: c, label: "\(c) \(httpStatusPhrase(c))"))
+            }
+        }
+        return out
+    }
+
+    private var selectedMockStatusCode: Int {
+        mock.isEnabled ? mock.statusCode : -1
+    }
 
     private var responseSelectionBinding: Binding<Int> {
         Binding(
@@ -293,78 +741,274 @@ private struct OverrideDetailColumnView: View {
         )
     }
 
+    private var jsonLineCount: Int {
+        let text = mock.body ?? ""
+        if text.isEmpty { return 1 }
+        return max(1, text.split(separator: "\n", omittingEmptySubsequences: false).count)
+    }
+
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if hasUnsavedChanges {
-                        HStack {
-                            Text("Not saved")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.orange)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.orange.opacity(0.15), in: Capsule())
-                            Spacer(minLength: 0)
-                        }
-                    }
-                    Picker("Response", selection: responseSelectionBinding) {
-                        Text("Spec").tag(-1)
-                        ForEach(endpointItem.mockResponsePickerItems) { item in
-                            Text("\(item.response.statusCode)").tag(item.response.statusCode)
-                        }
-                    }
-                    .pickerStyle(.menu)
-
-                    if mock.isEnabled {
-                        GroupBox {
-                            VStack(alignment: .leading, spacing: 8) {
-                                TextEditor(text: bodyTextBinding)
-                                    .font(.system(.body, design: .monospaced))
-                                    .frame(minHeight: 120)
-                                TextField("Content-Type", text: contentTypeBinding, prompt: Text("application/json"))
-                                if let msg = validationMessage {
-                                    Text(msg)
-                                        .font(.caption)
-                                        .foregroundStyle(validationMessageIsError(msg) ? .red : .secondary)
+        Group {
+            if embedNavigationStack {
+                NavigationStack {
+                    detailScrollStack
+                        .navigationTitle("\(endpoint.method) \(endpoint.path)")
+                        .toolbar {
+                            if showToolbarRefresh {
+                                ToolbarItem(placement: .kawarimiTrailing) {
+                                    Button("Refresh", action: onRefresh)
                                 }
-                                HStack(spacing: 8) {
-                                    Button("Validate", action: onValidate)
-                                    Button("Format", action: onFormat)
-                                    Spacer(minLength: 0)
-                                }
-                                .buttonStyle(.bordered)
-                                .controlSize(.regular)
                             }
-                        } label: {
-                            Label("Response body (JSON)", systemImage: "curlybraces")
-                                .font(.subheadline)
                         }
-                    }
-
-                    HStack(spacing: 12) {
-                        Button("Save", action: onApply)
-                            .buttonStyle(.borderedProminent)
-                        Button("Reset", role: .destructive) { confirmResetEndpoint = true }
-                            .buttonStyle(.bordered)
-                        Spacer(minLength: 0)
-                    }
-                    .controlSize(.regular)
                 }
-                .padding()
-            }
-            .navigationTitle("\(endpoint.method) \(endpoint.path)")
-            .confirmationDialog(
-                "Reset this endpoint?",
-                isPresented: $confirmResetEndpoint,
-                titleVisibility: .visible
-            ) {
-                Button("Reset", role: .destructive) { onReset() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("The override for this operation will be cleared on the server.")
+            } else {
+                detailScrollStack
             }
         }
+        .confirmationDialog(
+            "Reset this endpoint?",
+            isPresented: $confirmResetEndpoint,
+            titleVisibility: .visible
+        ) {
+            Button("Reset", role: .destructive) { onReset() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The override for this operation will be cleared on the server.")
+        }
+    }
+
+    private var detailScrollStack: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+                if hasUnsavedChanges {
+                    HStack {
+                        Text("Not saved")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.orange)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(.orange.opacity(0.15), in: Capsule())
+                        Spacer(minLength: 0)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+                    Text("RESPONSE STATUS")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.6)
+                    Text("Define the HTTP status code returned for this mock.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(detailTightVertical ? 2 : nil)
+                    responseStatusChipStrip
+                }
+
+                if mock.isEnabled {
+                    VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("RESPONSE BODY")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.secondary)
+                                    .tracking(0.6)
+                                Text("JSON payload to be returned.")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                                    .lineLimit(detailTightVertical ? 2 : nil)
+                            }
+                            Spacer(minLength: 8)
+                            HStack(spacing: 4) {
+                                Image(systemName: "curlybraces")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(StitchExplorerPalette.primaryBlue.opacity(0.9))
+                                TextField("application/json", text: contentTypeBinding)
+                                    .font(.caption.monospaced())
+                                    .multilineTextAlignment(.trailing)
+                                    .textFieldStyle(.plain)
+                                    .frame(maxWidth: 140)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(StitchExplorerPalette.primaryBlue.opacity(0.12))
+                            )
+                        }
+
+                        darkJsonEditorChrome
+
+                        if let msg = validationMessage {
+                            Text(msg)
+                                .font(.caption)
+                                .foregroundStyle(validationMessageIsError(msg) ? .red : .secondary)
+                        }
+                    }
+                }
+            }
+            .padding(detailTightVertical ? 10 : 16)
+            .padding(.bottom, detailTightVertical ? 72 : 96)
+        }
+        .background(StitchExplorerPalette.surface)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomToolbar
+        }
+    }
+
+    private var responseStatusChipStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(mockStatusChipOptions) { opt in
+                    let selected = selectedMockStatusCode == opt.id
+                    Button {
+                        responseSelectionBinding.wrappedValue = opt.id
+                    } label: {
+                        HStack(spacing: 6) {
+                            if selected, opt.id != -1 {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 6, height: 6)
+                            }
+                            Text(opt.label)
+                                .font(.subheadline.weight(selected ? .semibold : .regular))
+                                .foregroundStyle(
+                                    selected
+                                        ? (opt.id == -1 ? Color.primary : StitchExplorerPalette.primaryBlue)
+                                        : Color.secondary
+                                )
+                        }
+                        .padding(.horizontal, detailTightVertical ? 10 : 14)
+                        .padding(.vertical, detailTightVertical ? 7 : 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(selected ? Color.white : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(detailTightVertical ? 6 : 10)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.primary.opacity(0.06))
+        )
+    }
+
+    private var darkJsonEditorChrome: some View {
+        let lineCount = jsonLineCount
+        let minLines = detailTightVertical ? 4 : 8
+        let editorMinHeight = CGFloat(max(lineCount, minLines)) * 18 + (detailTightVertical ? 16 : 24)
+        let editorFill = Color(red: 0.1, green: 0.11, blue: 0.13)
+
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(Color.red.opacity(0.85))
+                        .frame(width: 8, height: 8)
+                    Circle()
+                        .fill(Color.green.opacity(0.85))
+                        .frame(width: 8, height: 8)
+                }
+                Spacer(minLength: 0)
+                Text("HENGE-EDITOR-V1")
+                    .font(.system(size: 11, weight: .medium, design: .monospaced))
+                    .foregroundStyle(Color.white.opacity(0.42))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, detailTightVertical ? 6 : 8)
+            .frame(maxWidth: .infinity)
+            .background(Color(red: 0.07, green: 0.075, blue: 0.09))
+
+            HStack(alignment: .top, spacing: 0) {
+                VStack(alignment: .trailing, spacing: 0) {
+                    ForEach(1...lineCount, id: \.self) { n in
+                        Text("\(n)")
+                            .font(.system(size: 13, design: .monospaced))
+                            .foregroundStyle(Color.white.opacity(0.45))
+                            .frame(height: 18, alignment: .top)
+                    }
+                }
+                .frame(width: 36)
+                .padding(.vertical, detailTightVertical ? 6 : 8)
+
+                TextEditor(text: bodyTextBinding)
+                    .font(.system(size: 13, design: .monospaced))
+                    .scrollContentBackground(.hidden)
+                    .foregroundStyle(Color.white.opacity(0.92))
+                    .frame(minHeight: editorMinHeight)
+                    .padding(.vertical, 4)
+                    .padding(.trailing, 8)
+            }
+            .background(editorFill)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+        )
+    }
+
+    private var bottomToolbar: some View {
+        HStack(spacing: 4) {
+            toolbarPlainButton(title: "Validate", systemImage: "checkmark.circle", action: onValidate)
+            toolbarPlainButton(title: "Format", systemImage: "text.alignleft", action: onFormat)
+            saveCapsuleButton
+            toolbarPlainButton(title: "Reset", systemImage: "arrow.counterclockwise", foreground: .red) {
+                confirmResetEndpoint = true
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, detailTightVertical ? 8 : 12)
+        .padding(.horizontal, 8)
+        .background(.ultraThinMaterial)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private var saveCapsuleButton: some View {
+        Button(action: onApply) {
+            VStack(spacing: 4) {
+                Image(systemName: "square.and.arrow.down")
+                    .font(.system(size: 20))
+                Text("Save")
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, detailTightVertical ? 6 : 8)
+            .padding(.horizontal, 6)
+            .background(Capsule(style: .continuous).fill(Color.accentColor))
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func toolbarPlainButton(
+        title: String,
+        systemImage: String,
+        foreground: Color = Color.secondary,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20))
+                Text(title)
+                    .font(.caption2.weight(.medium))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(foreground)
     }
 }
 
@@ -372,28 +1016,56 @@ private struct EndpointRowView: View {
     let item: SpecEndpointItem
     let statusCode: Int
     let hasUnsavedDraft: Bool
+    let showChevron: Bool
 
     private var endpoint: any SpecEndpointProviding { item.endpoint }
 
     var body: some View {
-        HStack {
-            Text(endpoint.method)
-                .font(.system(.body, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .frame(width: 52, alignment: .leading)
+        HStack(spacing: 10) {
+            Text(endpoint.method.uppercased())
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(methodBadgeBackground(endpoint.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+
             Text(endpoint.path)
                 .font(.system(.body, design: .monospaced))
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             if hasUnsavedDraft {
                 Text("Unsaved")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.orange)
             }
-            Spacer()
-            Text(statusCode == -1 ? "Spec" : "\(statusCode)")
-                .font(.system(.subheadline, design: .monospaced))
-                .foregroundStyle(statusCode == -1 ? .secondary : .primary)
-                .frame(minWidth: 44, alignment: .trailing)
+
+            Group {
+                if statusCode == -1 {
+                    Text("Spec")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                        Text("\(statusCode)")
+                            .font(.caption.monospaced().weight(.semibold))
+                            .foregroundStyle(StitchExplorerPalette.primaryBlue)
+                    }
+                }
+            }
+            .frame(minWidth: 52, alignment: .trailing)
+
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
