@@ -6,6 +6,7 @@ import UIKit
 import DemoAPI
 import Foundation
 import KawarimiCore
+import KawarimiHenge
 import SwiftUI
 
 // MARK: - OpenAPI execute UI
@@ -78,16 +79,6 @@ private enum OpenAPIExecuteLayout {
 
 private enum OpenAPIExecuteScrollID: Hashable {
     case response
-}
-
-private func executionMethodBadgeBackground(_ method: String) -> Color {
-    switch method.uppercased() {
-    case "GET": return Color(red: 0.22, green: 0.52, blue: 0.95)
-    case "POST": return Color(red: 0.12, green: 0.52, blue: 0.32)
-    case "PUT", "PATCH": return Color(red: 0.98, green: 0.58, blue: 0.12)
-    case "DELETE": return Color(red: 0.92, green: 0.26, blue: 0.28)
-    default: return Color(white: 0.55)
-    }
 }
 
 /// Builds URL, query, and body from the spec and sends HTTP for any method (not GET-only).
@@ -172,7 +163,9 @@ struct OpenAPIExecuteView: View {
                 .onChange(of: resultText) { _, newValue in
                     guard !newValue.isEmpty else { return }
                     Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(50))
+                        // Let SwiftUI lay out the new response section before scrolling (avoids fixed ms delays).
+                        await Task.yield()
+                        await Task.yield()
                         withAnimation(.easeInOut(duration: 0.28)) {
                             proxy.scrollTo(OpenAPIExecuteScrollID.response, anchor: .top)
                         }
@@ -268,7 +261,7 @@ struct OpenAPIExecuteView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .background(executionMethodBadgeBackground(ep.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .background(HTTPMethodBadgeColor.fill(for: ep.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 Text(ep.path)
                     .font(.system(.body, design: .monospaced).weight(.medium))
                     .foregroundStyle(ExecutionTheme.link)

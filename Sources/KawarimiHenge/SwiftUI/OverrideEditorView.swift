@@ -32,16 +32,6 @@ private func httpStatusPhrase(_ statusCode: Int) -> String {
     }
 }
 
-private func methodBadgeBackground(_ method: String) -> Color {
-    switch method.uppercased() {
-    case "GET": return Color(red: 0.22, green: 0.52, blue: 0.95)
-    case "POST": return Color(red: 0.12, green: 0.52, blue: 0.32)
-    case "PUT", "PATCH": return Color(red: 0.98, green: 0.58, blue: 0.12)
-    case "DELETE": return Color(red: 0.92, green: 0.26, blue: 0.28)
-    default: return Color(white: 0.55)
-    }
-}
-
 // MARK: - Explorer surfaces
 
 private enum ExplorerPalette {
@@ -1087,7 +1077,7 @@ private struct EndpointRowView: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(methodBadgeBackground(endpoint.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .background(HTTPMethodBadgeColor.fill(for: endpoint.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
             Text(endpoint.path)
                 .font(.system(.body, design: .monospaced))

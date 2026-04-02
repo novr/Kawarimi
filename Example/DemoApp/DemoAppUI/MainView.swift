@@ -4,6 +4,8 @@ import SwiftUI
 import UIKit
 #endif
 
+/// DemoApp root tabs. Tab bar styling uses `UITabBar.appearance()`, which applies **process-wide** for this app;
+/// acceptable here because DemoApp is a small sample with a single `TabView`.
 struct MainView: View {
     init() {
         #if canImport(UIKit) && !os(watchOS)
