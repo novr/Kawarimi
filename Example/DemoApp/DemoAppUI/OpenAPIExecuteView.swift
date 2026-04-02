@@ -76,6 +76,10 @@ private enum OpenAPIExecuteLayout {
     static let cardInterior: CGFloat = 16
 }
 
+private enum OpenAPIExecuteScrollID: Hashable {
+    case response
+}
+
 private func executionMethodBadgeBackground(_ method: String) -> Color {
     switch method.uppercased() {
     case "GET": return Color(red: 0.22, green: 0.52, blue: 0.95)
@@ -136,32 +140,44 @@ struct OpenAPIExecuteView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    pageIntro
-                    baseURLCard
-                    executeSearchField
-                    operationPickerCard
-                    methodAndPathCard
-                    if let ep = endpoint {
-                        pathParametersSection(ep: ep)
-                        querySection
-                        if HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: ep.method) {
-                            requestBodySection
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        pageIntro
+                        baseURLCard
+                        executeSearchField
+                        operationPickerCard
+                        methodAndPathCard
+                        if let ep = endpoint {
+                            pathParametersSection(ep: ep)
+                            querySection
+                            if HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: ep.method) {
+                                requestBodySection
+                            }
+                        }
+                        if isRunning {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                        }
+                        if !resultText.isEmpty {
+                            responseSection
+                                .id(OpenAPIExecuteScrollID.response)
                         }
                     }
-                    if isRunning {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                    }
-                    if !resultText.isEmpty {
-                        responseSection
+                    .padding(.horizontal, OpenAPIExecuteLayout.horizontalInset)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                }
+                .onChange(of: resultText) { _, newValue in
+                    guard !newValue.isEmpty else { return }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(50))
+                        withAnimation(.easeInOut(duration: 0.28)) {
+                            proxy.scrollTo(OpenAPIExecuteScrollID.response, anchor: .top)
+                        }
                     }
                 }
-                .padding(.horizontal, OpenAPIExecuteLayout.horizontalInset)
-                .padding(.top, 12)
-                .padding(.bottom, 12)
             }
             .background(ExecutionTheme.surface)
             .navigationTitle("API Execution")
