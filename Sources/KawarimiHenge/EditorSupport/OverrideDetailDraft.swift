@@ -18,15 +18,18 @@ struct OverrideDetailDraft {
 
     mutating func resyncMockFromServer(overrides: [MockOverride], endpoints: [any SpecEndpointProviding]) {
         let rowKey = endpointRowKey
-        if let code = OverrideListQueries.enabledStatusCode(for: rowKey, in: overrides) {
+        let candidates = overrides.filter { $0.isEnabled && $0.method == rowKey.method && $0.path == rowKey.path }
+        if let ov = MockOverride.sortedForInterceptorTieBreak(candidates).first {
             mock.isEnabled = true
-            mock.statusCode = code
+            mock.statusCode = ov.statusCode
+            mock.exampleId = ov.exampleId
             if let ep = OverrideListQueries.endpoint(for: rowKey, in: endpoints) {
-                mergeResponseTemplate(endpoint: ep, overrides: overrides, statusCode: code, into: &mock)
+                mergeResponseTemplate(endpoint: ep, overrides: overrides, statusCode: ov.statusCode, into: &mock)
             }
         } else {
             mock.isEnabled = false
             mock.statusCode = OverrideListQueries.defaultResponseStatusCode(for: rowKey, in: endpoints)
+            mock.exampleId = nil
             mock.body = nil
             mock.contentType = nil
         }

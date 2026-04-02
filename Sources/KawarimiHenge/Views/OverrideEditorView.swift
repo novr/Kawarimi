@@ -641,6 +641,7 @@ struct OverrideEditorView: View {
                         path: endpoint.path,
                         method: endpoint.method,
                         statusCode: endpoint.responseList.first?.statusCode ?? 200,
+                        exampleId: nil,
                         isEnabled: false,
                         body: nil,
                         contentType: nil
@@ -672,6 +673,7 @@ struct OverrideEditorView: View {
                 path: endpoint.path,
                 method: endpoint.method,
                 statusCode: enabled ? m.statusCode : (endpoint.responseList.first?.statusCode ?? 200),
+                exampleId: enabled ? m.exampleId : nil,
                 isEnabled: enabled,
                 body: body,
                 contentType: contentType
@@ -692,6 +694,7 @@ struct OverrideEditorView: View {
                 path: endpoint.path,
                 method: endpoint.method,
                 statusCode: endpoint.responseList.first?.statusCode ?? 200,
+                exampleId: nil,
                 isEnabled: false,
                 body: nil,
                 contentType: nil
@@ -761,16 +764,43 @@ private struct OverrideDetailColumnView: View {
                 if newCode == -1 {
                     m.isEnabled = false
                     m.statusCode = endpoint.responseList.first?.statusCode ?? 200
+                    m.exampleId = nil
                     m.body = nil
                     m.contentType = nil
                 } else {
                     m.isEnabled = true
                     m.statusCode = newCode
+                    let choices = endpointItem.mockResponsePickerItems.filter { $0.response.statusCode == newCode }
+                    if choices.count == 1 {
+                        m.exampleId = choices[0].response.exampleId
+                    } else {
+                        m.exampleId = nil
+                    }
                     mergeResponseTemplate(endpoint: endpoint, overrides: overrides, statusCode: newCode, into: &m)
                 }
                 mock = m
             }
         )
+    }
+
+    private var exampleChoicesForStatus: [SpecMockResponseItem] {
+        endpointItem.mockResponsePickerItems.filter { $0.response.statusCode == mock.statusCode }
+    }
+
+    private func specExampleLabel(_ item: SpecMockResponseItem) -> String {
+        if let ex = item.response.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines), !ex.isEmpty {
+            if let s = item.response.summary?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+                return "\(ex) — \(s)"
+            }
+            return ex
+        }
+        return "Default"
+    }
+
+    private func exampleIdsEqual(_ a: String?, _ b: String?) -> Bool {
+        let ta = a.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
+        let tb = b.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
+        return ta == tb
     }
 
     private var bodyTextBinding: Binding<String> {
@@ -852,6 +882,55 @@ private struct OverrideDetailColumnView: View {
                         .foregroundStyle(.tertiary)
                         .lineLimit(detailTightVertical ? 2 : nil)
                     responseStatusChipStrip
+                }
+
+                if mock.isEnabled, exampleChoicesForStatus.count > 1 {
+                    VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+                        Text("RESPONSE EXAMPLE")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .tracking(0.6)
+                        Text("Pick which OpenAPI example body to return when using the spec template.")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(detailTightVertical ? 2 : nil)
+                        Menu {
+                            ForEach(exampleChoicesForStatus) { item in
+                                Button {
+                                    var m = mock
+                                    m.exampleId = item.response.exampleId
+                                    mergeResponseTemplate(endpoint: endpoint, overrides: overrides, statusCode: m.statusCode, into: &m)
+                                    mock = m
+                                } label: {
+                                    HStack {
+                                        Text(specExampleLabel(item))
+                                        if exampleIdsEqual(mock.exampleId, item.response.exampleId) {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(specExampleLabel(exampleChoicesForStatus.first { exampleIdsEqual(mock.exampleId, $0.response.exampleId) } ?? exampleChoicesForStatus[0]))
+                                    .font(.subheadline.weight(.medium))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(ExplorerPalette.surfaceElevated)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .strokeBorder(groupedFieldStroke, lineWidth: 1)
+                            )
+                        }
+                    }
                 }
 
                 if mock.isEnabled {

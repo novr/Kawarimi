@@ -18,7 +18,15 @@ enum OverrideListQueries {
         endpoint(for: rowKey, in: endpoints)?.responseList.first?.statusCode ?? 200
     }
 
-    static func enabledOverride(for rowKey: EndpointRowKey, statusCode: Int, in overrides: [MockOverride]) -> MockOverride? {
-        overrides.first { $0.isEnabled && $0.method == rowKey.method && $0.path == rowKey.path && $0.statusCode == statusCode }
+    static func enabledOverride(for rowKey: EndpointRowKey, statusCode: Int, exampleId: String?, in overrides: [MockOverride]) -> MockOverride? {
+        overrides.first { ov in
+            ov.isEnabled && ov.method == rowKey.method && ov.path == rowKey.path && ov.statusCode == statusCode
+                && normalizedExampleId(ov.exampleId) == normalizedExampleId(exampleId)
+        }
+    }
+
+    private static func normalizedExampleId(_ id: String?) -> String? {
+        guard let t = id?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+        return t
     }
 }
