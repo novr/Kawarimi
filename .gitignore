@@ -6,7 +6,6 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
-docs/
 
 ## Example
 Example/DemoPackage/kawarimi.json
