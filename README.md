@@ -65,7 +65,7 @@ targets: [
 ]
 ```
 
-Dynamic mock UI and `KawarimiAPIClient` need the **KawarimiHenge** product on your **app** (or tool) target—see **Dynamic mock (KawarimiHenge)** below.
+Dynamic mock UI needs the **KawarimiHenge** product; `KawarimiAPIClient` lives in **KawarimiCore**—see **Dynamic mock (KawarimiHenge)** below.
 
 ### 2. Place OpenAPI spec
 
@@ -94,7 +94,7 @@ let response = try await client.getGreeting(...)
 
 **Runtime** mock switching—overrides without recompiling—is a **KawarimiHenge** feature.
 
-Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
+Add **KawarimiCore** for `KawarimiAPIClient` (HTTP to `{pathPrefix}/__kawarimi/*`) and **KawarimiHenge** for SwiftUI (`KawarimiConfigView`).
 
 On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes. **Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product**—copy or adapt the reference [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see [`Example/README.md`](Example/README.md)).
 
@@ -138,7 +138,7 @@ For each `application/json` response, Kawarimi embeds a JSON string in `Kawarimi
 
 ### Henge API (`{pathPrefix}/__kawarimi/*`)
 
-**Henge API** is the HTTP surface that **KawarimiHenge**’s `KawarimiAPIClient` talks to (the name “Henge” is the feature).
+**Henge API** is the HTTP surface that **`KawarimiAPIClient`** (in **KawarimiCore**) talks to (the name “Henge” is the feature).
 
 Mount admin routes **under a path prefix aligned with your OpenAPI API** (e.g. **`/api/__kawarimi/spec`** when the API lives under `/api`). You may mount `__kawarimi` at the root in your own app; keep it aligned with `KawarimiAPIClient`’s `baseURL`.
 

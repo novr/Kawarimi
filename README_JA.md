@@ -65,7 +65,7 @@ targets: [
 ]
 ```
 
-ダイナミックモック用の SwiftUI や `KawarimiAPIClient` を使う **アプリ（またはツール）ターゲット**には、**KawarimiHenge** プロダクトも依存に追加してください（後述「ダイナミックモック（KawarimiHenge）」）。
+ダイナミックモック用の SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore** を **アプリ（またはツール）ターゲット**の依存に追加してください（後述「ダイナミックモック（KawarimiHenge）」）。
 
 ### 2. OpenAPI を置く
 
@@ -94,7 +94,7 @@ let response = try await client.getGreeting(...)
 
 **実行時**にオーバーライドを切り替えて再コンパイルなしでモックを変える流れは、**KawarimiHenge** の機能です。
 
-アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
+アプリターゲットに **KawarimiCore** を追加すると `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使え、**KawarimiHenge** を追加すると SwiftUI（`KawarimiConfigView`）が使えます。
 
 サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`PathTemplate`、`MockOverride` など）と、**Henge API** ルートを組み合わせます。**オーバーライドを適用する Vapor の `AsyncMiddleware` は KawarimiCore の製品ではありません**—参照実装として [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) をコピー／改変するか、[`Example/README_JA.md`](Example/README_JA.md) の構成に沿って自分で書いてください。
 
@@ -138,7 +138,7 @@ KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 
 ### Henge API（`{pathPrefix}/__kawarimi/*`）
 
-**Henge API** は、**KawarimiHenge** の `KawarimiAPIClient` が呼び出す HTTP 面です（「Henge」は機能名）。
+**Henge API** は、**KawarimiCore** の `KawarimiAPIClient` が呼び出す HTTP 面です（「Henge」は機能名）。
 
 OpenAPI API と**同じパスプレフィックス体系**の下にマウントするのが一般的です（例: API が `/api` なら **`/api/__kawarimi/spec`**）。独自構成ではルート直下に置いても構いません。`KawarimiAPIClient` の `baseURL` と揃えてください。
 
