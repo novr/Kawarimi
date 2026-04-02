@@ -8,7 +8,7 @@ private func fixtureURL(name: String, extension ext: String, subdirectory: Strin
 
 // MARK: - Generated KawarimiSpec body JSON (JSONDecoder)
 
-/// 任意の JSON 値を `JSONDecoder` で受理する（トップレベルが object / array / string / number / bool / null）。
+/// Accepts any JSON root value for `JSONDecoder` smoke tests.
 private struct AnyJSON: Decodable {
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
@@ -23,7 +23,7 @@ private struct AnyJSON: Decodable {
     }
 }
 
-/// 生成ソース内の `MockResponse` の `body: "..."` を、operationId が一致するエンドポイントの先頭レスポンスから取り出す。
+/// Extracts `body: "..."` from the first `MockResponse` after the matching `operationId` in generated source.
 private func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
     let needle = "operationId: \"\(operationId)\""
     guard let opRange = source.range(of: needle) else { return nil }
@@ -63,7 +63,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
-        Issue.record("openapi.yaml がテストリソースに見つかりません")
+        Issue.record("openapi.yaml not found in test resources")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -90,7 +90,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
     guard let openAPIURL = fixtureURL(name: "openapi", extension: "yaml", subdirectory: "Fixtures/IdiomaticConfig") else {
-        Issue.record("IdiomaticConfig/openapi.yaml が見つかりません")
+        Issue.record("IdiomaticConfig/openapi.yaml not found")
         return
     }
     let strategy = try KawarimiNamingStrategy.loadBesideOpenAPIYAML(atPath: openAPIURL.path)
@@ -105,13 +105,13 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiJutsuErrorDescription() {
     let notFound = KawarimiJutsuError.specFileNotFound(path: "/foo")
-    #expect(notFound.description.contains("見つかりません"))
+    #expect(notFound.description.contains("not found"))
     #expect(notFound.description.contains("/foo"))
 }
 
 @Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
-        Issue.record("openapi.yaml がテストリソースに見つかりません")
+        Issue.record("openapi.yaml not found in test resources")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -137,7 +137,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiHandlerSupports200WithNoContentBlock() throws {
     guard let url = fixtureURL(name: "openapi-200-no-json", extension: "yaml") else {
-        Issue.record("fixture が見つかりません")
+        Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -148,7 +148,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiHandlerUsesFatalErrorStubForStringEnumWhenPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
-        Issue.record("fixture が見つかりません")
+        Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -169,7 +169,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiHandlerUsesFatalErrorStubWhenAccessInternalAndPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
-        Issue.record("fixture が見つかりません")
+        Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -189,13 +189,13 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiHandlerThrowsForStringEnumWithDefaultFailFastPolicy() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
-        Issue.record("fixture が見つかりません")
+        Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     do {
         _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
-        Issue.record("期待どおりエラーになりませんでした")
+        Issue.record("expected error but generation succeeded")
     } catch let e as KawarimiJutsuError {
         #expect(e.description.contains("createItem"))
         #expect(e.description.contains("enum"))
@@ -204,13 +204,13 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiHandlerThrowsOnMinimalReproOnEnumOperationWithDefaultPolicy() throws {
     guard let url = fixtureURL(name: "openapi-minimal-repro", extension: "yaml") else {
-        Issue.record("fixture が見つかりません")
+        Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     do {
         _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
-        Issue.record("enum 応答でエラーになるべき")
+        Issue.record("expected error for enum response")
     } catch let e as KawarimiJutsuError {
         #expect(e.description.contains("createItem"))
     } catch {
@@ -290,7 +290,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
-        Issue.record("openapi.yaml がテストリソースに見つかりません")
+        Issue.record("openapi.yaml not found in test resources")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
@@ -307,7 +307,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("listItems"))
     #expect(source.contains("/items/{id}"))
     #expect(source.contains("responseMap"))
-    // Media Type の example をモック本文に優先反映
+    // Media type example should win over schema fallback for mock body
     #expect(source.contains("Hello from spec example"))
     let greetBody = try #require(mockResponseBodyJSONString(operationId: "getGreeting", in: source))
     try assertJSONDecoderAcceptsMockBody(greetBody)
@@ -315,7 +315,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
 
 @Test func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
     guard let url = fixtureURL(name: "openapi-spec-mock-fallbacks", extension: "yaml") else {
-        Issue.record("openapi-spec-mock-fallbacks.yaml が見つかりません")
+        Issue.record("openapi-spec-mock-fallbacks.yaml not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())

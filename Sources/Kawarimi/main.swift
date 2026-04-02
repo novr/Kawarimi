@@ -1,7 +1,6 @@
 import Foundation
 import KawarimiCore
 
-/// ビルドプラグインが呼ぶ実行体と同じ生成処理（差分が出ないようにする）。
 @main
 struct Kawarimi {
     static func main() throws {
@@ -52,7 +51,7 @@ struct Kawarimi {
         guard let policy = KawarimiHandlerStubPolicy(rawValue: raw) else {
             throw KawarimiJutsuError.generatorConfigInvalid(
                 path: configPath,
-                reason: "未対応の handlerStubPolicy: \(raw)（fatalError または throw のみ）"
+                reason: "Unsupported handlerStubPolicy: \(raw) (only fatalError or throw)"
             )
         }
         return policy
