@@ -29,8 +29,20 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 ```swift
 KawarimiSpec.meta        // title, version, serverURL
 KawarimiSpec.endpoints   // 全エンドポイントと利用可能なレスポンス一覧
-KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
+KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
 ```
+
+OpenAPI の **`content.examples` のキー**は、`endpoints` の `exampleId` と内側の `responseMap` のキーになります。
+
+無名の単一例（またはスキーマからのフォールバック）は、予約キー **`__default`** に載ります。
+
+実行時、`MockOverride.exampleId` が `nil`・JSON の `null`・空文字のとき、ルックアップは **`__default`** です。
+
+「デフォルト例」を表すために JSON に文字列 `__default` を書く必要はありません。キー省略または `null` でよい。
+
+`KawarimiConfigStore.configure` は、**`path`・HTTP メソッド・`statusCode`・正規化後の `exampleId`** が一致するエントリだけを同一キーとして上書きします。
+
+同じパスに複数の名前付き例を同時に有効にする場合は、`exampleId` で区別します。
 
 モック JSON 文字列の決め方は [mock-json.md](mock-json.md) を参照してください。
 
@@ -48,11 +60,19 @@ registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
-`KawarimiInterceptorMiddleware` はライブラリではなく **Example** のターゲット内のコードです。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
+`KawarimiInterceptorMiddleware` はライブラリではなく **Example** のターゲット内のコードです。
+
+Vapor の `AsyncMiddleware` として次のように動きます。
+
+- `__kawarimi` 管理パスは素通しする。
+- 有効なオーバーライド（パステンプレート・メソッド）にマッチしたら、オーバーライド本文、または **`statusCode` と実効の例キー**（未設定の `exampleId` は `__default`）で `KawarimiSpec.responseMap` を参照してボディを組み立てる。
+- 即 `Response` を返し、無ければ `next` に委譲する。
+
+**自前のミドルウェアを書くときの手本**にしてください。
 
 | エンドポイント | 説明 |
 |---|---|
-| `POST {pathPrefix}/__kawarimi/configure` | path/method/statusCode のモックレスポンスを有効化 |
+| `POST {pathPrefix}/__kawarimi/configure` | path/method/statusCode（および名前付き例なら `exampleId`）でモックレスポンスを有効化 |
 | `GET {pathPrefix}/__kawarimi/status` | 有効なオーバーライド一覧を取得 |
 | `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
@@ -86,4 +106,8 @@ app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
-同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。比較順は `path` → `statusCode` → `name` → `exampleId` です。キーが同順位のときは Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。
+同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。
+
+比較順は `path` → `statusCode` → `name` → `exampleId` です。
+
+キーが同順位のときは、Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。

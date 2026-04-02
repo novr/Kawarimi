@@ -29,8 +29,20 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 ```swift
 KawarimiSpec.meta        // title, version, serverURL
 KawarimiSpec.endpoints   // all endpoints with their possible responses
-KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
+KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
 ```
+
+OpenAPI **named** `content.examples` keys become `exampleId` strings in `endpoints` and as the inner `responseMap` keys.
+
+A single unnamed example (or schema-only fallback) is stored under the reserved key **`__default`**.
+
+At runtime, `MockOverride.exampleId` of `nil`, JSON `null`, or empty string selects **`__default`** for lookup.
+
+The JSON file does not store the literal `__default` for “default example” — omit the field or use `null`.
+
+`KawarimiConfigStore.configure` treats overrides as distinct when **`path`, HTTP method, `statusCode`, and normalized `exampleId`** match.
+
+Two enabled overrides for the same path/method but different examples are distinguished by `exampleId`.
 
 For how mock JSON strings are chosen, see [mock-json.md](mock-json.md).
 
@@ -48,11 +60,20 @@ registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
-`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library: it implements Vapor’s `AsyncMiddleware` by skipping `__kawarimi` admin paths, matching enabled overrides (path template, method), resolving the body from the override or `KawarimiSpec.responseMap`, and either returning a synthetic `Response` or calling `next`. Use that file as the **authoritative sample** when writing your own middleware.
+`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library.
+
+It implements Vapor’s `AsyncMiddleware` by:
+
+- Skipping `__kawarimi` admin paths.
+- Matching enabled overrides (path template, method).
+- Resolving the body from the override or from `KawarimiSpec.responseMap` using **`statusCode` plus the effective example key** (`exampleId` → `__default` when unset).
+- Returning a synthetic `Response` or calling `next`.
+
+Use that file as the **authoritative sample** when writing your own middleware.
 
 | Endpoint | Description |
 |---|---|
-| `POST {pathPrefix}/__kawarimi/configure` | Enable a mock response for a path/method/statusCode |
+| `POST {pathPrefix}/__kawarimi/configure` | Enable a mock response for a path/method/statusCode (and optional `exampleId` for named examples) |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
@@ -86,4 +107,8 @@ Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
-If several overrides match the same request (same path template + method), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry: `path`, then `statusCode`, then `name`, then `exampleId`. Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
+If several overrides match the same request (same path template + method), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry.
+
+Comparison order: `path`, then `statusCode`, then `name`, then `exampleId`.
+
+Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
