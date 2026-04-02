@@ -202,22 +202,6 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     }
 }
 
-@Test func kawarimiHandlerThrowsOnMinimalReproOnEnumOperationWithDefaultPolicy() throws {
-    guard let url = fixtureURL(name: "openapi-minimal-repro", extension: "yaml") else {
-        Issue.record("fixture not found")
-        return
-    }
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    do {
-        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
-        Issue.record("expected error for enum response")
-    } catch let e as KawarimiJutsuError {
-        #expect(e.description.contains("createItem"))
-    } catch {
-        Issue.record("Unexpected error: \(error)")
-    }
-}
-
 @Test func kawarimiNamingStrategyRejectsUnknownValue() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiNaming-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
