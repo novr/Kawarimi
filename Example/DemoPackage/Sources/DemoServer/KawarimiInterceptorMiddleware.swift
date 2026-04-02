@@ -24,7 +24,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         )
         if hits.count > 1 {
             request.logger.warning(
-                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) status=\($0.statusCode)" }.joined(separator: " | "))"
+                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) status=\($0.statusCode) exampleId=\($0.exampleId ?? "nil")" }.joined(separator: " | "))"
             )
         }
         guard let override = hits.first else {
@@ -36,8 +36,13 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         if override.hasEffectiveCustomBody, let customBody = override.body {
             body = customBody
             contentType = override.contentType ?? "application/json"
-        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(override.path)"],
-                  let entry = responses[override.statusCode] {
+        } else if let entry = KawarimiMockResponseResolver.lookup(
+            map: KawarimiSpec.responseMap,
+            methodUppercased: method.uppercased(),
+            path: override.path,
+            statusCode: override.statusCode,
+            exampleId: override.exampleId
+        ) {
             body = entry.body
             contentType = entry.contentType
         } else {
