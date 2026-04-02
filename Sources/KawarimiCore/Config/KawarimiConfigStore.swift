@@ -79,12 +79,22 @@ public actor KawarimiConfigStore {
         if result.contentType?.isEmpty == true {
             result.contentType = nil
         }
+        if result.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            result.exampleId = nil
+        }
         return result
     }
 
     private func matches(_ existing: MockOverride, _ new: MockOverride) -> Bool {
         existing.path == new.path
             && existing.method == new.method
+            && existing.statusCode == new.statusCode
+            && normalizedExampleId(existing.exampleId) == normalizedExampleId(new.exampleId)
+    }
+
+    private func normalizedExampleId(_ id: String?) -> String? {
+        guard let t = id?.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty else { return nil }
+        return t
     }
 
     private func persist() throws {
