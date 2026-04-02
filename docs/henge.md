@@ -40,6 +40,15 @@ At runtime, `MockOverride.exampleId` of `nil`, JSON `null`, or empty string sele
 
 The JSON file does not store the literal `__default` for “default example” — omit the field or use `null`.
 
+### Reserved: `__default`
+
+The string **`__default` is reserved by Kawarimi** for:
+
+- The inner `responseMap` key for the **synthetic default row** (no named OpenAPI `examples`, or non‑JSON / fallback paths that still emit one body).
+- **Lookup** when `MockOverride.exampleId` is omitted, JSON `null`, or empty (whitespace‑only is normalized away).
+
+**Do not use `__default` as a key in OpenAPI `content.examples`.** Use another name (e.g. `default` or `success`) so your contract does not collide with this reserved slot. An override may still set `exampleId` to the literal `"__default"` to target that map entry explicitly; the usual pattern is to omit `exampleId` for the default example.
+
 `KawarimiConfigStore.configure` treats overrides as distinct when **`path`, HTTP method, `statusCode`, and normalized `exampleId`** match.
 
 Two enabled overrides for the same path/method but different examples are distinguished by `exampleId`.
@@ -86,6 +95,8 @@ Use **two** generated `Client` instances if you want both in-process mocks and a
 
 - `Kawarimi()` — no network; responses use the rules in [mock-json.md](mock-json.md) (per-operation 200 + `application/json`).
 - `URLSessionTransport()` from [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) against your HTTP server (add that product to your target).
+
+`KawarimiSpec` (and Henge / `responseMap`) is **not** filled by the same generator pass as the in-process `Kawarimi` transport; see **`KawarimiSpec` vs in-process `Kawarimi` transport** in [mock-json.md](mock-json.md).
 
 This repository includes **DemoServer** and **DemoApp** under **`Example/`** — see [Example/README.md](../Example/README.md).
 

@@ -483,6 +483,7 @@ public enum KawarimiJutsu {
             out.append(NamedJSONExample(mapKey: name, json: json, summary: example.summary))
         }
         if out.isEmpty { return nil }
+        out.sort { $0.mapKey < $1.mapKey }
         return out
     }
 

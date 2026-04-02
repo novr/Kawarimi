@@ -2,7 +2,11 @@ import Foundation
 
 /// Keys for `KawarimiSpec.responseMap` inner dictionaries (`[status: [exampleKey: body]]`).
 public enum KawarimiExampleIds {
-    /// Map key for the unnamed / default JSON example when OpenAPI has no named `examples` map.
+    /// **Reserved** map key for the unnamed / default JSON example when OpenAPI has no named `examples` map.
+    ///
+    /// Do not use `__default` as a key in OpenAPI `content.examples`; pick another name so it does not collide
+    /// with this synthetic slot. Runtime lookup uses this key when ``responseMapLookupKey(forOverrideExampleId:)``
+    /// is asked for `nil`/empty (and when an override stores the literal `"__default"`).
     public static let defaultResponseMapKey = "__default"
 
     /// Key used to look up `responseMap` from `MockOverride.exampleId`.

@@ -318,19 +318,22 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
                   schema:
                     type: object
                   examples:
-                    one:
-                      value: { "x": 1 }
-                    two:
+                    m_second:
                       value: { "x": 2 }
+                    a_first:
+                      value: { "x": 1 }
     """
     let path = tmp.appendingPathComponent("openapi.yaml").path
     try yaml.write(toFile: path, atomically: true, encoding: .utf8)
     let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
     let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
-    #expect(source.contains("exampleId: \"one\""))
-    #expect(source.contains("exampleId: \"two\""))
-    #expect(source.contains("\"one\":"))
-    #expect(source.contains("\"two\":"))
+    #expect(source.contains("exampleId: \"a_first\""))
+    #expect(source.contains("exampleId: \"m_second\""))
+    #expect(source.contains("\"a_first\":"))
+    #expect(source.contains("\"m_second\":"))
+    let rA = try #require(source.range(of: "exampleId: \"a_first\""))
+    let rM = try #require(source.range(of: "exampleId: \"m_second\""))
+    #expect(rA.lowerBound < rM.lowerBound)
 }
 
 @Test func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
