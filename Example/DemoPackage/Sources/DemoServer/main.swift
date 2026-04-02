@@ -32,7 +32,7 @@ struct DemoServer {
 #else
 import Darwin
 
-/// Vapor サーバーは macOS のみ。iOS 向けにパッケージ全体を解決するためのスタブ。
+/// Vapor server is macOS-only; stub so the package resolves on iOS.
 @main
 enum DemoServer {
     static func main() {

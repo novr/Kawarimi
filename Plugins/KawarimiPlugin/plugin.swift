@@ -61,11 +61,11 @@ enum KawarimiPluginError: Error, CustomStringConvertible {
     var description: String {
         switch self {
         case .incompatibleTarget(let name):
-            return "Kawarimi プラグインは Swift ソースモジュールにのみ適用できます: \(name)"
+            return "Kawarimi plugin applies only to Swift source modules: \(name)"
         case .noSourceFiles(let target):
-            return "ターゲット \(target) にソースファイルがありません"
+            return "Target \(target) has no source files"
         case .openAPINotFound(let target, let path):
-            return "ターゲット \(target): openapi.yaml が見つかりません: \(path)"
+            return "Target \(target): openapi.yaml not found: \(path)"
         }
     }
 }

@@ -1,4 +1,5 @@
 import DemoAPI
+import KawarimiCore
 import KawarimiHenge
 import SwiftUI
 

@@ -1,7 +1,8 @@
 # Examples
 
-Sample **DemoPackage** (SwiftPM: OpenAPI-generated `DemoAPI`, Vapor **DemoServer**) and **DemoApp** (SwiftUI in Xcode). The [root README](../README.md) describes Kawarimi integration; this document is the **reference for this repository’s sample layout**, how to run it, and **DemoApp** screenshots.
+Sample **DemoPackage** (SwiftPM: OpenAPI-generated `DemoAPI`, Vapor **DemoServer**) and **DemoApp** (SwiftUI in Xcode). This document is the **reference for this repository’s sample layout**, run commands, and **DemoApp** screenshots.
 
+- **Full docs:** [Documentation index](../docs/README.md) · [Integration](../docs/integration.md) · [Henge](../docs/henge.md)
 - **Japanese:** [README_JA.md](README_JA.md)
 
 ## Layout
@@ -54,7 +55,9 @@ This repo’s `DemoPackage` includes `kawarimi-generator-config.yaml` next to `o
 handlerStubPolicy: throw
 ```
 
-Override merge / tie-break rules and empty-body normalization are described in the root README (**kawarimi.json / KAWARIMI_CONFIG**).
+Override merge / tie-break rules and empty-body normalization: [henge.md](../docs/henge.md#kawarimijson--kawarimi_config).
+
+<a id="try-the-henge-api-demoserver"></a>
 
 ## Try the Henge API (DemoServer)
 
@@ -66,7 +69,7 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
 ```
 
-Vapor registration pattern for your own app: see the root README (**Henge API**) and [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
+Vapor registration pattern: [henge.md](../docs/henge.md) and [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
 
 ## Client: mock vs this DemoServer
 

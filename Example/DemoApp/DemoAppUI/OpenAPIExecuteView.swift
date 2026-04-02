@@ -101,7 +101,7 @@ struct OpenAPIExecuteView: View {
         let lower = q.lowercased()
         return endpoints.filter { ep in
             ep.path.lowercased().contains(lower)
-                || ep.method.lowercased().contains(lower)
+                || ep.method.rawValue.lowercased().contains(lower)
                 || ep.operationId.lowercased().contains(lower)
         }
     }
@@ -256,7 +256,7 @@ struct OpenAPIExecuteView: View {
     private var methodAndPathCard: some View {
         if let ep = endpoint {
             HStack(alignment: .center, spacing: 12) {
-                Text(ep.method.uppercased())
+                Text(ep.method.rawValue.uppercased())
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
@@ -614,7 +614,7 @@ struct OpenAPIExecuteView: View {
         let withBody = HTTPRequestBodyPolicy.shouldAttachRequestBody(method: ep.method, body: bodyData)
 
         var request = URLRequest(url: url)
-        request.httpMethod = ep.method
+        request.httpMethod = ep.method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if withBody {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
