@@ -73,7 +73,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
         else {
             throw KawarimiJutsuError.generatorConfigInvalid(
                 path: configURL.path,
-                reason: "ファイルを読み込めませんでした"
+                reason: "Could not read file"
             )
         }
         let parsed: OpenAPIGeneratorConfigKawarimiSlice
@@ -90,7 +90,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             guard let strategy = KawarimiNamingStrategy(rawValue: raw) else {
                 throw KawarimiJutsuError.generatorConfigInvalid(
                     path: configURL.path,
-                    reason: "未対応の namingStrategy: \(raw)（defensive または idiomatic のみ）"
+                    reason: "Unsupported namingStrategy: \(raw) (only defensive or idiomatic)"
                 )
             }
             naming = strategy
@@ -102,7 +102,7 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
             guard let modifier = KawarimiAccessModifier(rawValue: raw) else {
                 throw KawarimiJutsuError.generatorConfigInvalid(
                     path: configURL.path,
-                    reason: "未対応の accessModifier: \(raw)（public / package / internal のみ）"
+                    reason: "Unsupported accessModifier: \(raw) (only public, package, or internal)"
                 )
             }
             access = modifier

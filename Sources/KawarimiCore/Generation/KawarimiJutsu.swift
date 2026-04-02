@@ -76,7 +76,6 @@ public enum KawarimiJutsu {
         return mockJSONBodyFromJSONMediaType(content: content, components: components)
     }
 
-    /// `application/json` の Media Type: `example` / `examples` で JSON が取れるときはそれをモック本文にし、なければ schema から合成する。
     private static func mockJSONBodyFromJSONMediaType(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
         if let exampleJSON = exampleToJSONString(content.example) {
             return exampleJSON
@@ -166,7 +165,7 @@ public enum KawarimiJutsu {
         }
     }
 
-    /// オブジェクト合成や oneOf の別枝を試すときの「中身がない」プレースホルダ判定。
+    /// True for placeholder-shaped JSON when probing oneOf branches or object composition.
     private static func isVacuousJSONMock(_ json: String) -> Bool {
         let t = json.trimmingCharacters(in: .whitespacesAndNewlines)
         switch t {
@@ -216,7 +215,6 @@ public enum KawarimiJutsu {
         return (source, allWarnings)
     }
 
-    /// `getGreeting` → `onGetGreeting`（メソッド名と衝突しない witness プロパティ名）
     private static func handlerWitnessPropertyName(methodName: String) -> String {
         guard let first = methodName.first else { return "onOperation" }
         return "on" + String(first).uppercased() + methodName.dropFirst()
@@ -371,7 +369,7 @@ public enum KawarimiJutsu {
                     throw KawarimiJutsuError.handlerGenerationUnsupported(
                         operationId: operationId,
                         detail:
-                            "\(operationContext)HTTP \(code) に application/json がありますが schema を解決できません。スタブを生成できません。OpenAPI の `components.schemas` と `$ref` を確認するか、ボディなしの成功応答なら `content` を省略してください。"
+                            "\(operationContext)HTTP \(code) has application/json but the schema could not be resolved. Cannot generate a stub. Check OpenAPI `components.schemas` and `$ref`, or omit `content` for a success response without a body."
                     )
                 }
                 return code == 200 ? .okJSON(expr) : .createdJSON(expr)
@@ -382,7 +380,7 @@ public enum KawarimiJutsu {
                     throw KawarimiJutsuError.handlerGenerationUnsupported(
                         operationId: operationId,
                         detail:
-                            "\(operationContext)HTTP \(code) にレスポンスヘッダー定義がありますがボディがありません。スタブの初期化式を機械生成できないため、`on…` で手実装するかヘッダーを見直してください。"
+                            "\(operationContext)HTTP \(code) declares response headers but no body. Cannot emit stub initializers automatically; implement the `on…` closure manually or adjust the headers."
                     )
                 }
                 return code == 200 ? .okEmpty : .createdEmpty
@@ -391,7 +389,7 @@ public enum KawarimiJutsu {
             throw KawarimiJutsuError.handlerGenerationUnsupported(
                 operationId: operationId,
                 detail:
-                    "\(operationContext)HTTP \(code) に application/json 以外の content が含まれています。Kawarimi は JSON ボディまたは content なしの 200/201 のみスタブ化します。"
+                    "\(operationContext)HTTP \(code) includes non-JSON content. Kawarimi only stubs 200/201 with a JSON body or without content."
             )
         }
         if operation.responses[status: OpenAPI.Response.StatusCode.status(code: 204)] != nil {
@@ -400,7 +398,7 @@ public enum KawarimiJutsu {
         throw KawarimiJutsuError.handlerGenerationUnsupported(
             operationId: operationId,
             detail:
-                "\(operationContext)HTTP 200 / 201（JSON または content なし）または 204 が必要です。swift-openapi-generator の Operations 出力と整合するスタブのみ生成します。"
+                "\(operationContext)Requires HTTP 200 / 201 (JSON or no content) or 204. Only stubs aligned with swift-openapi-generator Operations output are generated."
         )
     }
 
@@ -415,7 +413,7 @@ public enum KawarimiJutsu {
         guard let schema = resolveSchemaFromContent(content: content, components: components) else { return nil }
         let schemaHint = schemaDiagnosticHint(content: content, components: components)
         let path =
-            "\(operationContext)OpenAPI JSON 相当パス: paths · … · responses.\(httpStatus).content['application/json'].schema\(schemaHint.map { " → \($0)" } ?? "")"
+            "\(operationContext)OpenAPI JSON path: paths · … · responses.\(httpStatus).content['application/json'].schema\(schemaHint.map { " → \($0)" } ?? "")"
         return try swiftInitializerForSchema(
             schema,
             components: components,
@@ -424,7 +422,6 @@ public enum KawarimiJutsu {
         )
     }
 
-    /// `$ref` 先の components キーなど、人間向けの schema 位置ヒント。
     private static func schemaDiagnosticHint(content: OpenAPI.Content, components: OpenAPI.Components) -> String? {
         guard let schemaEither = content.schema else { return nil }
         switch schemaEither {
@@ -649,7 +646,7 @@ public enum KawarimiJutsu {
             throw KawarimiJutsuError.handlerGenerationUnsupported(
                 operationId: operationId,
                 detail:
-                    "allOf / oneOf / anyOf / not の JSON schema はスタブ初期化を生成できません（\(diagnosticPath)）。スキーマを単純化するか、`on…` で手実装してください。"
+                    "Cannot generate stub initializers for allOf / oneOf / anyOf / not JSON Schema (\(diagnosticPath)). Simplify the schema or implement the `on…` closure manually."
             )
         case .reference, .boolean, .number, .integer, .string, .object, .array, .fragment:
             break
@@ -659,7 +656,7 @@ public enum KawarimiJutsu {
             throw KawarimiJutsuError.handlerGenerationUnsupported(
                 operationId: operationId,
                 detail:
-                    "enum（allowedValues）を含む schema は swift-openapi-generator が RawRepresentable 等を生成するため、文字列リテラルスタブは生成しません（\(diagnosticPath)）。列挙を避けるか `on…` で手実装してください。"
+                    "Schema with enum (allowedValues) is not stubbed with string literals because swift-openapi-generator emits RawRepresentable etc. (\(diagnosticPath)). Remove the enum or implement the `on…` closure manually."
             )
         }
 

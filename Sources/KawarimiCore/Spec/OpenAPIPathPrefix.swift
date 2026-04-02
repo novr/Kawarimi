@@ -1,6 +1,5 @@
 import Foundation
 
-/// servers URL・ConfigStore などで同じプレフィックス規則にそろえるための集約。
 public enum OpenAPIPathPrefix {
     public static let defaultMountPath = "/api"
 
@@ -17,7 +16,7 @@ public enum OpenAPIPathPrefix {
         return trimmed
     }
 
-    /// `registerHandlers(..., serverURL:)` 向け。ランタイムは **path だけ**参照するので host は固定の無効ドメインでよい。
+    /// For `registerHandlers(..., serverURL:)`; runtime matches path only, so host is a fixed invalid placeholder.
     public static func stubServerURL(pathPrefix: String) -> URL? {
         let path = normalizedPrefix(pathPrefix)
         var components = URLComponents()

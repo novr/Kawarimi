@@ -9,13 +9,13 @@ public enum KawarimiJutsuError: Error, CustomStringConvertible {
 
     public var description: String {
         switch self {
-        case .specFileNotFound(let path): return "OpenAPI ファイルが見つかりません: \(path)"
-        case .specFileInvalidEncoding: return "OpenAPI ファイルのエンコーディングが不正です"
-        case .specParseError(let msg): return "OpenAPI のパースに失敗しました: \(msg)"
+        case .specFileNotFound(let path): return "OpenAPI file not found: \(path)"
+        case .specFileInvalidEncoding: return "OpenAPI file has invalid encoding"
+        case .specParseError(let msg): return "Failed to parse OpenAPI: \(msg)"
         case .generatorConfigInvalid(let path, let reason):
-            return "openapi-generator-config の解釈に失敗しました (\(path)): \(reason)"
+            return "Failed to interpret openapi-generator-config (\(path)): \(reason)"
         case .handlerGenerationUnsupported(let operationId, let detail):
-            return "KawarimiHandler を生成できません (operationId: \(operationId)): \(detail)"
+            return "Cannot generate KawarimiHandler (operationId: \(operationId)): \(detail)"
         }
     }
 }

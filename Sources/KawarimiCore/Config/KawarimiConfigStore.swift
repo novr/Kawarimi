@@ -2,19 +2,18 @@ import Foundation
 import HTTPTypes
 
 public enum KawarimiConfigStoreError: Error, Sendable {
-    /// `..` による設定パスからの脱出を防ぐ。
+    /// Rejects `..` in the config path to avoid escaping the intended directory.
     case invalidConfigPath(String)
-    /// 設定ファイルと転送のメモリ・サイズを抑える。
     case bodyTooLong(actual: Int, limit: Int)
 }
 
 public actor KawarimiConfigStore {
-    /// 常に絶対パス。`Data.write(to:)` は相対の `file://` で 518 になり得るため init で解決する。
+    /// Always absolute; relative `file://` URLs can make `Data.write(to:)` fail (e.g. 518).
     private let configPath: String
     private let prefix: String
     private var cachedOverrides: [MockOverride]
 
-    /// ミドルウェア・`registerHandlers` と同一パスでオーバーライドを解決する。
+    /// Same prefix as middleware / `registerHandlers` for override resolution.
     public var pathPrefix: String { prefix }
 
     public init(configPath: String, pathPrefix: String = OpenAPIPathPrefix.defaultMountPath) throws {
@@ -62,7 +61,6 @@ public actor KawarimiConfigStore {
         try persist()
     }
 
-    /// インターセプタの `PathTemplate` 一致とパスをそろえる。
     private func normalize(_ override: MockOverride) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {

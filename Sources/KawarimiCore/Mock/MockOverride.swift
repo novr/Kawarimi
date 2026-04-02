@@ -8,14 +8,14 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public var statusCode: Int
     public var exampleId: String?
     public var isEnabled: Bool
-    /// 非空なら spec の例より優先。空文字は「未指定」とみなし spec に戻す。
+    /// Non-empty overrides the spec example; empty string clears back to the spec default.
     public var body: String?
-    /// body があるのに nil のとき、サーバー側で JSON とみなす。
+    /// When body is set and this is nil, the server treats the body as JSON.
     public var contentType: String?
 
     public var hasEffectiveCustomBody: Bool { body.map { !$0.isEmpty } ?? false }
 
-    /// 設定ファイルと HTTP で巨大 JSON を運ばないための上限（UTF-8 バイト）。
+    /// Upper bound (UTF-8 bytes) so config files and HTTP payloads stay bounded.
     public static let maxBodyLength = 1_000_000
 
     public init(
@@ -38,7 +38,6 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.contentType = contentType
     }
 
-    /// RFC 9110 に沿うトークンとして解釈できるメソッド名（従来の JSON 文字列と互換）。
     public init(
         name: String? = nil,
         path: String,
@@ -84,7 +83,7 @@ public struct KawarimiConfig: Codable, Sendable {
 }
 
 extension MockOverride {
-    /// 複数ヒット時は先頭だけ使うため、常に同じ優先順で並べる（同順位は入力順を保つ安定ソート）。
+    /// Deterministic ordering; first match wins when several overrides qualify.
     public static func sortedForInterceptorTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
         hits.sorted { interceptorTieBreakKey($0) < interceptorTieBreakKey($1) }
     }

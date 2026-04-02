@@ -1,7 +1,7 @@
 import Foundation
 import HTTPTypes
 
-/// GET/HEAD 等へ body を付けるとサーバやプロキシで弾かれうるため、送信可否と UI を揃える。
+/// Many servers/proxies reject bodies on GET/HEAD; keep send behavior and UI aligned.
 public enum HTTPRequestBodyPolicy {
     public static func shouldAttachRequestBody(method: HTTPRequest.Method, body: Data?) -> Bool {
         shouldAttachRequestBody(method: method.rawValue, body: body)

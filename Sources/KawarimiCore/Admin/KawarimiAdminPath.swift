@@ -1,6 +1,6 @@
 import Foundation
 
-/// `__kawarimi` をパスセグメントとして含んでも、部分一致（`foo__kawarimi` 等）では管理 API とみなさない。
+/// Only a full path segment `__kawarimi` counts (not e.g. `foo__kawarimi`).
 public enum KawarimiAdminPath {
     public static let managementSegment = "__kawarimi"
 

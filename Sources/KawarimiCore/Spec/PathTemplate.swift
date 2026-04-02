@@ -1,6 +1,6 @@
 import Foundation
 
-/// `{param}` を 1 セグメント分のワイルドカードとみなし、セグメント数が一致するときだけマッチさせる。
+/// `{param}` matches one path segment; counts must match segment-for-segment.
 public enum PathTemplate {
     public static func matches(actual: String, template: String) -> Bool {
         let a = actual.split(separator: "/", omittingEmptySubsequences: false)
