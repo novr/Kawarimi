@@ -10,10 +10,10 @@ import Testing
         if case .json(let body) = ok.body {
             #expect(body.message == "Hello from API")
         } else {
-            Issue.record("レスポンスボディが .json でない")
+            Issue.record("response body is not .json")
         }
     default:
-        Issue.record("期待 .ok だが \(response) だった")
+        Issue.record("expected .ok but got \(response)")
     }
 }
 
@@ -28,10 +28,10 @@ import Testing
         if case .json(let body) = ok.body {
             #expect(body.message == "Witness override")
         } else {
-            Issue.record("レスポンスボディが .json でない")
+            Issue.record("response body is not .json")
         }
     default:
-        Issue.record("期待 .ok だが \(response) だった")
+        Issue.record("expected .ok but got \(response)")
     }
 }
 
@@ -43,11 +43,11 @@ import Testing
     switch response {
     case .ok(let ok):
         if case .json(let body) = ok.body {
-            #expect(body.message == "Hello from API", "Kawarimi モックは openapi の example を返す")
+            #expect(body.message == "Hello from API", "Kawarimi mock should return openapi example")
         } else {
-            Issue.record("レスポンスボディが .json でない")
+            Issue.record("response body is not .json")
         }
     default:
-        Issue.record("期待 .ok だが \(response) だった")
+        Issue.record("expected .ok but got \(response)")
     }
 }

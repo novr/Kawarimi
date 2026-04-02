@@ -1,3 +1,3 @@
-// SPM ターゲットにソースが1件必要なため。実装の大半は OpenAPIGenerator / KawarimiPlugin のビルド生成物。
+// SPM requires at least one source file; OpenAPIGenerator / KawarimiPlugin supply the rest.
 
 import Foundation
