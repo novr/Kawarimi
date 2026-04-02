@@ -18,7 +18,7 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         let hits = MockOverride.sortedForInterceptorTieBreak(
             overrides.filter { ov in
                 PathTemplate.matches(actual: path, template: ov.path)
-                    && ov.method.uppercased() == method.uppercased()
+                    && ov.method.rawValue.uppercased() == method.uppercased()
                     && ov.isEnabled
             }
         )
