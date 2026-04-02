@@ -36,7 +36,7 @@ If another target imports your API target, use `accessModifier: package` or `pub
 #### Simple
 
 - Use **one** library target (e.g. `MyAPI`) with `openapi.yaml`, **OpenAPIGenerator**, and **KawarimiPlugin**. The build emits Types, Client, Server, and Kawarimi artifacts in that single module.
-- Your **client app** depends on `MyAPI` only; your **server** (e.g. Vapor) depends on `MyAPI` plus **Vapor** and, for Henge, **KawarimiCore** (and route wiring as in the Example).
+- Your **client app** depends on `MyAPI` only; your **server** (e.g. Vapor) depends on `MyAPI` plus **Vapor** and, for Henge, **KawarimiCore** (and route wiring—see the reference sample under [`Example/`](Example/README.md)).
 - **Pros:** smallest `Package.swift`, one config location. **Cons:** generated **Server** sources still live in the same module the app imports—even if unused—so binary size and “layer discipline” are looser until you split generation.
 
 #### Recommended
@@ -96,7 +96,7 @@ let response = try await client.getGreeting(...)
 
 Add the **KawarimiHenge** product to your app target for SwiftUI (`KawarimiConfigView`) and `KawarimiAPIClient` (calls to `{pathPrefix}/__kawarimi/*`).
 
-On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes. **Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product**—copy or adapt Example [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see Example `DemoServer`).
+On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes. **Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product**—copy or adapt the reference [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see [`Example/README.md`](Example/README.md)).
 
 ### Vapor-related packages (server)
 
@@ -110,7 +110,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge file store + matching | **KawarimiCore** (this package) |
 
-Example wiring: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift) (`DemoServer` target). Reference implementation sources: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift).
+`DemoPackage` layout and `DemoServer` entrypoints for this repository: [**Example/README.md**](Example/README.md).
 
 ### Generated file: KawarimiSpec.swift
 
@@ -136,15 +136,13 @@ For each `application/json` response, Kawarimi embeds a JSON string in `Kawarimi
 
 `KawarimiHandler` stub generation is separate: some schemas (e.g. certain enums) still require manual `on…` handlers or `handlerStubPolicy` even when the mock JSON above is available.
 
-### Henge API (DemoServer / `{pathPrefix}/__kawarimi/*`)
+### Henge API (`{pathPrefix}/__kawarimi/*`)
 
 **Henge API** is the HTTP surface that **KawarimiHenge**’s `KawarimiAPIClient` talks to (the name “Henge” is the feature).
 
-In **Example** `DemoServer`, routes sit **under the same path prefix as the OpenAPI API** (`KawarimiSpec.meta.apiPathPrefix`, e.g. **`/api/__kawarimi/spec`**).
+Mount admin routes **under a path prefix aligned with your OpenAPI API** (e.g. **`/api/__kawarimi/spec`** when the API lives under `/api`). You may mount `__kawarimi` at the root in your own app; keep it aligned with `KawarimiAPIClient`’s `baseURL`.
 
-You may mount `__kawarimi` at the root in your own app; keep it aligned with `KawarimiAPIClient`’s `baseURL`.
-
-When using `DemoServer` as a mock server, register the admin routes and middleware:
+Register the admin routes and middleware in Vapor, for example:
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
@@ -161,24 +159,16 @@ app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
-Example — enable a 200 mock for GET /api/greet (Example `DemoServer`, default `pathPrefix` `/api`):
-
-```bash
-curl -X POST http://localhost:8080/api/__kawarimi/configure \
-  -H "Content-Type: application/json" \
-  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
-```
+Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md](Example/README.md#try-the-henge-api-demoserver).
 
 ### Client: real server vs Kawarimi mock
 
-Use **two** generated `Client` instances if you want both in-process examples and a live server:
+Use **two** generated `Client` instances if you want both in-process mocks and a live server:
 
 - `Kawarimi()` — no network; responses use the mock JSON rules above (per-operation 200 + `application/json`).
-- `URLSessionTransport()` from [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) against your `DemoServer` (add that product to your target).
+- `URLSessionTransport()` from [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) against your HTTP server (add that product to your target).
 
-Example **`DemoAPITests`** covers the `Kawarimi` path.
-
-**`DemoApp`** (SwiftUI) uses **KawarimiHenge** for the Henge tab and the OpenAPI tab for HTTP against a running server.
+This repository includes a reference **DemoServer** and **DemoApp** under **`Example/`**—see [Example/README.md](Example/README.md).
 
 If you need **one** client that switches real vs mock at runtime, implement a small `ClientTransport` wrapper in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
 
@@ -188,64 +178,22 @@ If you need **one** client that switches real vs mock at runtime, implement a sm
 
 The file format uses `KawarimiConfig` (overrides array).
 
-**Run DemoServer with `Example/DemoPackage` as the current working directory** so `kawarimi.json` is read and written there (e.g. `cd Example/DemoPackage && swift run DemoServer`).
-
-Set `KAWARIMI_CONFIG` to override the path.
+Set `KAWARIMI_CONFIG` to override the config file path.
 
 `kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy`.
 
-Example `kawarimi-generator-config.yaml`:
-
-```yaml
-handlerStubPolicy: throw
-```
-
-Example `kawarimi.json`:
-
-```json
-{
-  "overrides": []
-}
-```
+Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **`swift run DemoServer` working-directory notes** for this repository: [Example/README.md](Example/README.md).
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
 If several overrides match the same request (same path template + method), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry: `path`, then `statusCode`, then `name`, then `exampleId`. Equal keys keep **`hits` order** (Swift stable `sort`). A warning is still logged with that order.
 
-**DemoServer** passes `pathPrefix` from `KawarimiSpec.meta.apiPathPrefix` (from the OpenAPI `servers[0].url` path), so the mount matches the spec without a separate env var.
+## Reference sample (`Example/`)
 
-For your own server, pass the same prefix you use in `registerHandlers` / OpenAPI `servers`.
-
-```bash
-cd Example/DemoPackage && swift run DemoServer   # kawarimi.json in Example/DemoPackage/
-KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
-```
-
-### DemoApp (SwiftUI, macOS / iOS)
-
-The SwiftUI sample lives in **`Example/DemoApp/`** and is built with **`Example/DemoApp.xcodeproj`** (e.g. `xed Example/DemoApp.xcodeproj`). It links **`DemoAPI`** from **`Example/DemoPackage`** and **KawarimiCore** / **KawarimiHenge** from the repo root package—**`DemoPackage` itself has no SwiftUI dependency**.
-
-**Server URL** and **API prefix** are **fixed** to `KawarimiSpec.meta` (`KawarimiExampleConfig` in the app).
-
-The Example `openapi.yaml` uses **HTTP** with **`127.0.0.1`** (e.g. `http://127.0.0.1:8080/api`) so clients do not resolve `localhost` to **`::1`** while Vapor listens on **IPv4 loopback** only. **`DemoApp-Info.plist`** (next to `DemoApp.xcodeproj`, not inside the synced `DemoApp/` folder) sets **NSAppTransportSecurity → NSAllowsLocalNetworking** so ATS allows cleartext to local hosts. **`DemoApp.entitlements`** enables **App Sandbox** with **`com.apple.security.network.client`** so URLSession can reach local servers (without it, `connectx` fails with *Operation not permitted*).
-
-Point the host at your machine so that URL matches your DemoServer (see `openapi.yaml` `servers`).
-
-## Example
-
-**`Example/DemoPackage/`** ships **`DemoAPI`** (OpenAPI-generated types + Kawarimi plugin) and **`DemoServer`** (Vapor on macOS). The SwiftUI app is only in **`Example/DemoApp/`** via Xcode. This sample is not hardened for production.
-
-**`__kawarimi`** admin endpoints have **no authentication**.
-
-**`DemoApp`** sends OpenAPI try-out requests to the **spec-defined base URL** only; use only in trusted environments and add your own auth / network controls for real deployments.
-
-```bash
-cd Example/DemoPackage && swift build
-swift run DemoServer   # in another terminal; SwiftUI app: open Example/DemoApp.xcodeproj
-```
+This repository ships **DemoPackage** (SwiftPM + Vapor **DemoServer**) and **DemoApp** (SwiftUI). Full layout, security notes, commands, and screenshots: [**Example/README.md**](Example/README.md) · [**Example/README_JA.md**](Example/README_JA.md).
 
 ## Notes
 
-- Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); with **6.1**, SwiftPM can **reject** that graph when your package depends on the plugin—use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**. **Example/DemoPackage** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
+- Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); with **6.1**, SwiftPM can **reject** that graph when your package depends on the plugin—use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**. The SwiftPM sample under **`Example/`** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
 - `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
 - `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.

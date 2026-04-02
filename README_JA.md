@@ -36,7 +36,7 @@ handler.onGetGreeting = { input in
 #### 簡易
 
 - **`openapi.yaml` を置いたライブラリターゲット（例: `MyAPI`）1 つ**に **OpenAPIGenerator** と **KawarimiPlugin** を付ける。ビルドで Types / Client / Server / Kawarimi 系が**同一モジュール**に生成される。
-- **クライアントアプリ**は `MyAPI` のみ依存。**サーバ**（例: Vapor）は `MyAPI` に加え **Vapor**、Henge 用なら **KawarimiCore** とルート配線（Example の `DemoServer` 参照）を足す。
+- **クライアントアプリ**は `MyAPI` のみ依存。**サーバ**（例: Vapor）は `MyAPI` に加え **Vapor**、Henge 用なら **KawarimiCore** とルート配線（参照サンプルは [`Example/README_JA.md`](Example/README_JA.md)）を足す。
 - **利点:** `Package.swift` が最小で、設定も一箇所。**注意:** アプリが Server を呼ばなくても、**生成された Server ソースは同じモジュールに含まれる**。バイナリ肥大やレイヤ境界は、分割するまで緩い。
 
 #### 推奨
@@ -96,7 +96,7 @@ let response = try await client.getGreeting(...)
 
 アプリターゲットに **KawarimiHenge** を追加すると、SwiftUI（`KawarimiConfigView`）と `KawarimiAPIClient`（`{pathPrefix}/__kawarimi/*` への HTTP）が使えます。
 
-サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`PathTemplate`、`MockOverride` など）と、**Henge API** ルートを組み合わせます。**オーバーライドを適用する Vapor の `AsyncMiddleware` は KawarimiCore の製品ではありません**—実装の参照として Example の [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) をコピー／改変するか、`DemoServer` と同様に自分で書いてください。
+サーバー側は **KawarimiCore**（`KawarimiConfigStore`、`PathTemplate`、`MockOverride` など）と、**Henge API** ルートを組み合わせます。**オーバーライドを適用する Vapor の `AsyncMiddleware` は KawarimiCore の製品ではありません**—参照実装として [`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) をコピー／改変するか、[`Example/README_JA.md`](Example/README_JA.md) の構成に沿って自分で書いてください。
 
 ### Vapor 向けに使う外部パッケージ（サーバ）
 
@@ -110,7 +110,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 | OpenAPI からのコード生成 | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge の設定ストア・マッチング | **KawarimiCore**（本パッケージ） |
 
-依存の具体例: [`Example/DemoPackage/Package.swift`](Example/DemoPackage/Package.swift)（`DemoServer` ターゲット）。実装の参照: [`main.swift`](Example/DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。
+本リポジトリの **`DemoPackage` の構成** と **`DemoServer` のエントリポイント**: [**Example/README_JA.md**](Example/README_JA.md)。
 
 ### 生成ファイル: KawarimiSpec.swift
 
@@ -136,15 +136,13 @@ KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: (body, contentType)]
 
 `KawarimiHandler` のスタブ生成は別問題です。swift-openapi-generator 上の都合で、上記のモック JSON が取れている場合でも **一部の enum などはスタブ生成が失敗**し、`on…` の手実装や `handlerStubPolicy` が必要になることがあります。
 
-### Henge API（DemoServer / `{pathPrefix}/__kawarimi/*`）
+### Henge API（`{pathPrefix}/__kawarimi/*`）
 
 **Henge API** は、**KawarimiHenge** の `KawarimiAPIClient` が呼び出す HTTP 面です（「Henge」は機能名）。
 
-**Example** の `DemoServer` では、OpenAPI API と同じパスプレフィックス（`KawarimiSpec.meta.apiPathPrefix`、例 **`/api/__kawarimi/spec`**）の下にマウントします。
+OpenAPI API と**同じパスプレフィックス体系**の下にマウントするのが一般的です（例: API が `/api` なら **`/api/__kawarimi/spec`**）。独自構成ではルート直下に置いても構いません。`KawarimiAPIClient` の `baseURL` と揃えてください。
 
-独自構成ではルート直下に置いても構いません。`KawarimiAPIClient` の `baseURL` と揃えてください。
-
-`DemoServer` をモックサーバーとして使う場合、admin ルートとミドルウェアを登録します:
+Vapor で admin ルートとミドルウェアを登録する例:
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
@@ -152,7 +150,7 @@ registerKawarimiRoutes(app: app, store: store)
 app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 ```
 
-`KawarimiInterceptorMiddleware` はライブラリではなく **Example の `DemoServer` 用コード**です。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
+`KawarimiInterceptorMiddleware` はライブラリではなく **Example** のターゲット内のコードです。Vapor の `AsyncMiddleware` として、`__kawarimi` 管理パスは素通しし、有効なオーバーライド（パステンプレート・メソッド）にマッチしたら本体／`KawarimiSpec.responseMap` からボディを組み立てて即 `Response` を返し、無ければ `next` に委譲します。**自前のミドルウェアを書くときの手本**にしてください。
 
 | エンドポイント | 説明 |
 |---|---|
@@ -161,24 +159,16 @@ app.middleware.use(KawarimiInterceptorMiddleware(store: store))
 | `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
-例 — GET /api/greet の 200 モックを有効化（Example `DemoServer`、既定 `pathPrefix` `/api`）:
-
-```bash
-curl -X POST http://localhost:8080/api/__kawarimi/configure \
-  -H "Content-Type: application/json" \
-  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
-```
+本リポジトリの **DemoServer** 向けの **`curl` 例**: [Example/README_JA.md](Example/README_JA.md#henge-api-demoserver)。
 
 ### クライアント: 実サーバーと Kawarimi モック
 
-プロセス内の example モックと実サーバーの両方を使うなら、生成された **`Client` を2つ**用意します。
+プロセス内のモックと実 HTTP サーバーの両方を使うなら、生成された **`Client` を2つ**用意します。
 
 - `Kawarimi()` — ネットワークなし。応答本文は上記のモック JSON ルール（operation ごとの 200 + `application/json`）に従います。
-- [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) の `URLSessionTransport()` で `DemoServer` に繋ぐクライアント（ターゲットにその製品を追加）。
+- [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) の `URLSessionTransport()` でサーバーに繋ぐクライアント（ターゲットにその製品を追加）。
 
-Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
-
-**`DemoApp`**（SwiftUI）の Henge タブは **KawarimiHenge**、OpenAPI タブは起動中サーバーへの HTTP 用です。
+参照の **DemoServer** と **DemoApp** は **`Example/`** にあります: [Example/README_JA.md](Example/README_JA.md)。
 
 **1つの**クライアントで実／モックを実行時に切り替えたい場合は、アプリ側で `ClientTransport` に準拠する薄いラッパーを自作し、`URLSessionTransport` に委譲しつつ `baseURL` やヘッダーを選ぶ形にしてください。
 
@@ -188,64 +178,22 @@ Example では **`DemoAPITests`** が `Kawarimi` 側を検証します。
 
 ファイル形式は `KawarimiConfig`（overrides 配列）です。
 
-**DemoServer は `Example/DemoPackage` をカレントにして起動してください**（`kawarimi.json` の読み書き先を揃える。例: `cd Example/DemoPackage && swift run DemoServer`）。
-
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
 `kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` は `kawarimi-generator-config.yaml`）。
 
-`kawarimi-generator-config.yaml` の例:
-
-```yaml
-handlerStubPolicy: throw
-```
-
-`kawarimi.json` の例:
-
-```json
-{
-  "overrides": []
-}
-```
+**初期 `kawarimi.json`・サンプル `kawarimi-generator-config.yaml`・`swift run DemoServer` のカレントディレクトリ**については [Example/README_JA.md](Example/README_JA.md) を参照してください。
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
 同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、インターセプタは **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。比較順は `path` → `statusCode` → `name` → `exampleId` です。キーが同順位のときは Swift の **安定ソート**で `hits` 内の元の順序が保たれます。ログにはその並びで警告が出ます。
 
-**DemoServer** は `KawarimiSpec.meta.apiPathPrefix`（OpenAPI `servers[0].url` のパス由来）を `pathPrefix` に渡すため、Spec とマウントが一致し、別の環境変数は不要です。
+## 参照サンプル（`Example/`）
 
-独自サーバーでは `registerHandlers` や OpenAPI `servers` と同じプレフィックスを `KawarimiConfigStore` に渡してください。
-
-```bash
-cd Example/DemoPackage && swift run DemoServer   # kawarimi.json は Example/DemoPackage/ に作成
-KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
-```
-
-### DemoApp（SwiftUI・macOS / iOS）
-
-SwiftUI のサンプルは **`Example/DemoApp/`** にあり、**`Example/DemoApp.xcodeproj`** でビルドします（例: `xed Example/DemoApp.xcodeproj`）。**`DemoPackage` の `DemoAPI`** とリポジトリルートの **KawarimiCore / KawarimiHenge** にリンクしており、**`DemoPackage` 側に SwiftUI 依存はありません**。
-
-**Server URL** と **API prefix** は `KawarimiSpec.meta` に**固定**（アプリ内は `KawarimiExampleConfig`）。
-
-Example の `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。**`DemoApp-Info.plist`**（同期対象の `DemoApp/` ではなく `DemoApp.xcodeproj` と同階層）で **NSAppTransportSecurity → NSAllowsLocalNetworking** を有効にし、ATS がローカル向け平文 HTTP を許可します。**`DemoApp.entitlements`** で **App Sandbox** と **`com.apple.security.network.client`** を有効にし、URLSession がローカルサーバーへ接続できるようにしています（無いと `connectx` が *Operation not permitted* になります）。
-
-手元で DemoServer を動かすときは、`openapi.yaml` の `servers` と実際のホストが一致するようにしてください。
-
-## Example
-
-**`Example/DemoPackage/`** は **OpenAPI 生成の `DemoAPI`** と **macOS 向け `DemoServer`（Vapor）** を含みます。SwiftUI アプリは **Xcode の `Example/DemoApp/`** のみです。本番向けの安全対策は含みません。
-
-**`__kawarimi`** 管理 API に**認証はありません**。
-
-**`DemoApp`** の OpenAPI 実行は **Spec で定義されたベース URL** に向けます。信頼できる環境でのみ使い、実運用では認証・ネットワーク制御を自前で追加してください。
-
-```bash
-cd Example/DemoPackage && swift build
-swift run DemoServer   # 別ターミナルで。SwiftUI は Example/DemoApp.xcodeproj を開く
-```
+本リポジトリには **DemoPackage**（SwiftPM + Vapor **DemoServer**）と **DemoApp**（SwiftUI）が含まれます。構成・セキュリティ注意・コマンド・スクリーンショットは [**Example/README_JA.md**](Example/README_JA.md) · [**Example/README.md**](Example/README.md)。
 
 ## 補足
 
-- Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。**Example/DemoPackage** は **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
+- Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。**`Example/`** 配下の SwiftPM サンプルは **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
 - `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
 - `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。
