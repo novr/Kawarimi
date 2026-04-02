@@ -1,7 +1,8 @@
 # サンプル（Examples）
 
-**DemoPackage**（SwiftPM: OpenAPI 生成の `DemoAPI`、Vapor **DemoServer**）と **DemoApp**（Xcode 上の SwiftUI）です。[ルート README](../README_JA.md) は Kawarimi の組み込み方を説明し、本書は **このリポジトリのサンプル構成**・起動手順・**DemoApp** のスクリーンショットをまとめます。
+**DemoPackage**（SwiftPM: OpenAPI 生成の `DemoAPI`、Vapor **DemoServer**）と **DemoApp**（Xcode 上の SwiftUI）です。本書は **このリポジトリのサンプル構成**・起動手順・**DemoApp** のスクリーンショットをまとめます。
 
+- **ドキュメント一覧:** [docs/ja/README.md](../docs/ja/README.md) · [導入](../docs/ja/integration.md) · [Henge](../docs/ja/henge.md)
 - **English:** [README.md](README.md)
 
 ## 構成
@@ -54,7 +55,7 @@ KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 handlerStubPolicy: throw
 ```
 
-オーバーライドのマージ・タイブレークや空 body の扱いは、ルート README の **kawarimi.json / KAWARIMI_CONFIG** を参照してください。
+オーバーライドのマージ・タイブレークや空 body の扱いは [henge.md](../docs/ja/henge.md#kawarimijson--kawarimi_config) を参照してください。
 
 <a id="henge-api-demoserver"></a>
 
@@ -68,7 +69,7 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
 ```
 
-Vapor での登録パターンはルート README の **Henge API** と [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift) を参照してください。
+Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift) を参照してください。
 
 ## クライアント: モックと DemoServer
 
