@@ -291,10 +291,46 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("listItems"))
     #expect(source.contains("/items/{id}"))
     #expect(source.contains("responseMap"))
+    #expect(source.contains("[Int: [String: (body: String, contentType: String)]]"))
+    #expect(source.contains("\"__default\""))
     // Media type example should win over schema fallback for mock body
     #expect(source.contains("Hello from spec example"))
     let greetBody = try #require(mockResponseBodyJSONString(operationId: "getGreeting", in: source))
     try assertJSONDecoderAcceptsMockBody(greetBody)
+}
+
+@Test func kawarimiJutsuSpecEmitsNamedExamplesInResponseMap() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-ex-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    paths:
+      /demo:
+        get:
+          operationId: demoOp
+          responses:
+            '200':
+              description: ok
+              content:
+                application/json:
+                  schema:
+                    type: object
+                  examples:
+                    one:
+                      value: { "x": 1 }
+                    two:
+                      value: { "x": 2 }
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("exampleId: \"one\""))
+    #expect(source.contains("exampleId: \"two\""))
+    #expect(source.contains("\"one\":"))
+    #expect(source.contains("\"two\":"))
 }
 
 @Test func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
