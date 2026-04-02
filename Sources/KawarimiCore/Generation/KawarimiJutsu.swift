@@ -550,7 +550,7 @@ public enum KawarimiJutsu {
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
-                        method: "\(entry.method)",
+                        method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
                         responses: [
             \(responsesBlock)
@@ -585,7 +585,7 @@ public enum KawarimiJutsu {
                 }
                 public struct Endpoint: Codable, Sendable {
                     public var path: String
-                    public var method: String
+                    public var method: HTTPRequest.Method
                     public var operationId: String
                     public var responses: [MockResponse]
                 }

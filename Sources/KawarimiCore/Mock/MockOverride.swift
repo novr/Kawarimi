@@ -1,9 +1,10 @@
 import Foundation
+import HTTPTypes
 
 public struct MockOverride: Codable, Sendable, Equatable {
     public var name: String?
     public var path: String
-    public var method: String
+    public var method: HTTPRequest.Method
     public var statusCode: Int
     public var exampleId: String?
     public var isEnabled: Bool
@@ -20,7 +21,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public init(
         name: String? = nil,
         path: String,
-        method: String,
+        method: HTTPRequest.Method,
         statusCode: Int,
         exampleId: String? = nil,
         isEnabled: Bool = true,
@@ -35,6 +36,33 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.isEnabled = isEnabled
         self.body = body
         self.contentType = contentType
+    }
+
+    /// RFC 9110 に沿うトークンとして解釈できるメソッド名（従来の JSON 文字列と互換）。
+    public init(
+        name: String? = nil,
+        path: String,
+        method methodString: String,
+        statusCode: Int,
+        exampleId: String? = nil,
+        isEnabled: Bool = true,
+        body: String? = nil,
+        contentType: String? = nil
+    ) {
+        let normalized = methodString.uppercased()
+        guard let m = HTTPRequest.Method(normalized) else {
+            preconditionFailure("Invalid HTTP method for MockOverride: \(methodString)")
+        }
+        self.init(
+            name: name,
+            path: path,
+            method: m,
+            statusCode: statusCode,
+            exampleId: exampleId,
+            isEnabled: isEnabled,
+            body: body,
+            contentType: contentType
+        )
     }
 }
 

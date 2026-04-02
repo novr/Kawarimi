@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiHenge
+import KawarimiCore
 import Testing
 
 /// Uses `URL.host` as the HTTP status (`http://500/`, etc.) so tests avoid real endpoints.

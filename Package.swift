@@ -20,6 +20,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/jpsim/Yams.git", from: "5.0.0"),
         .package(url: "https://github.com/mattpolzin/OpenAPIKit.git", from: "3.9.0"),
+        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     ],
     targets: [
         .target(
@@ -27,6 +28,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "OpenAPIKit30", package: "OpenAPIKit"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
             ]
         ),
         .executableTarget(
@@ -51,10 +53,6 @@ let package = Package(
         .testTarget(
             name: "KawarimiTests",
             dependencies: []
-        ),
-        .testTarget(
-            name: "KawarimiHengeTests",
-            dependencies: ["KawarimiHenge"]
         ),
     ]
 )

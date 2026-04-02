@@ -201,7 +201,7 @@ struct OverrideEditorView: View {
         return endpointItems.filter { item in
             let ep = item.endpoint
             if ep.path.lowercased().contains(lower) { return true }
-            if ep.method.lowercased().contains(lower) { return true }
+            if ep.method.rawValue.lowercased().contains(lower) { return true }
             if ep.operationId.lowercased().contains(lower) { return true }
             return false
         }
@@ -572,7 +572,7 @@ struct OverrideEditorView: View {
                     store.applySelection(key, endpoints: endpoints, overrides: overrides)
                 }
             }
-            .navigationTitle("\(item.endpoint.method) \(item.endpoint.path)")
+            .navigationTitle("\(item.endpoint.method.rawValue) \(item.endpoint.path)")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -802,7 +802,7 @@ private struct OverrideDetailColumnView: View {
             if embedNavigationStack {
                 NavigationStack {
                     detailScrollStack
-                        .navigationTitle("\(endpoint.method) \(endpoint.path)")
+                        .navigationTitle("\(endpoint.method.rawValue) \(endpoint.path)")
                         .toolbar {
                             if showToolbarRefresh {
                                 ToolbarItem(placement: .kawarimiTrailing) {
@@ -1072,7 +1072,7 @@ private struct EndpointRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Text(endpoint.method.uppercased())
+            Text(endpoint.method.rawValue.uppercased())
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 8)

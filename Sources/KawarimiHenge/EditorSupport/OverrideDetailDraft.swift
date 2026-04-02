@@ -1,9 +1,16 @@
+import Foundation
 import KawarimiCore
 
 struct OverrideDetailDraft {
     var mock: MockOverride
     var validationMessage: String?
-    var isDirty: Bool = false
+    var isDirty: Bool
+
+    init(mock: MockOverride, validationMessage: String?, isDirty: Bool = false) {
+        self.mock = mock
+        self.validationMessage = validationMessage
+        self.isDirty = isDirty
+    }
 
     var endpointRowKey: EndpointRowKey {
         EndpointRowKey(method: mock.method, path: mock.path)

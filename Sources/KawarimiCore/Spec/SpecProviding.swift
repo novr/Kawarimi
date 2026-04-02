@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 
 public protocol SpecMetaProviding: Sendable {
     var title: String { get }
@@ -20,7 +21,7 @@ public protocol SpecMockResponseProviding: Identifiable, Sendable {
 
 public protocol SpecEndpointProviding: Identifiable, Sendable {
     var path: String { get }
-    var method: String { get }
+    var method: HTTPRequest.Method { get }
     var operationId: String { get }
     var responseList: [any SpecMockResponseProviding] { get }
 }

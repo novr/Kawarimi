@@ -1,3 +1,4 @@
+import Foundation
 import KawarimiCore
 
 /// Prefers a real body from an enabled override for the same path, method, and status over the spec example.

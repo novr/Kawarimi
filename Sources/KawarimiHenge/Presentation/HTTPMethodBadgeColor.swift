@@ -1,7 +1,12 @@
+import KawarimiCore
 import SwiftUI
 
 /// Fill colors for HTTP method pills, shared by KawarimiHenge and apps that mirror its explorer styling (e.g. DemoApp OpenAPI tab).
 public enum HTTPMethodBadgeColor {
+    public static func fill(for method: HTTPRequest.Method) -> Color {
+        fill(for: method.rawValue)
+    }
+
     public static func fill(for method: String) -> Color {
         switch method.uppercased() {
         case "GET": return Color(red: 0.22, green: 0.52, blue: 0.95)

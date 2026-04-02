@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 
 public enum KawarimiConfigStoreError: Error, Sendable {
     /// `..` による設定パスからの脱出を防ぐ。
@@ -70,7 +71,9 @@ public actor KawarimiConfigStore {
         if !result.path.hasPrefix(prefix) {
             result.path = prefix + (result.path == "/" ? "" : result.path)
         }
-        result.method = result.method.uppercased()
+        if let m = HTTPRequest.Method(result.method.rawValue.uppercased()) {
+            result.method = m
+        }
         if result.body?.isEmpty == true {
             result.body = nil
             result.contentType = nil

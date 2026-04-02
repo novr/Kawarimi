@@ -1,5 +1,4 @@
 import Foundation
-import KawarimiCore
 
 /// Includes a short body prefix in `localizedDescription` when present so failures are easier to diagnose.
 public struct KawarimiAPIError: Error, LocalizedError, Sendable {
