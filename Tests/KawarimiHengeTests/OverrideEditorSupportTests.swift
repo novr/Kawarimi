@@ -21,25 +21,23 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Endpoint filter
 
-@Test func endpointFilterEmptyQueryReturnsAll() {
+@Test func endpointFilterEmptyOrWhitespaceReturnsAllAndMatchesPathMethodOperationId() {
     let ep = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
         operationId: "listPets",
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
     )
-    let items = [SpecEndpointItem(ep)]
-    #expect(OverrideEndpointFilter.filter(items, searchText: "").map(\.id) == items.map(\.id))
-    #expect(OverrideEndpointFilter.filter(items, searchText: "   ").map(\.id) == items.map(\.id))
-}
+    let single = [SpecEndpointItem(ep)]
+    #expect(EndpointFilter.filter(single, searchText: "").map(\.id) == single.map(\.id))
+    #expect(EndpointFilter.filter(single, searchText: "   ").map(\.id) == single.map(\.id))
 
-@Test func endpointFilterMatchesPathMethodOperationId() {
     let a = FakeSpecEndpoint(path: "/api/v1/users", method: .get, operationId: "listUsers", responseList: [])
     let b = FakeSpecEndpoint(path: "/orders", method: .post, operationId: "createOrder", responseList: [])
     let items = [SpecEndpointItem(a), SpecEndpointItem(b)]
-    #expect(OverrideEndpointFilter.filter(items, searchText: "users").map(\.id) == ["listUsers"])
-    #expect(OverrideEndpointFilter.filter(items, searchText: "POST").map(\.id) == ["createOrder"])
-    #expect(OverrideEndpointFilter.filter(items, searchText: "order").map(\.id) == ["createOrder"])
+    #expect(EndpointFilter.filter(items, searchText: "users").map(\.id) == ["listUsers"])
+    #expect(EndpointFilter.filter(items, searchText: "POST").map(\.id) == ["createOrder"])
+    #expect(EndpointFilter.filter(items, searchText: "order").map(\.id) == ["createOrder"])
 }
 
 // MARK: - Save payload
@@ -64,7 +62,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: "{ \"a\": 1 }",
         contentType: "application/json"
     )
-    let built = OverrideSavePayloadBuilder.build(
+    let built = SavePayload.build(
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
@@ -97,7 +95,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: "{ }",
         contentType: "application/json"
     )
-    let built = OverrideSavePayloadBuilder.build(
+    let built = SavePayload.build(
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
@@ -121,7 +119,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: "{}", contentType: "application/json")
-    let plan = OverrideDisableMockRowPlanner.plan(
+    let plan = DisableMockPlanner.plan(
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
@@ -155,7 +153,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         contentType: "application/json"
     )
     let mock = stored
-    let plan = OverrideDisableMockRowPlanner.plan(
+    let plan = DisableMockPlanner.plan(
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
@@ -181,7 +179,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
-    let plan = OverrideDisableMockRowPlanner.plan(
+    let plan = DisableMockPlanner.plan(
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
@@ -205,14 +203,14 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     let mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
-    let specOpt = MockResponseStatusChipOption(
-        id: MockResponseStatusChipOption.specRowId,
+    let specOpt = ResponseChip(
+        id: ResponseChip.specRowId,
         statusCode: -1,
         exampleId: nil,
         label: "Spec",
         isInactive: false
     )
-    let selected = OverrideResponseChipLogic.chipIsSelected(
+    let selected = ResponseChips.chipIsSelected(
         option: specOpt,
         mock: mock,
         rowKey: item.rowKey,
@@ -232,14 +230,14 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     var mock = MockOverride(path: "/p", method: .get, statusCode: 404, exampleId: "x", isEnabled: true, body: "{}", contentType: "application/json")
-    let specOpt = MockResponseStatusChipOption(
-        id: MockResponseStatusChipOption.specRowId,
+    let specOpt = ResponseChip(
+        id: ResponseChip.specRowId,
         statusCode: -1,
         exampleId: nil,
         label: "Spec",
         isInactive: false
     )
-    OverrideResponseChipLogic.applyChipSelection(
+    ResponseChips.applyChipSelection(
         option: specOpt,
         mock: &mock,
         endpointItem: item,
@@ -272,8 +270,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         contentType: "application/json"
     )
     var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: nil, contentType: nil)
-    let rowOpt = MockResponseStatusChipOption(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: true)
-    OverrideResponseChipLogic.applyChipSelection(
+    let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: true)
+    ResponseChips.applyChipSelection(
         option: rowOpt,
         mock: &mock,
         endpointItem: item,
@@ -294,8 +292,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
-    let rowOpt = MockResponseStatusChipOption(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: false)
-    OverrideResponseChipLogic.applyChipSelection(
+    let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: false)
+    ResponseChips.applyChipSelection(
         option: rowOpt,
         mock: &mock,
         endpointItem: item,
@@ -320,7 +318,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let item = SpecEndpointItem(endpoint)
     let mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
-    let opts = OverrideResponseChipLogic.buildChipOptions(
+    let opts = ResponseChips.buildChipOptions(
         mock: mock,
         endpointItem: item,
         endpoint: endpoint,
