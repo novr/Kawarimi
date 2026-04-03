@@ -1,6 +1,6 @@
 import KawarimiCore
 
-struct MockResponseStatusChipOption: Identifiable {
+struct ResponseChip: Identifiable {
     static let specRowId = "spec"
 
     let id: String
@@ -12,8 +12,7 @@ struct MockResponseStatusChipOption: Identifiable {
     var isSpec: Bool { id == Self.specRowId }
 }
 
-enum OverrideResponseChipLogic {
-    /// Picker source for “Add response”; rows are distinguished by `exampleId`, so duplicate HTTP statuses are allowed.
+enum ResponseChips {
     static let commonCustomHTTPStatusCodes: [Int] = [
         100, 101, 103,
         200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
@@ -31,7 +30,7 @@ enum OverrideResponseChipLogic {
         if let ex = MockExamplePresentation.normalizedExampleId(exampleId) {
             return "\(statusCode) · \(ex)"
         }
-        return "\(statusCode) \(OverrideEditorHTTPStatus.phrase(for: statusCode))"
+        return "\(statusCode) \(HTTPStatusPhrase.text(for: statusCode))"
     }
 
     static func buildChipOptions(
@@ -40,10 +39,10 @@ enum OverrideResponseChipLogic {
         endpoint: any SpecEndpointProviding,
         overrides: [MockOverride],
         pathPrefix: String
-    ) -> [MockResponseStatusChipOption] {
-        var out: [MockResponseStatusChipOption] = [
-            MockResponseStatusChipOption(
-                id: MockResponseStatusChipOption.specRowId,
+    ) -> [ResponseChip] {
+        var out: [ResponseChip] = [
+            ResponseChip(
+                id: ResponseChip.specRowId,
                 statusCode: -1,
                 exampleId: nil,
                 label: "Spec",
@@ -58,10 +57,10 @@ enum OverrideResponseChipLogic {
             if MockExamplePresentation.normalizedExampleId(r.exampleId) != nil {
                 label = "\(c) · \(exLabel)"
             } else {
-                label = "\(c) \(OverrideEditorHTTPStatus.phrase(for: c))"
+                label = "\(c) \(HTTPStatusPhrase.text(for: c))"
             }
             out.append(
-                MockResponseStatusChipOption(id: item.id, statusCode: c, exampleId: r.exampleId, label: label, isInactive: false)
+                ResponseChip(id: item.id, statusCode: c, exampleId: r.exampleId, label: label, isInactive: false)
             )
         }
         let customs = OverrideListQueries.customOverrides(
@@ -76,7 +75,7 @@ enum OverrideResponseChipLogic {
             let id = supplementalRowChipId(statusCode: ov.statusCode, exampleId: ov.exampleId)
             let label = supplementalChipLabel(statusCode: ov.statusCode, exampleId: ov.exampleId)
             out.append(
-                MockResponseStatusChipOption(
+                ResponseChip(
                     id: id,
                     statusCode: ov.statusCode,
                     exampleId: ov.exampleId,
@@ -96,7 +95,7 @@ enum OverrideResponseChipLogic {
             if !alreadyListed {
                 let label = supplementalChipLabel(statusCode: mock.statusCode, exampleId: mock.exampleId)
                 out.append(
-                    MockResponseStatusChipOption(
+                    ResponseChip(
                         id: draftId,
                         statusCode: mock.statusCode,
                         exampleId: mock.exampleId,
@@ -112,7 +111,7 @@ enum OverrideResponseChipLogic {
     static func responseOptionExists(
         statusCode: Int,
         exampleId: String?,
-        options: [MockResponseStatusChipOption]
+        options: [ResponseChip]
     ) -> Bool {
         options.contains { opt in
             !opt.isSpec && opt.statusCode == statusCode && MockExamplePresentation.exampleIdsEqual(opt.exampleId, exampleId)
@@ -120,7 +119,7 @@ enum OverrideResponseChipLogic {
     }
 
     static func chipIsSelected(
-        option: MockResponseStatusChipOption,
+        option: ResponseChip,
         mock: MockOverride,
         rowKey: EndpointRowKey,
         operationId: String,
@@ -142,7 +141,7 @@ enum OverrideResponseChipLogic {
     }
 
     static func applyChipSelection(
-        option: MockResponseStatusChipOption,
+        option: ResponseChip,
         mock: inout MockOverride,
         endpointItem: SpecEndpointItem,
         endpoint: any SpecEndpointProviding,

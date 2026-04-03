@@ -1,7 +1,7 @@
 import KawarimiCore
 import SwiftUI
 
-struct OverrideExplorerSectionHeader: View {
+struct ExplorerListHeader: View {
     let meta: any SpecMetaProviding
     let horizontalMargin: CGFloat
 
@@ -21,7 +21,7 @@ struct OverrideExplorerSectionHeader: View {
     }
 }
 
-struct OverrideExplorerHeaderInset: View {
+struct ExplorerTopInset: View {
     let serverURL: String
     @Binding var searchText: String
     let explorerTightVertical: Bool

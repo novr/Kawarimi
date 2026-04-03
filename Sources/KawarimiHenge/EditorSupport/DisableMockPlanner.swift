@@ -1,6 +1,6 @@
 import KawarimiCore
 
-enum OverrideDisableMockRowPlanner {
+enum DisableMockPlanner {
     enum Plan: Equatable {
         case configureDisable(MockOverride)
         case removeThenReset(removeKey: MockOverride, cleared: MockOverride)

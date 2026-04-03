@@ -1,7 +1,7 @@
 import Foundation
 
-enum OverrideEditorHTTPStatus {
-    static func phrase(for statusCode: Int) -> String {
+enum HTTPStatusPhrase {
+    static func text(for statusCode: Int) -> String {
         switch statusCode {
         case 100: return "Continue"
         case 200: return "OK"

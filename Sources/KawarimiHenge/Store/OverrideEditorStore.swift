@@ -2,6 +2,7 @@ import Foundation
 import KawarimiCore
 import Observation
 
+@MainActor
 @Observable
 final class OverrideEditorStore {
     var detail: OverrideDetailDraft?
@@ -170,6 +171,102 @@ final class OverrideEditorStore {
         d.isDirty = false
         d.validationMessage = nil
         commitDetail(d)
+    }
+
+    /// Matches ``OverrideEditorView/validationMessageBinding`` set side (detail must exist).
+    func setDetailValidationMessage(_ message: String?) {
+        guard var d = detail else { return }
+        d.validationMessage = message
+        commitDetail(d)
+    }
+
+    func applyWithBody(
+        endpointItem: SpecEndpointItem,
+        overrides: [MockOverride],
+        configureOverride: @escaping (MockOverride) async throws -> Void,
+        setErrorMessage: @escaping (String?) -> Void
+    ) async {
+        let endpoint = endpointItem.endpoint
+        setErrorMessage(nil)
+        guard var draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        let override = SavePayload.build(
+            mock: draft.mock,
+            endpoint: endpoint,
+            rowKey: endpointItem.rowKey,
+            pathPrefix: apiPathPrefix,
+            overrides: overrides
+        )
+        do {
+            try await configureOverride(override)
+            draft.mock.isEnabled = override.isEnabled
+            draft.mock.statusCode = override.statusCode
+            draft.mock.exampleId = override.exampleId
+            draft.mock.body = override.body
+            draft.mock.contentType = override.contentType
+            commitDetail(draft)
+            markSavedClean()
+        } catch {
+            setErrorMessage(error.localizedDescription)
+        }
+    }
+
+    func clearOverride(
+        endpointItem: SpecEndpointItem,
+        configureOverride: @escaping (MockOverride) async throws -> Void,
+        setErrorMessage: @escaping (String?) -> Void
+    ) async {
+        let endpoint = endpointItem.endpoint
+        setErrorMessage(nil)
+        let reset = MockOverride(
+            name: endpoint.operationId,
+            path: endpoint.path,
+            method: endpoint.method,
+            statusCode: endpoint.responseList.first?.statusCode ?? 200,
+            exampleId: nil,
+            isEnabled: false,
+            body: nil,
+            contentType: nil
+        )
+        do {
+            try await configureOverride(reset)
+            applyServerReset(mock: reset, rowKey: endpointItem.rowKey)
+        } catch {
+            setErrorMessage(error.localizedDescription)
+        }
+    }
+
+    func disableCurrentMockRow(
+        endpointItem: SpecEndpointItem,
+        overrides: [MockOverride],
+        configureOverride: @escaping (MockOverride) async throws -> Void,
+        removeOverride: @escaping (MockOverride) async throws -> Void,
+        setErrorMessage: @escaping (String?) -> Void
+    ) async {
+        let endpoint = endpointItem.endpoint
+        setErrorMessage(nil)
+        guard let draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        let plan = DisableMockPlanner.plan(
+            mock: draft.mock,
+            endpoint: endpoint,
+            rowKey: endpointItem.rowKey,
+            pathPrefix: apiPathPrefix,
+            overrides: overrides
+        )
+        do {
+            switch plan {
+            case .none:
+                break
+            case let .configureDisable(payload):
+                try await configureOverride(payload)
+                markSavedClean()
+            case let .removeThenReset(removeKey, cleared):
+                try await removeOverride(removeKey)
+                applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)
+                markSavedClean()
+            }
+        } catch {
+            setErrorMessage(error.localizedDescription)
+        }
     }
 
 }

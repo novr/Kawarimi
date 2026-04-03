@@ -1,7 +1,6 @@
 import KawarimiCore
 
-enum OverrideSavePayloadBuilder {
-    /// Builds the `MockOverride` sent on Save (toggle semantics: off → spec default row, `exampleId` cleared).
+enum SavePayload {
     static func build(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding,

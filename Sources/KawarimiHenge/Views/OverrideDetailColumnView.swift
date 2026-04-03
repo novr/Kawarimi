@@ -33,7 +33,7 @@ struct OverrideDetailColumnView: View {
     @State private var addCustomScratchExampleId: String = ""
 
     private var addCustomStatusPickerCandidates: [Int] {
-        OverrideResponseChipLogic.commonCustomHTTPStatusCodes
+        ResponseChips.commonCustomHTTPStatusCodes
     }
 
     private var endpoint: any SpecEndpointProviding { endpointItem.endpoint }
@@ -46,8 +46,8 @@ struct OverrideDetailColumnView: View {
         #endif
     }
 
-    private var chipOptions: [MockResponseStatusChipOption] {
-        OverrideResponseChipLogic.buildChipOptions(
+    private var chipOptions: [ResponseChip] {
+        ResponseChips.buildChipOptions(
             mock: mock,
             endpointItem: endpointItem,
             endpoint: endpoint,
@@ -57,11 +57,11 @@ struct OverrideDetailColumnView: View {
     }
 
     private func responseOptionExists(statusCode: Int, exampleId: String?) -> Bool {
-        OverrideResponseChipLogic.responseOptionExists(statusCode: statusCode, exampleId: exampleId, options: chipOptions)
+        ResponseChips.responseOptionExists(statusCode: statusCode, exampleId: exampleId, options: chipOptions)
     }
 
-    private func responseChipIsSelected(_ opt: MockResponseStatusChipOption) -> Bool {
-        OverrideResponseChipLogic.chipIsSelected(
+    private func responseChipIsSelected(_ opt: ResponseChip) -> Bool {
+        ResponseChips.chipIsSelected(
             option: opt,
             mock: mock,
             rowKey: endpointItem.rowKey,
@@ -71,9 +71,9 @@ struct OverrideDetailColumnView: View {
         )
     }
 
-    private func applyResponseChip(_ opt: MockResponseStatusChipOption) {
+    private func applyResponseChip(_ opt: ResponseChip) {
         var m = mock
-        OverrideResponseChipLogic.applyChipSelection(
+        ResponseChips.applyChipSelection(
             option: opt,
             mock: &m,
             endpointItem: endpointItem,
@@ -196,7 +196,7 @@ struct OverrideDetailColumnView: View {
                     } else {
                         Picker("Status", selection: $addCustomSelectedStatus) {
                             ForEach(candidates, id: \.self) { code in
-                                Text("\(code) \(OverrideEditorHTTPStatus.phrase(for: code))")
+                                Text("\(code) \(HTTPStatusPhrase.text(for: code))")
                                     .tag(code)
                             }
                         }
@@ -388,7 +388,7 @@ struct OverrideDetailColumnView: View {
                         if let msg = validationMessage {
                             Text(msg)
                                 .font(.caption)
-                                .foregroundStyle(OverrideEditorValidation.isErrorValidationMessage(msg) ? .red : .secondary)
+                                .foregroundStyle(EditorValidation.isInvalidJSONMessage(msg) ? .red : .secondary)
                         }
                     }
                 }
@@ -453,7 +453,7 @@ struct OverrideDetailColumnView: View {
         )
     }
 
-    private func copyChipExampleIdToPasteboard(_ opt: MockResponseStatusChipOption) {
+    private func copyChipExampleIdToPasteboard(_ opt: ResponseChip) {
         let text: String
         if opt.isSpec {
             text = KawarimiExampleIds.defaultResponseMapKey

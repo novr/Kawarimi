@@ -54,26 +54,12 @@ struct OverrideEditorView: View {
         self.errorMessage = errorMessage
     }
 
-    /// Use stack navigation whenever width *or* height is compact. iPhone landscape often reports
-    /// `horizontalSizeClass == .regular` while `verticalSizeClass == .compact`, which would pick
-    /// `NavigationSplitView` and leave the sidebar drawn over the detail.
     private var useCompactNavigation: Bool {
-        #if os(iOS)
-        if horizontalSizeClass == .compact { return true }
-        if verticalSizeClass == .compact { return true }
-        return false
-        #else
-        horizontalSizeClass == .compact
-        #endif
+        NavigationLayoutLogic.useCompactNavigation(horizontal: horizontalSizeClass, vertical: verticalSizeClass)
     }
 
-    /// Shorter vertical space (e.g. iPhone landscape): tighter header and detail padding.
     private var explorerTightVertical: Bool {
-        #if os(iOS)
-        verticalSizeClass == .compact
-        #else
-        false
-        #endif
+        NavigationLayoutLogic.explorerTightVertical(vertical: verticalSizeClass)
     }
 
     private var endpointItems: [SpecEndpointItem] {
@@ -81,7 +67,7 @@ struct OverrideEditorView: View {
     }
 
     private var filteredEndpointItems: [SpecEndpointItem] {
-        OverrideEndpointFilter.filter(endpointItems, searchText: searchText)
+        EndpointFilter.filter(endpointItems, searchText: searchText)
     }
 
     var body: some View {
@@ -158,11 +144,7 @@ struct OverrideEditorView: View {
     private var validationMessageBinding: Binding<String?> {
         Binding(
             get: { store.detail?.validationMessage },
-            set: { newValue in
-                guard var d = store.detail else { return }
-                d.validationMessage = newValue
-                store.commitDetail(d)
-            }
+            set: { store.setDetailValidationMessage($0) }
         )
     }
 
@@ -245,7 +227,7 @@ struct OverrideEditorView: View {
                         .listRowBackground(ExplorerListRowCardBackground())
                     }
                 } header: {
-                    OverrideExplorerSectionHeader(meta: meta, horizontalMargin: Self.explorerHorizontalMargin)
+                    ExplorerListHeader(meta: meta, horizontalMargin: Self.explorerHorizontalMargin)
                 }
             } else {
                 Text("No spec loaded. Provide spec via specProvider.")
@@ -312,7 +294,7 @@ struct OverrideEditorView: View {
                         .listRowBackground(ExplorerListRowCardBackground())
                     }
                 } header: {
-                    OverrideExplorerSectionHeader(meta: meta, horizontalMargin: Self.explorerHorizontalMargin)
+                    ExplorerListHeader(meta: meta, horizontalMargin: Self.explorerHorizontalMargin)
                 }
             } else {
                 Text("No spec loaded. Provide spec via specProvider.")
@@ -329,7 +311,7 @@ struct OverrideEditorView: View {
 
     /// Pinned above the endpoint `List` via `safeAreaInset` so rows never draw under the search bar.
     private var explorerHeaderSafeAreaInset: some View {
-        OverrideExplorerHeaderInset(
+        ExplorerTopInset(
             serverURL: serverURL,
             searchText: $searchText,
             explorerTightVertical: explorerTightVertical,
@@ -462,98 +444,36 @@ struct OverrideEditorView: View {
     }
 
     private func mockBinding(for item: SpecEndpointItem) -> Binding<MockOverride> {
-        let endpoint = item.endpoint
-        return Binding(
-            get: {
-                store.detail?.mock
-                    ?? MockOverride(
-                        name: endpoint.operationId,
-                        path: endpoint.path,
-                        method: endpoint.method,
-                        statusCode: endpoint.responseList.first?.statusCode ?? 200,
-                        exampleId: nil,
-                        isEnabled: false,
-                        body: nil,
-                        contentType: nil
-                    )
-            },
+        Binding(
+            get: { store.detail?.mock ?? MockDraftDefaults.specPlaceholder(for: item) },
             set: { store.applyMockEdit(from: item, newMock: $0) }
         )
     }
 
     private func applyWithBody(endpointItem: SpecEndpointItem) async {
-        let endpoint = endpointItem.endpoint
-        errorMessage.wrappedValue = nil
-        guard var draft = store.detail, draft.endpointRowKey == endpointItem.rowKey else { return }
-        let m = draft.mock
-        let override = OverrideSavePayloadBuilder.build(
-            mock: m,
-            endpoint: endpoint,
-            rowKey: endpointItem.rowKey,
-            pathPrefix: store.apiPathPrefix,
-            overrides: overrides
+        await store.applyWithBody(
+            endpointItem: endpointItem,
+            overrides: overrides,
+            configureOverride: configureOverride,
+            setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
-        do {
-            try await configureOverride(override)
-            draft.mock.isEnabled = override.isEnabled
-            draft.mock.statusCode = override.statusCode
-            draft.mock.exampleId = override.exampleId
-            draft.mock.body = override.body
-            draft.mock.contentType = override.contentType
-            store.commitDetail(draft)
-            store.markSavedClean()
-        } catch {
-            errorMessage.wrappedValue = error.localizedDescription
-        }
     }
 
     private func clearOverride(endpointItem: SpecEndpointItem) async {
-        let endpoint = endpointItem.endpoint
-        errorMessage.wrappedValue = nil
-        do {
-            let override = MockOverride(
-                name: endpoint.operationId,
-                path: endpoint.path,
-                method: endpoint.method,
-                statusCode: endpoint.responseList.first?.statusCode ?? 200,
-                exampleId: nil,
-                isEnabled: false,
-                body: nil,
-                contentType: nil
-            )
-            try await configureOverride(override)
-            store.applyServerReset(mock: override, rowKey: endpointItem.rowKey)
-        } catch {
-            errorMessage.wrappedValue = error.localizedDescription
-        }
+        await store.clearOverride(
+            endpointItem: endpointItem,
+            configureOverride: configureOverride,
+            setErrorMessage: { errorMessage.wrappedValue = $0 }
+        )
     }
 
-    /// When active: persist `isEnabled: false` for this row. When already disabled: remove the row from config.
     private func disableCurrentMockRow(endpointItem: SpecEndpointItem) async {
-        let endpoint = endpointItem.endpoint
-        errorMessage.wrappedValue = nil
-        guard let draft = store.detail, draft.endpointRowKey == endpointItem.rowKey else { return }
-        let plan = OverrideDisableMockRowPlanner.plan(
-            mock: draft.mock,
-            endpoint: endpoint,
-            rowKey: endpointItem.rowKey,
-            pathPrefix: store.apiPathPrefix,
-            overrides: overrides
+        await store.disableCurrentMockRow(
+            endpointItem: endpointItem,
+            overrides: overrides,
+            configureOverride: configureOverride,
+            removeOverride: removeOverride,
+            setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
-        do {
-            switch plan {
-            case .none:
-                break
-            case let .configureDisable(payload):
-                try await configureOverride(payload)
-                store.markSavedClean()
-            case let .removeThenReset(removeKey, cleared):
-                try await removeOverride(removeKey)
-                store.applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)
-                store.markSavedClean()
-            }
-        } catch {
-            errorMessage.wrappedValue = error.localizedDescription
-        }
     }
 }
