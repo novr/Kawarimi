@@ -51,6 +51,10 @@ let package = Package(
             resources: [.copy("Fixtures")]
         ),
         .testTarget(
+            name: "KawarimiHengeTests",
+            dependencies: ["KawarimiHenge"]
+        ),
+        .testTarget(
             name: "KawarimiTests",
             dependencies: []
         ),
