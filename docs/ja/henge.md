@@ -101,6 +101,25 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 本リポジトリの **DemoServer** 向けの **`curl` 例**: [Example/README_JA.md#henge-api-demoserver](../../Example/README_JA.md#henge-api-demoserver)。
 
+## オーバーライドエディタ（`OverrideEditorView`）
+
+モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。**編集ルール**（レスポンスチップ、Save 時の `configure` ペイロード、Del の分岐、エンドポイント検索）は **`Sources/KawarimiHenge/EditorSupport/`** にあります（例: `OverrideResponseChipLogic`、`OverrideSavePayloadBuilder`、`OverrideDisableMockRowPlanner`、`OverrideEndpointFilter`）。**どの行を選んでいるか**や `validationMessage` / `isDirty` など UI メタは **`OverrideEditorStore`** / **`OverrideDetailDraft`** が持ちます。
+
+| UI / ドキュメント上の言い方 | コード側 | メモ |
+| --- | --- | --- |
+| リストの 1 行 | `EndpointRowKey` + `SpecEndpointItem` | 選択は `EndpointRowKey`。 |
+| 詳細の編集対象 | `OverrideDetailDraft` 内の `MockOverride` 1 件 | 選択中の論理行のスナップショット。`kawarimi.json` 全体ではない。 |
+| サーバー / 設定の 1 行 | `kawarimi.json` の `MockOverride` | `configure` / `remove` と同じ同一視: **`path` + `method` + `statusCode` + 正規化後 `exampleId`**。「`operationId` だけで削除」と書かない。 |
+| デフォルト / 無名の例 | `exampleId` が nil（空白正規化後も） | ルックアップでは予約 **`__default`** と対応。UI チップは「例 ID なし」として扱う。 |
+
+**Spec** チップが選ばれるのは、ドラフトのモックが **オフ**で、かつ現在の `statusCode` / `exampleId` に一致する**保存済み行がない**ときです（オフだが保存行がある場合はそのチップ側に留まります）。
+
+**Save** は **`OverrideSavePayloadBuilder`** が組み立てた内容で `configure` を呼びます。モックトグルがオン、またはその status/example に保存行がある、または OpenAPI のレスポンス一覧に無い組み合わせ（カスタム行）のいずれかなら送信ペイロードは有効扱いになります。Spec 上の行だけを「オフ」のまま送る場合は、**`statusCode`** は操作の先頭の Spec 行、**`exampleId`** はクリア、本文系もワイヤ上はクリアされます。
+
+**Del** は **`OverrideDisableMockRowPlanner`** が分岐します。アクティブなモック → 同一キーで `isEnabled: false` の `configure`。すでにオフで保存行が一致 → **`remove`** の後、ドラフトを Spec 側へ寄せるリセット。それ以外 → 何もしません。
+
+**自動テスト:** **`KawarimiHengeTests`**（`Tests/KawarimiHengeTests/`）でフィルタ、チップ遷移、Save ペイロード、Del 計画を検証しています。
+
 ## クライアント: 実サーバーと Kawarimi モック
 
 プロセス内のモックと実 HTTP サーバーの両方を使うなら、生成された **`Client` を2つ**用意します。

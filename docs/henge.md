@@ -102,6 +102,25 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try-the-henge-api-demoserver](../Example/README.md#try-the-henge-api-demoserver).
 
+## Override editor (`OverrideEditorView`)
+
+The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column). **Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `OverrideResponseChipLogic`, `OverrideSavePayloadBuilder`, `OverrideDisableMockRowPlanner`, `OverrideEndpointFilter`. **Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
+
+| UI / doc term | Code | Notes |
+| --- | --- | --- |
+| Endpoint list row | `EndpointRowKey` + `SpecEndpointItem` | Selection is by `EndpointRowKey`. |
+| Detail editor | One `MockOverride` in `OverrideDetailDraft` | A snapshot for the selected logical row, not the entire overrides array. |
+| Server / config row | `MockOverride` in `kawarimi.json` | Same identity as configure/remove: **`path` + `method` + `statusCode` + normalized `exampleId`**. Do not describe deletes as “by `operationId` only”. |
+| Default / unnamed example | `exampleId` nil (after trim) | Aligns with reserved **`__default`** at lookup time; UI treats it as “no example id”. |
+
+**Spec** response chip is selected when the draft mock is **disabled** and **no stored row** matches the current `statusCode` and `exampleId` (so disabled-but-persisted rows stay on their chip, not Spec).
+
+**Save** calls `configure` with **`OverrideSavePayloadBuilder`**: the override is sent as enabled if the mock toggle is on, or a stored row exists for that status/example, or the response is **not** listed in the OpenAPI operation (custom status/example). If the payload is disabled for a spec-only choice, **`statusCode`** is the operation’s first spec status, **`exampleId`** is cleared, and body fields are cleared for the wire.
+
+**Del** uses **`OverrideDisableMockRowPlanner`**: active mock → `configure` with `isEnabled: false` (same keys); already off with a matching stored row → **`remove`** then reset the draft toward the spec default; otherwise **no-op**.
+
+**Automated tests:** target **`KawarimiHengeTests`** (`Tests/KawarimiHengeTests/`) exercises filter, chip transitions, save payload, and Del planning.
+
 ## Client: real server vs Kawarimi mock
 
 Use **two** generated `Client` instances if you want both in-process mocks and a live server:
