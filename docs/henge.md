@@ -104,7 +104,7 @@ Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try
 
 ## Override editor (`OverrideEditorView`)
 
-The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column). **Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `OverrideResponseChipLogic`, `OverrideSavePayloadBuilder`, `OverrideDisableMockRowPlanner`, `OverrideEndpointFilter`. **Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
+The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column). **Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`. **Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
 
 | UI / doc term | Code | Notes |
 | --- | --- | --- |
@@ -115,9 +115,9 @@ The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint e
 
 **Spec** response chip is selected when the draft mock is **disabled** and **no stored row** matches the current `statusCode` and `exampleId` (so disabled-but-persisted rows stay on their chip, not Spec).
 
-**Save** calls `configure` with **`OverrideSavePayloadBuilder`**: the override is sent as enabled if the mock toggle is on, or a stored row exists for that status/example, or the response is **not** listed in the OpenAPI operation (custom status/example). If the payload is disabled for a spec-only choice, **`statusCode`** is the operation’s first spec status, **`exampleId`** is cleared, and body fields are cleared for the wire.
+**Save** calls `configure` with **`SavePayload`**: the override is sent as enabled if the mock toggle is on, or a stored row exists for that status/example, or the response is **not** listed in the OpenAPI operation (custom status/example). If the payload is disabled for a spec-only choice, **`statusCode`** is the operation’s first spec status, **`exampleId`** is cleared, and body fields are cleared for the wire.
 
-**Del** uses **`OverrideDisableMockRowPlanner`**: active mock → `configure` with `isEnabled: false` (same keys); already off with a matching stored row → **`remove`** then reset the draft toward the spec default; otherwise **no-op**.
+**Del** uses **`DisableMockPlanner`**: active mock → `configure` with `isEnabled: false` (same keys); already off with a matching stored row → **`remove`** then reset the draft toward the spec default; otherwise **no-op**.
 
 **Automated tests:** target **`KawarimiHengeTests`** (`Tests/KawarimiHengeTests/`) exercises filter, chip transitions, save payload, and Del planning.
 

@@ -103,7 +103,7 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 ## オーバーライドエディタ（`OverrideEditorView`）
 
-モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。**編集ルール**（レスポンスチップ、Save 時の `configure` ペイロード、Del の分岐、エンドポイント検索）は **`Sources/KawarimiHenge/EditorSupport/`** にあります（例: `OverrideResponseChipLogic`、`OverrideSavePayloadBuilder`、`OverrideDisableMockRowPlanner`、`OverrideEndpointFilter`）。**どの行を選んでいるか**や `validationMessage` / `isDirty` など UI メタは **`OverrideEditorStore`** / **`OverrideDetailDraft`** が持ちます。
+モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。**編集ルール**（レスポンスチップ、Save 時の `configure` ペイロード、Del の分岐、エンドポイント検索）は **`Sources/KawarimiHenge/EditorSupport/`** にあります（例: `ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`）。**どの行を選んでいるか**や `validationMessage` / `isDirty` など UI メタは **`OverrideEditorStore`** / **`OverrideDetailDraft`** が持ちます。
 
 | UI / ドキュメント上の言い方 | コード側 | メモ |
 | --- | --- | --- |
@@ -114,9 +114,9 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 **Spec** チップが選ばれるのは、ドラフトのモックが **オフ**で、かつ現在の `statusCode` / `exampleId` に一致する**保存済み行がない**ときです（オフだが保存行がある場合はそのチップ側に留まります）。
 
-**Save** は **`OverrideSavePayloadBuilder`** が組み立てた内容で `configure` を呼びます。モックトグルがオン、またはその status/example に保存行がある、または OpenAPI のレスポンス一覧に無い組み合わせ（カスタム行）のいずれかなら送信ペイロードは有効扱いになります。Spec 上の行だけを「オフ」のまま送る場合は、**`statusCode`** は操作の先頭の Spec 行、**`exampleId`** はクリア、本文系もワイヤ上はクリアされます。
+**Save** は **`SavePayload`** が組み立てた内容で `configure` を呼びます。モックトグルがオン、またはその status/example に保存行がある、または OpenAPI のレスポンス一覧に無い組み合わせ（カスタム行）のいずれかなら送信ペイロードは有効扱いになります。Spec 上の行だけを「オフ」のまま送る場合は、**`statusCode`** は操作の先頭の Spec 行、**`exampleId`** はクリア、本文系もワイヤ上はクリアされます。
 
-**Del** は **`OverrideDisableMockRowPlanner`** が分岐します。アクティブなモック → 同一キーで `isEnabled: false` の `configure`。すでにオフで保存行が一致 → **`remove`** の後、ドラフトを Spec 側へ寄せるリセット。それ以外 → 何もしません。
+**Del** は **`DisableMockPlanner`** が分岐します。アクティブなモック → 同一キーで `isEnabled: false` の `configure`。すでにオフで保存行が一致 → **`remove`** の後、ドラフトを Spec 側へ寄せるリセット。それ以外 → 何もしません。
 
 **自動テスト:** **`KawarimiHengeTests`**（`Tests/KawarimiHengeTests/`）でフィルタ、チップ遷移、Save ペイロード、Del 計画を検証しています。
 
