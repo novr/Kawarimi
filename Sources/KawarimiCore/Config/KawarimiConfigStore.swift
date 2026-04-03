@@ -7,6 +7,11 @@ public enum KawarimiConfigStoreError: Error, Sendable {
     case bodyTooLong(actual: Int, limit: Int)
 }
 
+/// Default relative path / basename for persisted runtime overrides consumed by ``KawarimiConfigStore``.
+public enum KawarimiConfigDefaults {
+    public static let fileName = "kawarimi.json"
+}
+
 public actor KawarimiConfigStore {
     /// Always absolute; relative `file://` URLs can make `Data.write(to:)` fail (e.g. 518).
     private let configPath: String
@@ -54,6 +59,16 @@ public actor KawarimiConfigStore {
             cachedOverrides.append(normalized)
         }
         try persist()
+    }
+
+    /// Drops the first override that matches the same identity as ``configure`` (path, method, status, example id).
+    /// No-op when nothing matches (idempotent).
+    public func removeOverride(_ override: MockOverride) throws {
+        let normalized = normalize(override)
+        if let index = cachedOverrides.firstIndex(where: { matches($0, normalized) }) {
+            cachedOverrides.remove(at: index)
+            try persist()
+        }
     }
 
     public func reset() throws {

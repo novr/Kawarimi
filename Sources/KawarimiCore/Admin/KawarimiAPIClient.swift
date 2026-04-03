@@ -51,6 +51,7 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
 
+    /// Upserts one override. JSON may include `exampleId` (or `null`/omit for the default example); see Henge docs.
     public func configure(override: MockOverride) async throws {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("configure")
         var request = URLRequest(url: url)
@@ -59,6 +60,39 @@ public struct KawarimiAPIClient: Sendable {
         request.httpBody = try JSONEncoder().encode(override)
         let (data, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: data)
+    }
+
+    /// Removes one override row from config (same identity as ``configure(override:)``).
+    public func removeOverride(override: MockOverride) async throws {
+        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("remove")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(override)
+        let (data, response) = try await session.data(for: request)
+        try validateHTTPStatus(response, data: data)
+    }
+
+    /// Convenience wrapper for `configure(override:)` with an explicit `exampleId` (`nil` = default example row).
+    public func configure(
+        path: String,
+        method: String,
+        statusCode: Int,
+        exampleId: String? = nil,
+        isEnabled: Bool = true,
+        body: String? = nil,
+        contentType: String? = nil
+    ) async throws {
+        let override = MockOverride(
+            path: path,
+            method: method,
+            statusCode: statusCode,
+            exampleId: exampleId,
+            isEnabled: isEnabled,
+            body: body,
+            contentType: contentType
+        )
+        try await configure(override: override)
     }
 
     public func reset() async throws {
