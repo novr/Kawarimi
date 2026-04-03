@@ -9,11 +9,28 @@ enum DemoServerError: Error {
     case invalidStubURL
 }
 
+private func resolvedKawarimiConfigPath() -> String {
+    if let env = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"], !env.isEmpty {
+        return env
+    }
+    let cwd = FileManager.default.currentDirectoryPath
+    let name = KawarimiConfigDefaults.fileName
+    let cwdCandidate = (cwd as NSString).appendingPathComponent(name)
+    if FileManager.default.fileExists(atPath: cwdCandidate) {
+        return name
+    }
+    let packageRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+        .deletingLastPathComponent()
+    return packageRoot.appendingPathComponent(name).path
+}
+
 @main
 struct DemoServer {
     static func main() async throws {
         let app = try await Application.make()
-        let configPath = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json"
+        let configPath = resolvedKawarimiConfigPath()
         let store = try KawarimiConfigStore(
             configPath: configPath,
             pathPrefix: KawarimiSpec.meta.apiPathPrefix

@@ -456,6 +456,70 @@ public enum KawarimiJutsu {
 
     // MARK: - KawarimiSpec source emission
 
+    private struct NamedJSONExample {
+        let mapKey: String
+        let json: String
+        let summary: String?
+    }
+
+    private struct SpecResponseRow {
+        var statusCode: Int
+        var responseMapKey: String
+        var mockExampleIdLiteral: String
+        var contentType: String
+        var body: String
+        var responseDescription: String?
+        var summaryLiteral: String
+    }
+
+    /// OpenAPI `examples` map entries with inline JSON values (skips `externalValue`).
+    private static func namedJSONExamples(from content: OpenAPI.Content, components: OpenAPI.Components) -> [NamedJSONExample]? {
+        guard let map = content.examples, !map.isEmpty else { return nil }
+        var out: [NamedJSONExample] = []
+        for (name, either) in map {
+            guard let example = components[either] else { continue }
+            guard case let .b(value)? = example.value else { continue }
+            guard let json = exampleToJSONString(value) else { continue }
+            out.append(NamedJSONExample(mapKey: name, json: json, summary: example.summary))
+        }
+        if out.isEmpty { return nil }
+        out.sort { $0.mapKey < $1.mapKey }
+        return out
+    }
+
+    private static func specResponseRows(
+        statusCode: Int,
+        jsonContent: OpenAPI.Content,
+        responseDescription: String?,
+        components: OpenAPI.Components
+    ) -> [SpecResponseRow] {
+        if let named = namedJSONExamples(from: jsonContent, components: components), !named.isEmpty {
+            return named.map { item in
+                let idLit = "\"\(escapeForSwiftStringLiteral(item.mapKey))\""
+                let summ = item.summary.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+                return SpecResponseRow(
+                    statusCode: statusCode,
+                    responseMapKey: item.mapKey,
+                    mockExampleIdLiteral: idLit,
+                    contentType: "application/json",
+                    body: item.json,
+                    responseDescription: responseDescription,
+                    summaryLiteral: summ
+                )
+            }
+        }
+        let body = responseBodyJSON(content: jsonContent, components: components)
+        return [SpecResponseRow(
+            statusCode: statusCode,
+            responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
+            mockExampleIdLiteral: "nil",
+            contentType: "application/json",
+            body: body,
+            responseDescription: responseDescription,
+            summaryLiteral: "nil"
+        )]
+    }
+
     public static func generateKawarimiSpecSource(document: OpenAPI.Document) -> String {
         let info = document.info
         let title = info.title
@@ -468,17 +532,11 @@ public enum KawarimiJutsu {
 
         let components = document.components
 
-        struct ResponseEntry {
-            var statusCode: Int
-            var contentType: String
-            var body: String
-            var responseDescription: String?
-        }
         struct EndpointEntry {
             var method: String
             var fullPath: String
             var operationId: String
-            var responses: [ResponseEntry]
+            var responses: [SpecResponseRow]
         }
 
         var endpointEntries: [EndpointEntry] = []
@@ -492,26 +550,30 @@ public enum KawarimiJutsu {
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
                 let method = endpoint.method.rawValue.uppercased()
 
-                var responseEntries: [ResponseEntry] = []
+                var responseRows: [SpecResponseRow] = []
 
                 for (statusKey, responseRef) in operation.responses {
                     guard case .status(code: let code) = statusKey.value else { continue }
                     guard let response = components[responseRef] else { continue }
 
                     if let jsonContent = response.content[.json] {
-                        let body = responseBodyJSON(content: jsonContent, components: components)
-                        responseEntries.append(ResponseEntry(
-                            statusCode: code,
-                            contentType: "application/json",
-                            body: body,
-                            responseDescription: response.description
-                        ))
+                        responseRows.append(
+                            contentsOf: specResponseRows(
+                                statusCode: code,
+                                jsonContent: jsonContent,
+                                responseDescription: response.description,
+                                components: components
+                            )
+                        )
                     } else {
-                        responseEntries.append(ResponseEntry(
+                        responseRows.append(SpecResponseRow(
                             statusCode: code,
+                            responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
+                            mockExampleIdLiteral: "nil",
                             contentType: "application/json",
                             body: "{}",
-                            responseDescription: response.description
+                            responseDescription: response.description,
+                            summaryLiteral: "nil"
                         ))
                     }
                 }
@@ -520,7 +582,7 @@ public enum KawarimiJutsu {
                     method: method,
                     fullPath: fullPath,
                     operationId: operationId,
-                    responses: responseEntries
+                    responses: responseRows
                 ))
             }
         }
@@ -538,8 +600,8 @@ public enum KawarimiJutsu {
                             statusCode: \(resp.statusCode),
                             contentType: "\(ctEsc)",
                             body: "\(bodyEsc)",
-                            exampleId: nil,
-                            summary: nil,
+                            exampleId: \(resp.mockExampleIdLiteral),
+                            summary: \(resp.summaryLiteral),
                             description: \(descVal)
                         ),
 """
@@ -557,14 +619,20 @@ public enum KawarimiJutsu {
         }.joined(separator: "\n")
 
         let responseMapLiteral = endpointEntries.map { entry in
-            let innerPairs = entry.responses.map { resp in
-                let bodyEsc = escapeForSwiftStringLiteral(resp.body)
-                let ctEsc = escapeForSwiftStringLiteral(resp.contentType)
-                return "\(resp.statusCode): (body: \"\(bodyEsc)\", contentType: \"\(ctEsc)\")"
+            let byStatus = Dictionary(grouping: entry.responses, by: \.statusCode)
+            let statusBlocks = byStatus.keys.sorted().map { code -> String in
+                let rows = byStatus[code]!
+                let innerPairs = rows.map { resp in
+                    let mapKeyEsc = escapeForSwiftStringLiteral(resp.responseMapKey)
+                    let bodyEsc = escapeForSwiftStringLiteral(resp.body)
+                    let ctEsc = escapeForSwiftStringLiteral(resp.contentType)
+                    return "\"\(mapKeyEsc)\": (body: \"\(bodyEsc)\", contentType: \"\(ctEsc)\")"
+                }.joined(separator: ", ")
+                return "\(code): [\(innerPairs)]"
             }.joined(separator: ", ")
             let key = "\(entry.method):\(entry.fullPath)"
             let keyEsc = escapeForSwiftStringLiteral(key)
-            return "                \"\(keyEsc)\": [\(innerPairs)],"
+            return "                \"\(keyEsc)\": [\(statusBlocks)],"
         }.joined(separator: "\n")
 
         return """
@@ -607,7 +675,7 @@ public enum KawarimiJutsu {
             \(endpointsLiteral)
                 ]
 
-                public static let responseMap: [String: [Int: (body: String, contentType: String)]] = [
+                public static let responseMap: [String: [Int: [String: (body: String, contentType: String)]]] = [
             \(responseMapLiteral)
                 ]
             }

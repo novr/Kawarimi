@@ -5,9 +5,9 @@ struct SpecEndpointItem: Identifiable, Sendable {
     let endpoint: any SpecEndpointProviding
     let rowKey: EndpointRowKey
 
-    /// Picker rows for `ForEach`; ids mix index and exampleId so duplicate status codes stay distinct.
+    /// Picker rows for `ForEach`; each row uses ``SpecMockResponseProviding/id`` so duplicate status codes stay distinct.
     var mockResponsePickerItems: [SpecMockResponseItem] {
-        endpoint.responseList.enumerated().map { SpecMockResponseItem(response: $0.element, index: $0.offset) }
+        endpoint.responseList.map { SpecMockResponseItem(response: $0) }
     }
 
     init(_ endpoint: any SpecEndpointProviding) {
@@ -21,13 +21,8 @@ struct SpecMockResponseItem: Identifiable, Sendable {
     let id: String
     let response: any SpecMockResponseProviding
 
-    init(response: any SpecMockResponseProviding, index: Int) {
+    init(response: any SpecMockResponseProviding) {
         self.response = response
-        let ex = response.exampleId ?? ""
-        if ex.isEmpty {
-            id = "status-\(response.statusCode)-i\(index)"
-        } else {
-            id = "status-\(response.statusCode)-ex-\(ex)"
-        }
+        id = response.id
     }
 }

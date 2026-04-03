@@ -15,16 +15,17 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         let method = request.method.rawValue
         let overrides = await store.overrides()
 
-        let hits = MockOverride.sortedForInterceptorTieBreak(
-            overrides.filter { ov in
-                PathTemplate.matches(actual: path, template: ov.path)
-                    && ov.method.rawValue.uppercased() == method.uppercased()
-                    && ov.isEnabled
-            }
-        )
+        let candidates = overrides.filter { ov in
+            PathTemplate.matches(actual: path, template: ov.path)
+                && ov.method.rawValue.uppercased() == method.uppercased()
+                && ov.isEnabled
+        }
+        let headerRaw = request.headers.first(name: KawarimiMockRequestHeaders.exampleId)
+        let narrowed = KawarimiMockRequestHeaders.filterOverrides(candidates, exampleIdHeaderRaw: headerRaw)
+        let hits = MockOverride.sortedForInterceptorTieBreak(narrowed)
         if hits.count > 1 {
             request.logger.warning(
-                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) status=\($0.statusCode)" }.joined(separator: " | "))"
+                "Multiple overrides match \(path) \(method): using first of \(hits.count). Order: \(hits.map { "\($0.path) status=\($0.statusCode) exampleId=\($0.exampleId ?? "nil")" }.joined(separator: " | "))"
             )
         }
         guard let override = hits.first else {
@@ -36,12 +37,20 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
         if override.hasEffectiveCustomBody, let customBody = override.body {
             body = customBody
             contentType = override.contentType ?? "application/json"
-        } else if let responses = KawarimiSpec.responseMap["\(method.uppercased()):\(override.path)"],
-                  let entry = responses[override.statusCode] {
+        } else if let entry = KawarimiMockResponseResolver.lookup(
+            map: KawarimiSpec.responseMap,
+            methodUppercased: method.uppercased(),
+            path: override.path,
+            statusCode: override.statusCode,
+            exampleId: override.exampleId
+        ) {
             body = entry.body
             contentType = entry.contentType
         } else {
-            return try await next.respond(to: request)
+            // Override matched but there is no custom body and no OpenAPI example for this status (e.g. 503 only in Henge).
+            // Still return the configured status so dynamic mocks work.
+            body = "{}"
+            contentType = override.contentType ?? "application/json"
         }
 
         var headers = HTTPHeaders()

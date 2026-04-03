@@ -22,6 +22,7 @@ struct HengeRootView: View {
             },
             fetchOverrides: { try await client.fetchOverrides() },
             configureOverride: { try await client.configure(override: $0) },
+            removeOverride: { try await client.removeOverride(override: $0) },
             resetAllOverrides: { try await client.reset() }
         )
     }

@@ -27,7 +27,14 @@ public protocol SpecEndpointProviding: Identifiable, Sendable {
 }
 
 extension SpecMockResponseProviding {
-    public var id: Int { statusCode }
+    /// Stable across multiple examples for the same HTTP status (distinct `exampleId`).
+    public var id: String {
+        let trimmed = exampleId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmed.isEmpty {
+            return "\(statusCode)#\(KawarimiExampleIds.defaultResponseMapKey)"
+        }
+        return "\(statusCode)#\(trimmed)"
+    }
 }
 
 extension SpecEndpointProviding {

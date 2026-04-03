@@ -69,6 +69,32 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
 ```
 
+With a **named OpenAPI example** (must match `exampleId` / `responseMap` keys; omit or `null` for the default row):
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/configure \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"exampleId":"success","isEnabled":true}'
+```
+
+Turn a row **off** but keep it in `kawarimi.json` (`isEnabled: false`):
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/configure \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
+```
+
+**Remove** that row entirely (same path/method/status/`exampleId` identity as `configure`; include `exampleId` when the row used a named example):
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/remove \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
+```
+
+When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so the Example interceptor picks the matching enabled override among several for the same route. See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
+
 Vapor registration pattern: [henge.md](../docs/henge.md) and [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
 
 ## Client: mock vs this DemoServer
