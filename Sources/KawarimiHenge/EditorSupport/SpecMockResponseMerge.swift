@@ -1,16 +1,24 @@
 import Foundation
 import KawarimiCore
 
-/// Prefers a real body from an enabled override for the same path, method, status, and example over the spec example.
+/// Prefers a real body from a stored override (enabled or disabled) for the same path, method, status, and example over the spec example.
 func mergeResponseTemplate(
     endpoint: any SpecEndpointProviding,
     overrides: [MockOverride],
+    pathPrefix: String,
     statusCode code: Int,
     into mock: inout MockOverride
 ) {
     let key = EndpointRowKey(endpoint)
     let ex = mock.exampleId
-    if let ov = OverrideListQueries.enabledOverride(for: key, statusCode: code, exampleId: ex, in: overrides),
+    if let ov = OverrideListQueries.storedOverride(
+        for: key,
+        operationId: endpoint.operationId,
+        pathPrefix: pathPrefix,
+        statusCode: code,
+        exampleId: ex,
+        in: overrides
+    ),
        ov.hasEffectiveCustomBody, let body = ov.body {
         mock.body = body
         mock.contentType = ov.contentType ?? "application/json"
@@ -22,12 +30,15 @@ func mergeResponseTemplate(
     } else {
         mock.body = nil
         mock.contentType = nil
+        // Extra example ids (not listed in the spec) still share an HTTP status with the operation: seed body from the first spec row for that status.
+        if let fallback = endpoint.responseList.first(where: { $0.statusCode == code }) {
+            mock.body = fallback.body
+            mock.contentType = fallback.contentType
+        }
     }
 }
 
 private func matchesSpecExample(_ resp: any SpecMockResponseProviding, statusCode: Int, exampleId: String?) -> Bool {
     guard resp.statusCode == statusCode else { return false }
-    let a = resp.exampleId.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
-    let b = exampleId.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
-    return a == b
+    return MockExamplePresentation.exampleIdsEqual(resp.exampleId, exampleId)
 }

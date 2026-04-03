@@ -7,6 +7,7 @@ public struct KawarimiConfigView: View {
     private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
     private let fetchOverrides: () async throws -> [MockOverride]
     private let configureOverride: (MockOverride) async throws -> Void
+    private let removeOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
 
     @State private var meta: (any SpecMetaProviding)?
@@ -24,12 +25,14 @@ public struct KawarimiConfigView: View {
         specProvider: @escaping () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding]),
         fetchOverrides: @escaping () async throws -> [MockOverride],
         configureOverride: @escaping (MockOverride) async throws -> Void,
+        removeOverride: @escaping (MockOverride) async throws -> Void,
         resetAllOverrides: @escaping () async throws -> Void
     ) {
         self.serverURL = serverURL
         self.specProvider = specProvider
         self.fetchOverrides = fetchOverrides
         self.configureOverride = configureOverride
+        self.removeOverride = removeOverride
         self.resetAllOverrides = resetAllOverrides
     }
 
@@ -46,6 +49,13 @@ public struct KawarimiConfigView: View {
             overridesRevision: overridesRevision,
             configureOverride: { override in
                 try await configureOverride(override)
+                if override.isEnabled {
+                    try await disableConflictingStatusMocks(saved: override)
+                }
+                await refreshOverridesOnly()
+            },
+            removeOverride: { override in
+                try await removeOverride(override)
                 await refreshOverridesOnly()
             },
             errorMessage: $errorMessage
@@ -84,5 +94,51 @@ public struct KawarimiConfigView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// When saving an enabled mock, turn off other enabled mocks for the same OpenAPI operation that use a **different HTTP status**.
+    /// Otherwise the interceptor tie-break keeps e.g. 200 ahead of 503 and the list / API calls follow “Default” even though 503 was saved.
+    private func disableConflictingStatusMocks(saved: MockOverride) async throws {
+        let pathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
+        let all = try await fetchOverrides()
+        for other in all where Self.shouldDisableOtherEnabledMock(
+            saved: saved,
+            other: other,
+            pathPrefix: pathPrefix
+        ) {
+            var dis = other
+            dis.isEnabled = false
+            dis.body = nil
+            dis.contentType = nil
+            try await configureOverride(dis)
+        }
+    }
+
+    private static func shouldDisableOtherEnabledMock(
+        saved: MockOverride,
+        other: MockOverride,
+        pathPrefix: String
+    ) -> Bool {
+        guard other.isEnabled else { return false }
+        guard saved.method == other.method else { return false }
+        guard sameOpenAPIOperation(saved, other, pathPrefix: pathPrefix) else { return false }
+        guard saved.statusCode != other.statusCode else { return false }
+        return true
+    }
+
+    /// Treats spec paths (e.g. `/greet`) and stored paths (e.g. `/api/greet`) as the same operation when prefixes align.
+    private static func sameOpenAPIOperation(
+        _ a: MockOverride,
+        _ b: MockOverride,
+        pathPrefix: String
+    ) -> Bool {
+        let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !na.isEmpty, !nb.isEmpty {
+            return na == nb
+        }
+        let pa = OpenAPIPathPrefix.configStoredPath(path: a.path, pathPrefix: pathPrefix)
+        let pb = OpenAPIPathPrefix.configStoredPath(path: b.path, pathPrefix: pathPrefix)
+        return pa == pb
     }
 }

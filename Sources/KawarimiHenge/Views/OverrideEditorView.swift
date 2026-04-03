@@ -129,6 +129,7 @@ struct OverrideEditorView: View {
     private let specLoadID: Int
     private let overridesRevision: Int
     private let configureOverride: (MockOverride) async throws -> Void
+    private let removeOverride: (MockOverride) async throws -> Void
     private let errorMessage: Binding<String?>
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -153,6 +154,7 @@ struct OverrideEditorView: View {
         specLoadID: Int,
         overridesRevision: Int,
         configureOverride: @escaping (MockOverride) async throws -> Void,
+        removeOverride: @escaping (MockOverride) async throws -> Void,
         errorMessage: Binding<String?>
     ) {
         self.serverURL = serverURL
@@ -165,6 +167,7 @@ struct OverrideEditorView: View {
         self.specLoadID = specLoadID
         self.overridesRevision = overridesRevision
         self.configureOverride = configureOverride
+        self.removeOverride = removeOverride
         self.errorMessage = errorMessage
     }
 
@@ -216,6 +219,7 @@ struct OverrideEditorView: View {
     }
 
     var body: some View {
+        @Bindable var store = store
         Group {
             if useCompactNavigation {
                 NavigationStack(path: $compactPath) {
@@ -251,9 +255,11 @@ struct OverrideEditorView: View {
             }
         }
         .task(id: specLoadID) {
+            store.apiPathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
             store.resyncDetailAfterSpecReload(endpoints: endpoints, overrides: overrides)
         }
         .task(id: overridesRevision) {
+            store.apiPathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
             store.resyncDetailAfterOverridesRefresh(endpoints: endpoints, overrides: overrides)
         }
         .confirmationDialog(
@@ -294,6 +300,32 @@ struct OverrideEditorView: View {
         )
     }
 
+    /// Subtitle under the path when a mock is on: which OpenAPI example body is selected (`Default` or named).
+    private func endpointListExampleCaption(rowKey: EndpointRowKey, item: SpecEndpointItem) -> String? {
+        let opId = item.endpoint.operationId
+        let code = store.displayedListStatus(for: rowKey, operationId: opId, overrides: overrides)
+        guard code != -1 else { return nil }
+        let exId: String?
+        if let d = store.detail, d.endpointRowKey == rowKey, d.mock.isEnabled {
+            exId = d.mock.exampleId
+        } else {
+            exId = OverrideListQueries.primaryEnabledOverride(
+                for: rowKey,
+                operationId: opId,
+                pathPrefix: store.apiPathPrefix,
+                in: overrides
+            )?.exampleId
+        }
+        let choices = item.mockResponsePickerItems.filter { $0.response.statusCode == code }
+        if let pick = MockExamplePresentation.matchingPickerItem(exampleId: exId, in: choices) {
+            return MockExamplePresentation.label(for: pick.response)
+        }
+        if let raw = exId?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+            return raw
+        }
+        return nil
+    }
+
     private var selectionBinding: Binding<EndpointRowKey?> {
         Binding(
             get: { store.selectedRowKey },
@@ -332,7 +364,12 @@ struct OverrideEditorView: View {
                         } label: {
                             EndpointRowView(
                                 item: item,
-                                statusCode: store.displayedListStatus(for: item.rowKey, overrides: overrides),
+                                statusCode: store.displayedListStatus(
+                                    for: item.rowKey,
+                                    operationId: item.endpoint.operationId,
+                                    overrides: overrides
+                                ),
+                                exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
                                 hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
                                 showChevron: true
                             )
@@ -395,7 +432,12 @@ struct OverrideEditorView: View {
                     ForEach(filteredEndpointItems) { item in
                         EndpointRowView(
                             item: item,
-                            statusCode: store.displayedListStatus(for: item.rowKey, overrides: overrides),
+                            statusCode: store.displayedListStatus(
+                                for: item.rowKey,
+                                operationId: item.endpoint.operationId,
+                                overrides: overrides
+                            ),
+                            exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
                             hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
                             showChevron: false
                         )
@@ -532,6 +574,7 @@ struct OverrideEditorView: View {
             OverrideDetailColumnView(
                 endpointItem: item,
                 overrides: overrides,
+                apiPathPrefix: store.apiPathPrefix,
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: d.isDirty,
@@ -541,7 +584,8 @@ struct OverrideEditorView: View {
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
                 onApply: { Task { await applyWithBody(endpointItem: item) } },
-                onReset: { Task { await clearOverride(endpointItem: item) } }
+                onReset: { Task { await clearOverride(endpointItem: item) } },
+                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } }
             )
         } else {
             Text("Select an endpoint")
@@ -556,6 +600,7 @@ struct OverrideEditorView: View {
             OverrideDetailColumnView(
                 endpointItem: item,
                 overrides: overrides,
+                apiPathPrefix: store.apiPathPrefix,
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: store.detail?.isDirty == true && store.detail?.endpointRowKey == key,
@@ -565,7 +610,8 @@ struct OverrideEditorView: View {
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
                 onApply: { Task { await applyWithBody(endpointItem: item) } },
-                onReset: { Task { await clearOverride(endpointItem: item) } }
+                onReset: { Task { await clearOverride(endpointItem: item) } },
+                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } }
             )
             .onAppear {
                 if store.detail?.endpointRowKey != key {
@@ -654,9 +700,25 @@ struct OverrideEditorView: View {
     private func applyWithBody(endpointItem: SpecEndpointItem) async {
         let endpoint = endpointItem.endpoint
         errorMessage.wrappedValue = nil
-        guard let draft = store.detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        guard var draft = store.detail, draft.endpointRowKey == endpointItem.rowKey else { return }
         let m = draft.mock
-        let enabled = m.isEnabled
+        // Save turns the override on when the draft is a concrete response choice (not “Spec only”):
+        // - Mock active toggle on, or
+        // - A saved row for this status/example (e.g. was disabled — selecting + Save re-enables), or
+        // - A response shape not in the OpenAPI list (custom status / example id) so “selection” implies an override.
+        let hasRow = OverrideListQueries.hasStoredRowMatchingDraft(
+            m,
+            rowKey: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: store.apiPathPrefix,
+            in: overrides
+        )
+        let isListedInSpec = OverrideListQueries.specContainsResponse(
+            endpoint,
+            statusCode: m.statusCode,
+            exampleId: m.exampleId
+        )
+        let enabled = m.isEnabled || hasRow || !isListedInSpec
         let trimmed = (m.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         let body: String?
         let contentType: String?
@@ -679,6 +741,12 @@ struct OverrideEditorView: View {
                 contentType: contentType
             )
             try await configureOverride(override)
+            draft.mock.isEnabled = override.isEnabled
+            draft.mock.statusCode = override.statusCode
+            draft.mock.exampleId = override.exampleId
+            draft.mock.body = override.body
+            draft.mock.contentType = override.contentType
+            store.commitDetail(draft)
             store.markSavedClean()
         } catch {
             errorMessage.wrappedValue = error.localizedDescription
@@ -705,11 +773,59 @@ struct OverrideEditorView: View {
             errorMessage.wrappedValue = error.localizedDescription
         }
     }
+
+    /// When active: persist `isEnabled: false` for this row. When already disabled: remove the row from config.
+    private func disableCurrentMockRow(endpointItem: SpecEndpointItem) async {
+        let endpoint = endpointItem.endpoint
+        errorMessage.wrappedValue = nil
+        guard let draft = store.detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        let m = draft.mock
+        let hasRow = OverrideListQueries.hasStoredRowMatchingDraft(
+            m,
+            rowKey: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: store.apiPathPrefix,
+            in: overrides
+        )
+        let key = MockOverride(
+            name: endpoint.operationId,
+            path: endpoint.path,
+            method: endpoint.method,
+            statusCode: m.statusCode,
+            exampleId: m.exampleId,
+            isEnabled: false,
+            body: nil,
+            contentType: nil
+        )
+        do {
+            if m.isEnabled {
+                try await configureOverride(key)
+                store.markSavedClean()
+            } else if hasRow {
+                try await removeOverride(key)
+                let cleared = MockOverride(
+                    name: endpoint.operationId,
+                    path: endpoint.path,
+                    method: endpoint.method,
+                    statusCode: endpoint.responseList.first?.statusCode ?? 200,
+                    exampleId: nil,
+                    isEnabled: false,
+                    body: nil,
+                    contentType: nil
+                )
+                store.applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)
+                store.markSavedClean()
+            }
+        } catch {
+            errorMessage.wrappedValue = error.localizedDescription
+        }
+    }
 }
 
 private struct OverrideDetailColumnView: View {
     let endpointItem: SpecEndpointItem
     let overrides: [MockOverride]
+    let apiPathPrefix: String
     @Binding var mock: MockOverride
     @Binding var validationMessage: String?
     let hasUnsavedChanges: Bool
@@ -720,10 +836,30 @@ private struct OverrideDetailColumnView: View {
     let onFormat: () -> Void
     let onApply: () -> Void
     let onReset: () -> Void
+    let onDisableCurrentMock: () -> Void
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var confirmResetEndpoint = false
+    @State private var addCustomResponsePresented = false
+    @State private var addCustomSelectedStatus: Int = 503
+    @State private var addCustomFormError: String?
+    /// Stable example id for the row being composed in the sheet (one per presentation).
+    @State private var addCustomScratchExampleId: String = ""
+
+    /// Common HTTP statuses for the Add sheet; any code already present on this operation in the spec is omitted from the picker.
+    private static let commonCustomStatusCodes: [Int] = [
+        100, 101, 103,
+        200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
+        300, 301, 302, 303, 304, 307, 308,
+        400, 401, 402, 403, 404, 405, 406, 408, 409, 410, 411, 412, 413, 414, 415, 416, 417, 418, 421, 422, 423, 424, 425, 426, 428, 429, 431, 451,
+        500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
+    ]
+
+    /// All picker codes (same HTTP status as the spec is allowed: new rows are distinguished by `exampleId`).
+    private var addCustomStatusPickerCandidates: [Int] {
+        Self.commonCustomStatusCodes
+    }
 
     private var endpoint: any SpecEndpointProviding { endpointItem.endpoint }
 
@@ -736,71 +872,190 @@ private struct OverrideDetailColumnView: View {
     }
 
     private struct MockStatusChipOption: Identifiable {
-        let id: Int
+        static let specRowId = "spec"
+
+        /// Stable row id: ``specRowId`` or ``SpecMockResponseProviding/id``.
+        let id: String
+        let statusCode: Int
+        let exampleId: String?
         let label: String
+        /// Saved custom row with `isEnabled: false` (still editable).
+        let isInactive: Bool
+
+        var isSpec: Bool { id == Self.specRowId }
     }
 
+    /// One chip per OpenAPI mock row (same HTTP status can appear multiple times for different `exampleId`s),
+    /// plus custom overrides not listed in the spec (enabled and disabled).
     private var mockStatusChipOptions: [MockStatusChipOption] {
-        var out = [MockStatusChipOption(id: -1, label: "Spec")]
-        var seen = Set<Int>()
+        var out: [MockStatusChipOption] = [
+            MockStatusChipOption(
+                id: MockStatusChipOption.specRowId,
+                statusCode: -1,
+                exampleId: nil,
+                label: "Spec",
+                isInactive: false
+            ),
+        ]
         for item in endpointItem.mockResponsePickerItems {
-            let c = item.response.statusCode
-            if seen.insert(c).inserted {
-                out.append(MockStatusChipOption(id: c, label: "\(c) \(httpStatusPhrase(c))"))
+            let r = item.response
+            let c = r.statusCode
+            let exLabel = MockExamplePresentation.label(for: r)
+            let label: String
+            if MockExamplePresentation.normalizedExampleId(r.exampleId) != nil {
+                label = "\(c) · \(exLabel)"
+            } else {
+                label = "\(c) \(httpStatusPhrase(c))"
+            }
+            out.append(MockStatusChipOption(id: item.id, statusCode: c, exampleId: r.exampleId, label: label, isInactive: false))
+        }
+        let customs = OverrideListQueries.customOverrides(
+            for: endpointItem.rowKey,
+            endpoint: endpoint,
+            operationId: endpoint.operationId,
+            pathPrefix: apiPathPrefix,
+            in: overrides
+        )
+        let sortedCustoms = MockOverride.sortedForInterceptorTieBreak(customs)
+        for ov in sortedCustoms {
+            let id = Self.supplementalRowChipId(statusCode: ov.statusCode, exampleId: ov.exampleId)
+            let label = Self.supplementalChipLabel(statusCode: ov.statusCode, exampleId: ov.exampleId)
+            out.append(
+                MockStatusChipOption(
+                    id: id,
+                    statusCode: ov.statusCode,
+                    exampleId: ov.exampleId,
+                    label: label,
+                    isInactive: !ov.isEnabled
+                )
+            )
+        }
+        // Local draft (not yet on server): otherwise no chip matches and the detail looks unchanged.
+        if mock.isEnabled,
+           !OverrideListQueries.specContainsResponse(endpoint, statusCode: mock.statusCode, exampleId: mock.exampleId)
+        {
+            let draftId = Self.supplementalRowChipId(statusCode: mock.statusCode, exampleId: mock.exampleId)
+            let alreadyListed = out.contains { opt in
+                !opt.isSpec && opt.statusCode == mock.statusCode
+                    && MockExamplePresentation.exampleIdsEqual(opt.exampleId, mock.exampleId)
+            }
+            if !alreadyListed {
+                let label = Self.supplementalChipLabel(statusCode: mock.statusCode, exampleId: mock.exampleId)
+                out.append(
+                    MockStatusChipOption(
+                        id: draftId,
+                        statusCode: mock.statusCode,
+                        exampleId: mock.exampleId,
+                        label: label,
+                        isInactive: false
+                    )
+                )
             }
         }
         return out
     }
 
-    private var selectedMockStatusCode: Int {
-        mock.isEnabled ? mock.statusCode : -1
+    private static func supplementalChipLabel(statusCode: Int, exampleId: String?) -> String {
+        if let ex = MockExamplePresentation.normalizedExampleId(exampleId) {
+            return "\(statusCode) · \(ex)"
+        }
+        return "\(statusCode) \(httpStatusPhrase(statusCode))"
     }
 
-    private var responseSelectionBinding: Binding<Int> {
-        Binding(
-            get: { mock.isEnabled ? mock.statusCode : -1 },
-            set: { newCode in
-                var m = mock
-                if newCode == -1 {
-                    m.isEnabled = false
-                    m.statusCode = endpoint.responseList.first?.statusCode ?? 200
-                    m.exampleId = nil
-                    m.body = nil
-                    m.contentType = nil
-                } else {
-                    m.isEnabled = true
-                    m.statusCode = newCode
-                    let choices = endpointItem.mockResponsePickerItems.filter { $0.response.statusCode == newCode }
-                    if choices.count == 1 {
-                        m.exampleId = choices[0].response.exampleId
-                    } else {
-                        m.exampleId = nil
-                    }
-                    mergeResponseTemplate(endpoint: endpoint, overrides: overrides, statusCode: newCode, into: &m)
-                }
-                mock = m
+    private static func supplementalRowChipId(statusCode: Int, exampleId: String?) -> String {
+        let ex = MockExamplePresentation.normalizedExampleId(exampleId).map { $0 } ?? "_default"
+        return "supplemental:\(statusCode):\(ex)"
+    }
+
+    private func responseOptionExists(statusCode: Int, exampleId: String?) -> Bool {
+        mockStatusChipOptions.contains { opt in
+            !opt.isSpec && opt.statusCode == statusCode && MockExamplePresentation.exampleIdsEqual(opt.exampleId, exampleId)
+        }
+    }
+
+    private func responseChipIsSelected(_ opt: MockStatusChipOption) -> Bool {
+        if opt.isSpec {
+            if mock.isEnabled { return false }
+            return !OverrideListQueries.hasStoredRowMatchingDraft(
+                mock,
+                rowKey: endpointItem.rowKey,
+                operationId: endpoint.operationId,
+                pathPrefix: apiPathPrefix,
+                in: overrides
+            )
+        }
+        return mock.statusCode == opt.statusCode
+            && MockExamplePresentation.exampleIdsEqual(mock.exampleId, opt.exampleId)
+    }
+
+    private func applyResponseChip(_ opt: MockStatusChipOption) {
+        var m = mock
+        if opt.isSpec {
+            m.isEnabled = false
+            m.statusCode = endpoint.responseList.first?.statusCode ?? 200
+            m.exampleId = nil
+            m.body = nil
+            m.contentType = nil
+        } else if let stored = OverrideListQueries.storedOverride(
+            for: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: apiPathPrefix,
+            statusCode: opt.statusCode,
+            exampleId: opt.exampleId,
+            in: overrides
+        ) {
+            m.isEnabled = stored.isEnabled
+            m.statusCode = stored.statusCode
+            m.exampleId = stored.exampleId
+            m.name = stored.name ?? endpoint.operationId
+            if stored.hasEffectiveCustomBody {
+                m.body = stored.body
+                m.contentType = stored.contentType
+            } else {
+                mergeResponseTemplate(
+                    endpoint: endpoint,
+                    overrides: overrides,
+                    pathPrefix: apiPathPrefix,
+                    statusCode: opt.statusCode,
+                    into: &m
+                )
             }
+        } else {
+            m.isEnabled = true
+            m.statusCode = opt.statusCode
+            m.exampleId = opt.exampleId
+            mergeResponseTemplate(
+                endpoint: endpoint,
+                overrides: overrides,
+                pathPrefix: apiPathPrefix,
+                statusCode: opt.statusCode,
+                into: &m
+            )
+        }
+        mock = m
+    }
+
+    private var shouldShowResponseBodySection: Bool {
+        if mock.isEnabled { return true }
+        return OverrideListQueries.hasStoredRowMatchingDraft(
+            mock,
+            rowKey: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: apiPathPrefix,
+            in: overrides
         )
     }
 
-    private var exampleChoicesForStatus: [SpecMockResponseItem] {
-        endpointItem.mockResponsePickerItems.filter { $0.response.statusCode == mock.statusCode }
-    }
-
-    private func specExampleLabel(_ item: SpecMockResponseItem) -> String {
-        if let ex = item.response.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines), !ex.isEmpty {
-            if let s = item.response.summary?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
-                return "\(ex) — \(s)"
-            }
-            return ex
-        }
-        return "Default"
-    }
-
-    private func exampleIdsEqual(_ a: String?, _ b: String?) -> Bool {
-        let ta = a.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
-        let tb = b.flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
-        return ta == tb
+    /// Minus: disable when active, or delete row from config when already disabled (if a saved row exists).
+    private var canRemoveCurrentMockRow: Bool {
+        mock.isEnabled
+            || OverrideListQueries.hasStoredRowMatchingDraft(
+                mock,
+                rowKey: endpointItem.rowKey,
+                operationId: endpoint.operationId,
+                pathPrefix: apiPathPrefix,
+                in: overrides
+            )
     }
 
     private var bodyTextBinding: Binding<String> {
@@ -817,6 +1072,17 @@ private struct OverrideDetailColumnView: View {
             get: { mock.contentType ?? "application/json" },
             set: { newValue in
                 mock.contentType = newValue.isEmpty ? nil : newValue
+            }
+        )
+    }
+
+    private var mockEnabledBinding: Binding<Bool> {
+        Binding(
+            get: { mock.isEnabled },
+            set: { newValue in
+                var m = mock
+                m.isEnabled = newValue
+                mock = m
             }
         )
     }
@@ -855,6 +1121,115 @@ private struct OverrideDetailColumnView: View {
         } message: {
             Text("The override for this operation will be cleared on the server.")
         }
+        .sheet(isPresented: $addCustomResponsePresented) {
+            addCustomResponseSheet
+        }
+    }
+
+    private func presentAddCustomSheet() {
+        addCustomFormError = nil
+        addCustomScratchExampleId = String(Self.autoGeneratedSupplementalExampleId())
+        let candidates = addCustomStatusPickerCandidates
+        if let first = candidates.first {
+            addCustomSelectedStatus = candidates.contains(addCustomSelectedStatus) ? addCustomSelectedStatus : first
+        }
+        addCustomResponsePresented = true
+    }
+
+    private var addCustomResponseSheet: some View {
+        let candidates = addCustomStatusPickerCandidates
+        return NavigationStack {
+            Form {
+                Section {
+                    if candidates.isEmpty {
+                        Text("Every common HTTP status for this sheet already appears in the OpenAPI spec for this operation. Use the chips above instead.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Picker("Status", selection: $addCustomSelectedStatus) {
+                            ForEach(candidates, id: \.self) { code in
+                                Text("\(code) \(httpStatusPhrase(code))")
+                                    .tag(code)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                } header: {
+                    Text("HTTP status")
+                } footer: {
+                    Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
+                }
+                if let addCustomFormError {
+                    Section {
+                        Text(addCustomFormError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background(ExplorerPalette.surface)
+            .navigationTitle("Add response")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            .presentationDetents([.medium, .large])
+            .presentationBackground(ExplorerPalette.surface)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        addCustomResponsePresented = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") {
+                        submitAddCustomResponse()
+                    }
+                    .disabled(candidates.isEmpty)
+                }
+            }
+            .onAppear {
+                if addCustomScratchExampleId.isEmpty {
+                    addCustomScratchExampleId = String(Self.autoGeneratedSupplementalExampleId())
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 380, minHeight: 220)
+        #endif
+    }
+
+    private static func autoGeneratedSupplementalExampleId() -> String {
+        UUID().uuidString.prefix(8).lowercased()
+    }
+
+    private func submitAddCustomResponse() {
+        addCustomFormError = nil
+        let candidates = addCustomStatusPickerCandidates
+        guard !candidates.isEmpty else { return }
+        let code = addCustomSelectedStatus
+        guard candidates.contains(code) else {
+            addCustomFormError = "Pick a status from the list."
+            return
+        }
+        let ex = addCustomScratchExampleId.isEmpty ? String(Self.autoGeneratedSupplementalExampleId()) : addCustomScratchExampleId
+        if responseOptionExists(statusCode: code, exampleId: ex) {
+            addCustomFormError = "This combination is already in the list. Try Add again for a new example id."
+            return
+        }
+        var m = mock
+        m.isEnabled = true
+        m.statusCode = code
+        m.exampleId = ex
+        mergeResponseTemplate(
+            endpoint: endpoint,
+            overrides: overrides,
+            pathPrefix: apiPathPrefix,
+            statusCode: code,
+            into: &m
+        )
+        mock = m
+        addCustomResponsePresented = false
     }
 
     private var detailScrollStack: some View {
@@ -873,67 +1248,62 @@ private struct OverrideDetailColumnView: View {
                 }
 
                 VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-                    Text("RESPONSE STATUS")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .tracking(0.6)
-                    Text("Define the HTTP status code returned for this mock.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(detailTightVertical ? 2 : nil)
-                    responseStatusChipStrip
-                }
+                    HStack(alignment: .top, spacing: 8) {
+                        VStack(alignment: .leading, spacing: detailTightVertical ? 4 : 6) {
+                            Text("RESPONSE STATUS")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .tracking(0.6)
+                            Text("Pick Spec to clear the mock, or a response row from the OpenAPI spec (each status / example is its own chip). Add creates another row for any HTTP status (new example id). Long-press a chip to copy its example id for X-Kawarimi-Example-Id. Del turns off an active mock; if it is already off, Del removes that row from the server config.")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(detailTightVertical ? 4 : nil)
+                        }
+                        Spacer(minLength: 0)
+                        HStack(spacing: 10) {
+                            Button {
+                                presentAddCustomSheet()
+                            } label: {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.title3)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(Color.accentColor)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Add response row")
 
-                if mock.isEnabled, exampleChoicesForStatus.count > 1 {
-                    VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-                        Text("RESPONSE EXAMPLE")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.secondary)
-                            .tracking(0.6)
-                        Text("Pick which OpenAPI example body to return when using the spec template.")
-                            .font(.caption)
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(detailTightVertical ? 2 : nil)
-                        Menu {
-                            ForEach(exampleChoicesForStatus) { item in
-                                Button {
-                                    var m = mock
-                                    m.exampleId = item.response.exampleId
-                                    mergeResponseTemplate(endpoint: endpoint, overrides: overrides, statusCode: m.statusCode, into: &m)
-                                    mock = m
-                                } label: {
-                                    HStack {
-                                        Text(specExampleLabel(item))
-                                        if exampleIdsEqual(mock.exampleId, item.response.exampleId) {
-                                            Image(systemName: "checkmark")
-                                        }
-                                    }
-                                }
+                            Button {
+                                onDisableCurrentMock()
+                            } label: {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.title3)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .foregroundStyle(canRemoveCurrentMockRow ? Color.orange : Color.secondary.opacity(0.35))
                             }
-                        } label: {
-                            HStack {
-                                Text(specExampleLabel(exampleChoicesForStatus.first { exampleIdsEqual(mock.exampleId, $0.response.exampleId) } ?? exampleChoicesForStatus[0]))
-                                    .font(.subheadline.weight(.medium))
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(ExplorerPalette.surfaceElevated)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .strokeBorder(groupedFieldStroke, lineWidth: 1)
-                            )
+                            .buttonStyle(.plain)
+                            .disabled(!canRemoveCurrentMockRow)
+                            .accessibilityLabel("Turn off mock, or delete row if already off")
+                        }
+                        .padding(.top, 2)
+                    }
+                    responseStatusChipStrip
+
+                    Toggle(isOn: mockEnabledBinding) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Mock active")
+                                .font(.subheadline.weight(.medium))
+                            Text("Off: requests hit the real handler (same as Spec). On: the interceptor returns this row after Save.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
+                    .toggleStyle(.switch)
+                    .padding(.top, detailTightVertical ? 8 : 10)
+                    .accessibilityLabel("Mock response active")
                 }
 
-                if mock.isEnabled {
+                if shouldShowResponseBodySection {
                     VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 6) {
@@ -988,12 +1358,12 @@ private struct OverrideDetailColumnView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(mockStatusChipOptions) { opt in
-                    let selected = selectedMockStatusCode == opt.id
+                    let selected = responseChipIsSelected(opt)
                     Button {
-                        responseSelectionBinding.wrappedValue = opt.id
+                        applyResponseChip(opt)
                     } label: {
                         HStack(spacing: 6) {
-                            if selected, opt.id != -1 {
+                            if selected, !opt.isSpec, mock.isEnabled {
                                 Circle()
                                     .fill(Color.green)
                                     .frame(width: 6, height: 6)
@@ -1002,8 +1372,8 @@ private struct OverrideDetailColumnView: View {
                                 .font(.subheadline.weight(selected ? .semibold : .regular))
                                 .foregroundStyle(
                                     selected
-                                        ? (opt.id == -1 ? Color.primary : Color.accentColor)
-                                        : Color.secondary
+                                        ? (opt.isSpec ? Color.primary : Color.accentColor)
+                                        : (opt.isInactive ? Color.secondary.opacity(0.75) : Color.secondary)
                                 )
                         }
                         .padding(.horizontal, detailTightVertical ? 10 : 14)
@@ -1018,6 +1388,13 @@ private struct OverrideDetailColumnView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            copyChipExampleIdToPasteboard(opt)
+                        } label: {
+                            Label("Copy example ID", systemImage: "doc.on.doc")
+                        }
+                    }
                 }
             }
             .padding(detailTightVertical ? 6 : 10)
@@ -1026,6 +1403,21 @@ private struct OverrideDetailColumnView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(ExplorerPalette.chipStripTray)
         )
+    }
+
+    private func copyChipExampleIdToPasteboard(_ opt: MockStatusChipOption) {
+        let text: String
+        if opt.isSpec {
+            text = KawarimiExampleIds.defaultResponseMapKey
+        } else {
+            text = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: opt.exampleId)
+        }
+        #if canImport(UIKit) && !os(watchOS)
+        UIPasteboard.general.string = text
+        #elseif canImport(AppKit) && !os(iOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        #endif
     }
 
     private var darkJsonEditorChrome: some View {
@@ -1144,13 +1536,14 @@ private struct OverrideDetailColumnView: View {
 private struct EndpointRowView: View {
     let item: SpecEndpointItem
     let statusCode: Int
+    let exampleCaption: String?
     let hasUnsavedDraft: Bool
     let showChevron: Bool
 
     private var endpoint: any SpecEndpointProviding { item.endpoint }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 10) {
             Text(endpoint.method.rawValue.uppercased())
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
@@ -1158,40 +1551,48 @@ private struct EndpointRowView: View {
                 .padding(.vertical, 4)
                 .background(HTTPMethodBadgeColor.fill(for: endpoint.method), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-            Text(endpoint.path)
-                .font(.system(.body, design: .monospaced))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if hasUnsavedDraft {
-                Text("Unsaved")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.orange)
-            }
-
-            Group {
-                if statusCode == -1 {
-                    Text("Spec")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                } else {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 6, height: 6)
-                        Text("\(statusCode)")
-                            .font(.caption.monospaced().weight(.semibold))
-                            .foregroundStyle(.primary)
-                    }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(endpoint.path)
+                    .font(.system(.body, design: .monospaced))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let exampleCaption {
+                    Text(exampleCaption)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
                 }
             }
-            .frame(minWidth: 52, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            if showChevron {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+            HStack(spacing: 8) {
+                if hasUnsavedDraft {
+                    Text("Unsaved")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
+                Group {
+                    if statusCode == -1 {
+                        Text("Spec")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 6, height: 6)
+                            Text("\(statusCode)")
+                                .font(.caption.monospaced().weight(.semibold))
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                }
+                .frame(minWidth: 52, alignment: .trailing)
+                if showChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
             }
         }
         .padding(.horizontal, 10)
