@@ -22,6 +22,24 @@ import Testing
     #expect(decoded.isEnabled == override.isEnabled)
     #expect(decoded.body == override.body)
     #expect(decoded.contentType == override.contentType)
+    #expect(decoded.exampleId == override.exampleId)
+}
+
+@Test func mockOverrideJSONRoundtripsExampleId() throws {
+    let override = MockOverride(
+        path: "/api/items",
+        method: "GET",
+        statusCode: 200,
+        exampleId: "success",
+        isEnabled: true,
+        body: nil,
+        contentType: nil
+    )
+    let data = try JSONEncoder().encode(override)
+    let s = try #require(String(data: data, encoding: .utf8))
+    #expect(s.contains("exampleId"))
+    let decoded = try JSONDecoder().decode(MockOverride.self, from: data)
+    #expect(decoded.exampleId == "success")
 }
 
 @Test func mockOverrideEncodeDecodeWithoutBodyBackwardCompatible() throws {
@@ -86,6 +104,19 @@ import Testing
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
     #expect(overrides[0].path == "/v1/greet")
+    try? FileManager.default.removeItem(at: url)
+}
+
+@Test func hengeConfigStoreRemoveOverride() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    let path = url.path
+    let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/api")
+    try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false))
+    #expect((await store.overrides()).count == 1)
+    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false))
+    #expect((await store.overrides()).isEmpty)
+    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc"))
+    #expect((await store.overrides()).isEmpty)
     try? FileManager.default.removeItem(at: url)
 }
 
