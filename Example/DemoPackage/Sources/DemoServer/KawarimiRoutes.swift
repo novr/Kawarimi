@@ -40,6 +40,21 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
             }
 
+            kawarimi.post("remove") { req async throws -> Response in
+                let override: MockOverride
+                do {
+                    override = try req.content.decode(MockOverride.self)
+                } catch {
+                    return Response(status: .badRequest, body: .init(string: "Invalid JSON body: \(error)"))
+                }
+                do {
+                    try await store.removeOverride(override)
+                    return Response(status: .ok)
+                } catch {
+                    return Response(status: .internalServerError, body: .init(string: "\(error)"))
+                }
+            }
+
             kawarimi.get("status") { _ async throws -> Response in
                 let overrides = await store.overrides()
                 let data = try JSONEncoder().encode(overrides)
