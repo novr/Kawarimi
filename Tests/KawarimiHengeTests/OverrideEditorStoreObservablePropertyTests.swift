@@ -39,7 +39,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         isDirty: false
     )
     store.validateBody()
-    #expect(store.detail?.validationMessage == "Invalid JSON")
+    #expect(store.detail?.validationMessage == EditorValidation.invalidJSONMessage)
     #expect(store.detail?.isDirty == false)
 }
 
@@ -60,7 +60,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         isDirty: false
     )
     store.validateBody()
-    #expect(store.detail?.validationMessage == "Valid JSON")
+    #expect(store.detail?.validationMessage == EditorValidation.validJSONMessage)
 }
 
 @MainActor
@@ -76,7 +76,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
             body: "{}",
             contentType: "application/json"
         ),
-        validationMessage: "Valid JSON",
+        validationMessage: EditorValidation.validJSONMessage,
         isDirty: true
     )
     store.markSavedClean()
@@ -102,7 +102,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     store.formatBody()
     #expect(store.detail?.isDirty == true)
-    #expect(store.detail?.validationMessage == "Formatted")
+    #expect(store.detail?.validationMessage == EditorValidation.formattedMessage)
     #expect(store.detail?.mock.body?.contains("\"a\"") == true)
     #expect(store.detail?.mock.body?.contains("\"z\"") == true)
 }

@@ -104,7 +104,7 @@ Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try
 
 ## Override editor (`OverrideEditorView`)
 
-The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column). **Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`. **Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
+The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column). **Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`. **Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**. Keep those rule chains out of the store except where it orchestrates (validate/format/save/resync); shared matching stays in **`OverrideListQueries`** and **KawarimiCore**.
 
 | UI / doc term | Code | Notes |
 | --- | --- | --- |

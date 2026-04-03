@@ -388,7 +388,7 @@ struct OverrideDetailColumnView: View {
                         if let msg = validationMessage {
                             Text(msg)
                                 .font(.caption)
-                                .foregroundStyle(EditorValidation.isInvalidJSONMessage(msg) ? .red : .secondary)
+                                .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
                         }
                     }
                 }

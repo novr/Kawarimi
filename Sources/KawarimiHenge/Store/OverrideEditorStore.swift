@@ -61,15 +61,7 @@ final class OverrideEditorStore {
 
     func buildDetail(rowKey: EndpointRowKey, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) -> OverrideDetailDraft? {
         guard let endpoint = OverrideListQueries.endpoint(for: rowKey, in: endpoints) else { return nil }
-        let mock = MockOverride(
-            name: endpoint.operationId,
-            path: endpoint.path,
-            method: endpoint.method,
-            statusCode: endpoint.responseList.first?.statusCode ?? 200,
-            isEnabled: false,
-            body: nil,
-            contentType: nil
-        )
+        let mock = MockDraftDefaults.specPlaceholder(for: endpoint)
         var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
         draft.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: apiPathPrefix)
         return draft
@@ -116,9 +108,9 @@ final class OverrideEditorStore {
         let text = d.mock.body ?? ""
         let data = Data(text.utf8)
         if (try? JSONSerialization.jsonObject(with: data)) != nil {
-            d.validationMessage = "Valid JSON"
+            d.validationMessage = EditorValidation.validJSONMessage
         } else {
-            d.validationMessage = "Invalid JSON"
+            d.validationMessage = EditorValidation.invalidJSONMessage
         }
         commitDetail(d)
     }
@@ -130,12 +122,12 @@ final class OverrideEditorStore {
               let json = try? JSONSerialization.jsonObject(with: data),
               let formatted = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]),
               let str = String(data: formatted, encoding: .utf8) else {
-            d.validationMessage = "Invalid JSON (cannot format)"
+            d.validationMessage = EditorValidation.invalidJSONCannotFormatMessage
             commitDetail(d)
             return
         }
         d.mock.body = str
-        d.validationMessage = "Formatted"
+        d.validationMessage = EditorValidation.formattedMessage
         d.isDirty = true
         commitDetail(d)
     }

@@ -1,9 +1,9 @@
 import KawarimiCore
 
 enum MockDraftDefaults {
-    static func specPlaceholder(for item: SpecEndpointItem) -> MockOverride {
-        let endpoint = item.endpoint
-        return MockOverride(
+    /// Spec-default mock for an operation (disabled, no body) — shared by ``OverrideEditorStore/buildDetail`` and list/detail bindings.
+    static func specPlaceholder(for endpoint: any SpecEndpointProviding) -> MockOverride {
+        MockOverride(
             name: endpoint.operationId,
             path: endpoint.path,
             method: endpoint.method,
@@ -13,5 +13,9 @@ enum MockDraftDefaults {
             body: nil,
             contentType: nil
         )
+    }
+
+    static func specPlaceholder(for item: SpecEndpointItem) -> MockOverride {
+        specPlaceholder(for: item.endpoint)
     }
 }

@@ -103,7 +103,7 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 ## オーバーライドエディタ（`OverrideEditorView`）
 
-モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。**編集ルール**（レスポンスチップ、Save 時の `configure` ペイロード、Del の分岐、エンドポイント検索）は **`Sources/KawarimiHenge/EditorSupport/`** にあります（例: `ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`）。**どの行を選んでいるか**や `validationMessage` / `isDirty` など UI メタは **`OverrideEditorStore`** / **`OverrideDetailDraft`** が持ちます。
+モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。**編集ルール**（レスポンスチップ、Save 時の `configure` ペイロード、Del の分岐、エンドポイント検索）は **`Sources/KawarimiHenge/EditorSupport/`** にあります（例: `ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`）。**どの行を選んでいるか**や `validationMessage` / `isDirty` など UI メタは **`OverrideEditorStore`** / **`OverrideDetailDraft`** が持ちます。条件分岐の本体は EditorSupport に置き、ストアは検証・整形・保存・再同期などのオーケストレーションに留める。行の突き合わせは **`OverrideListQueries`** と **KawarimiCore** に寄せます。
 
 | UI / ドキュメント上の言い方 | コード側 | メモ |
 | --- | --- | --- |
