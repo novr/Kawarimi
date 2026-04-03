@@ -88,6 +88,10 @@ struct OpenAPIExecuteView: View {
     @State private var pathParams: [String: String] = [:]
     @State private var queryString: String = ""
     @State private var bodyText: String = "{}"
+    /// Picks which OpenAPI response row supplies **X-Kawarimi-Example-Id** when the operation has multiple spec response rows.
+    @State private var selectedResponseRowId: String = ""
+    /// When non-empty, sent as **X-Kawarimi-Example-Id** and overrides the picker (paste from Henge chip via long-press copy).
+    @State private var manualMockExampleId: String = ""
     @State private var resultText: String = ""
     @State private var isRunning = false
 
@@ -142,6 +146,7 @@ struct OpenAPIExecuteView: View {
                         if let ep = endpoint {
                             pathParametersSection(ep: ep)
                             querySection
+                            mockExampleHintSection(ep: ep)
                             if HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: ep.method) {
                                 requestBodySection
                             }
@@ -355,6 +360,54 @@ struct OpenAPIExecuteView: View {
         }
     }
 
+    @ViewBuilder
+    private func mockExampleHintSection(ep: KawarimiSpec.Endpoint) -> some View {
+        cardChrome(title: "Mock example (\(KawarimiMockRequestHeaders.exampleId))") {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(
+                    "When several enabled mocks match this path (same status, different example ids), the server uses this header to choose one. Use a named OpenAPI example, or paste an example id copied from a Henge chip (long-press the chip)."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                if ep.responses.count > 1 {
+                    Picker("Spec response row", selection: $selectedResponseRowId) {
+                        ForEach(ep.responses, id: \.id) { r in
+                            Text(openAPIExecuteResponseLabel(r)).tag(r.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .accessibilityLabel("Spec response row")
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(ExecutionTheme.cardInset)
+                    )
+                }
+                TextField("Example id (optional, overrides picker)", text: $manualMockExampleId)
+                    .font(.body.monospaced())
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(ExecutionTheme.cardInset)
+                    )
+                Text("Leave empty to use the picker when multiple spec rows exist, or when only one mock applies.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func openAPIExecuteResponseLabel(_ r: KawarimiSpec.MockResponse) -> String {
+        let code = r.statusCode
+        if let ex = r.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines), !ex.isEmpty {
+            return "\(code) · \(ex)"
+        }
+        return "\(code) · default"
+    }
+
     private var requestBodySection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Request body")
@@ -565,6 +618,9 @@ struct OpenAPIExecuteView: View {
             bodyText = ""
         }
         queryString = ""
+        let pick = ep.responses.filter { $0.statusCode < 400 }.first ?? ep.responses.first
+        selectedResponseRowId = pick?.id ?? ""
+        manualMockExampleId = ""
     }
 
     @MainActor
@@ -621,6 +677,18 @@ struct OpenAPIExecuteView: View {
             request.httpBody = bodyData
         } else {
             request.httpBody = nil
+        }
+
+        if let ep = endpoint {
+            let manual = manualMockExampleId.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !manual.isEmpty {
+                let key = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: manual)
+                request.setValue(key, forHTTPHeaderField: KawarimiMockRequestHeaders.exampleId)
+            } else if ep.responses.count > 1,
+                      let row = ep.responses.first(where: { $0.id == selectedResponseRowId }) {
+                let key = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: row.exampleId)
+                request.setValue(key, forHTTPHeaderField: KawarimiMockRequestHeaders.exampleId)
+            }
         }
 
         do {
