@@ -69,6 +69,32 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}'
 ```
 
+OpenAPI の**名前付き例**に合わせる場合（`exampleId` / `responseMap` のキーと一致。デフォルト例行は省略または `null`）:
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/configure \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"exampleId":"success","isEnabled":true}'
+```
+
+行を**オフ**にしつつ `kawarimi.json` に残す（`isEnabled: false`）:
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/configure \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
+```
+
+その行を**配列から削除**する（`configure` と同じ path / メソッド / status / `exampleId` の同一視。名前付き例の行なら `exampleId` を含める）:
+
+```bash
+curl -X POST http://localhost:8080/api/__kawarimi/remove \
+  -H "Content-Type: application/json" \
+  -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
+```
+
+**通常の API 呼び出し**（`__kawarimi` 以外）では、参照ミドルウェア向けに **`X-Kawarimi-Example-Id`** ヘッダーを付けると、同一ルートに複数オーバーライドが有効なときに一致する例へ絞り込めます。詳細は [henge.md](../docs/ja/henge.md) の `KawarimiMockRequestHeaders.exampleId` を参照してください。
+
 Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift) を参照してください。
 
 ## クライアント: モックと DemoServer

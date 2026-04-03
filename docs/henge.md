@@ -51,6 +51,8 @@ The string **`__default` is reserved by Kawarimi** for:
 
 `KawarimiConfigStore.configure` treats overrides as distinct when **`path`, HTTP method, `statusCode`, and normalized `exampleId`** match.
 
+`configure` **upserts** one row: set `isEnabled: false` to turn a mock off while **keeping** that row in `kawarimi.json`. **`KawarimiConfigStore.removeOverride`** deletes the first row with the **same identity** (after the same normalization as `configure`). Calling `removeOverride` when nothing matches is a **no-op** (idempotent).
+
 Two enabled overrides for the same path/method but different examples are distinguished by `exampleId`.
 
 For how mock JSON strings are chosen, see [mock-json.md](mock-json.md).
@@ -80,12 +82,23 @@ It implements Vapor’s `AsyncMiddleware` by:
 
 Use that file as the **authoritative sample** when writing your own middleware.
 
+### Optional request header: `X-Kawarimi-Example-Id`
+
+For **per-request** disambiguation (not `configure` JSON), the Example middleware reads **`X-Kawarimi-Example-Id`**. Header name is **`KawarimiMockRequestHeaders.exampleId`** in **KawarimiCore**.
+
+When **several enabled overrides** match the same path and method, a non-empty header **narrows** candidates to overrides whose effective example map key matches (same rules as ``KawarimiExampleIds/responseMapLookupKey(forOverrideExampleId:)`` — e.g. `success` matches an override with `exampleId` `"success"`; use `__default` to target the default example row). If narrowing would match **no** overrides, the middleware **ignores** the header and uses all candidates (then tie-break as usual).
+
+Omit the header or send whitespace-only to apply **no** narrowing.
+
 | Endpoint | Description |
 |---|---|
-| `POST {pathPrefix}/__kawarimi/configure` | Enable a mock response for a path/method/statusCode (and optional `exampleId` for named examples) |
+| `POST {pathPrefix}/__kawarimi/configure` | Upsert an override for a path/method/statusCode (and optional `exampleId`). Set `isEnabled` / `body` / `contentType` as needed. |
+| `POST {pathPrefix}/__kawarimi/remove` | Remove one override row that matches the same identity as `configure` (normalized path, method, `statusCode`, `exampleId`). Idempotent. |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
+
+**KawarimiHenge (`KawarimiConfigView`):** the minus (**Del**) control persists **`isEnabled: false`** for the current response chip when the mock is on. When the mock is **already off** and a **saved** row exists for that chip, **Del** calls **`remove`** so the row is dropped from the server config and the editor returns to the spec draft. Integrators must pass **`removeOverride`** into `KawarimiConfigView` (see **`KawarimiAPIClient.removeOverride(override:)`** in **KawarimiCore**).
 
 Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try-the-henge-api-demoserver](../Example/README.md#try-the-henge-api-demoserver).
 
