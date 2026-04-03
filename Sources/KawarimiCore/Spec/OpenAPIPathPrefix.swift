@@ -36,4 +36,17 @@ public enum OpenAPIPathPrefix {
         }
         return t.hasPrefix("/") ? t : "/" + t
     }
+
+    /// Normalizes `path` the same way ``KawarimiConfigStore`` persists route paths (leading `/` + optional API prefix).
+    public static func configStoredPath(path: String, pathPrefix: String) -> String {
+        let prefix = normalizedPrefix(pathPrefix)
+        var result = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !result.hasPrefix("/") {
+            result = "/" + result
+        }
+        if !result.hasPrefix(prefix) {
+            result = prefix + (result == "/" ? "" : result)
+        }
+        return (result as NSString).standardizingPath
+    }
 }

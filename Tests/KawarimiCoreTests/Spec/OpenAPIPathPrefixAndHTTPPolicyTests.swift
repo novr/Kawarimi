@@ -18,6 +18,10 @@ import Testing
 }
 
 @Test func openAPIPathPrefixStubServerURL() throws {
+    #expect(OpenAPIPathPrefix.configStoredPath(path: "/greet", pathPrefix: "/api") == "/api/greet")
+    #expect(OpenAPIPathPrefix.configStoredPath(path: "/api/greet", pathPrefix: "/api") == "/api/greet")
+    #expect(OpenAPIPathPrefix.configStoredPath(path: "greet", pathPrefix: "/api") == "/api/greet")
+
     let url = try #require(OpenAPIPathPrefix.stubServerURL(pathPrefix: OpenAPIPathPrefix.defaultMountPath))
     #expect(url.scheme == "https")
     #expect(url.host == "kawarimi.openapi.invalid")
