@@ -35,3 +35,25 @@ public enum KawarimiMockResponseResolver {
         return map[routeKey]?[statusCode]?[exampleKey]
     }
 }
+
+/// Optional HTTP request headers interpreted by reference middleware (e.g. ``KawarimiInterceptorMiddleware`` in the Example app).
+///
+/// These are unrelated to ``MockOverride`` JSON on `POST …/configure`; they affect **per-request** choice among several enabled overrides for the same path and method.
+public enum KawarimiMockRequestHeaders {
+    /// Prefer enabled overrides whose effective example map key matches this value (same rules as ``KawarimiExampleIds/responseMapLookupKey(forOverrideExampleId:)``).
+    ///
+    /// Example: `success` matches an override with `exampleId` `"success"`; omit or use whitespace-only to apply no narrowing.
+    public static let exampleId = "X-Kawarimi-Example-Id"
+
+    /// Narrows `candidates` to overrides whose example key matches the header; if that set is empty, returns `candidates` unchanged.
+    public static func filterOverrides(_ candidates: [MockOverride], exampleIdHeaderRaw: String?) -> [MockOverride] {
+        guard let raw = exampleIdHeaderRaw?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty else {
+            return candidates
+        }
+        let want = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: raw)
+        let narrowed = candidates.filter {
+            KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: $0.exampleId) == want
+        }
+        return narrowed.isEmpty ? candidates : narrowed
+    }
+}

@@ -13,6 +13,23 @@ import Testing
     #expect(KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: "alpha") == "alpha")
 }
 
+@Test func kawarimiMockRequestHeadersFilterOverrides() {
+    let a = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "one", isEnabled: true)
+    let b = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "two", isEnabled: true)
+    let c = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: nil, isEnabled: true)
+    let all = [a, b, c]
+    #expect(KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: nil) == all)
+    #expect(KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: "   ") == all)
+    let one = KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: "one")
+    #expect(one.count == 1)
+    #expect(one[0].exampleId == "one")
+    let def = KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: "__default")
+    #expect(def.count == 1)
+    #expect(def[0].exampleId == nil)
+    let unknown = KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: "nope")
+    #expect(unknown == all)
+}
+
 @Test func kawarimiMockResponseResolverLookup() {
     let map: KawarimiMockResponseResolver.NestedResponseMap = [
         "GET:/api/x": [
