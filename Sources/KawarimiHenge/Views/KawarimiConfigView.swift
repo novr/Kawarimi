@@ -39,7 +39,15 @@ public struct KawarimiConfigView: View {
         OverrideEditorView(
             serverURL: serverURL,
             onRefresh: { Task { await loadSpecAndOverrides() } },
-            onResetAll: { Task { await performResetAll() } },
+            onResetAll: {
+                Task { @MainActor in
+                    do {
+                        try await performResetAll()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            },
             meta: meta,
             endpoints: endpoints,
             overrides: overridesSnapshot,
@@ -80,8 +88,8 @@ public struct KawarimiConfigView: View {
         }
     }
 
-    private func performResetAll() async {
-        try? await resetAllOverrides()
+    private func performResetAll() async throws {
+        try await resetAllOverrides()
         await loadSpecAndOverrides()
     }
 
