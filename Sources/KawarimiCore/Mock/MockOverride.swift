@@ -3,9 +3,13 @@ import HTTPTypes
 
 public struct MockOverride: Codable, Sendable, Equatable {
     /// Thrown by APIs that build a ``MockOverride`` from a raw method string when parsing fails.
-    public struct InvalidMethodStringError: Error, Sendable {
+    public struct InvalidMethodStringError: Error, Sendable, LocalizedError {
         public var rawMethod: String
         public init(rawMethod: String) { self.rawMethod = rawMethod }
+
+        public var errorDescription: String? {
+            "Invalid HTTP method string: \(rawMethod)"
+        }
     }
 
     public var name: String?

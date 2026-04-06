@@ -1,6 +1,6 @@
 import Foundation
 
-public enum KawarimiJutsuError: Error, CustomStringConvertible {
+public enum KawarimiJutsuError: Error, CustomStringConvertible, LocalizedError {
     case specFileNotFound(path: String)
     case specFileInvalidEncoding
     case specParseError(String)
@@ -18,4 +18,6 @@ public enum KawarimiJutsuError: Error, CustomStringConvertible {
             return "Cannot generate KawarimiHandler (operationId: \(operationId)): \(detail)"
         }
     }
+
+    public var errorDescription: String? { description }
 }
