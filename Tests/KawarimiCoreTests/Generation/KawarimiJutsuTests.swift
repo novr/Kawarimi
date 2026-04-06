@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiCore
+import KawarimiJutsu
 import Testing
 
 private func fixtureURL(name: String, extension ext: String, subdirectory: String = "Fixtures") -> URL? {
@@ -279,6 +279,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("import HTTPTypes"))
     #expect(source.contains("import KawarimiCore"))
     #expect(source.contains("extension KawarimiSpec.Meta: SpecMetaProviding"))
     #expect(source.contains("extension KawarimiSpec.MockResponse: SpecMockResponseProviding"))

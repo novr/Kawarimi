@@ -14,9 +14,9 @@ import Testing
 }
 
 @Test func kawarimiMockRequestHeadersFilterOverrides() {
-    let a = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "one", isEnabled: true)
-    let b = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "two", isEnabled: true)
-    let c = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: nil, isEnabled: true)
+    let a = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "one", isEnabled: true)!
+    let b = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "two", isEnabled: true)!
+    let c = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: nil, isEnabled: true)!
     let all = [a, b, c]
     #expect(KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: nil) == all)
     #expect(KawarimiMockRequestHeaders.filterOverrides(all, exampleIdHeaderRaw: "   ") == all)
@@ -50,11 +50,11 @@ import Testing
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-ex-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
-    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "a", isEnabled: true))
-    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "b", isEnabled: true))
+    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "a", isEnabled: true)!)
+    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "b", isEnabled: true)!)
     let list = await store.overrides()
     #expect(list.count == 2)
-    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "a", isEnabled: false))
+    try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, exampleId: "a", isEnabled: false)!)
     let after = await store.overrides()
     #expect(after.count == 2)
     let a = try #require(after.first { $0.exampleId == "a" })

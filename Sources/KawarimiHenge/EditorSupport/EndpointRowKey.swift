@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 import KawarimiCore
 
 /// Aligns list selection tags with server matching on path and method (not `operationId`, which is OpenAPI-specific).

@@ -18,16 +18,29 @@
 
 ## 1. 依存とプラグイン
 
+本パッケージの SwiftPM プロダクト:
+
+- **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
+- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec`、YAML 設定ローダーなど）。OpenAPIKit 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
+- **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。
+
+**KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
+
 ```swift
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
+    .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     .package(url: "https://github.com/novr/Kawarimi.git", from: "0.11.0"),
 ],
 targets: [
     .target(
         name: "MyAPI",
-        dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")],
+        dependencies: [
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "KawarimiCore", package: "Kawarimi"),
+        ],
         plugins: [
             .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
             .plugin(name: "KawarimiPlugin", package: "Kawarimi"),
