@@ -694,6 +694,8 @@ public enum KawarimiJutsu {
                     self.endpoints = endpoints
                 }
             }
+
+            extension SpecResponse: KawarimiFetchedSpec {}
             """
     }
 

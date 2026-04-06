@@ -285,6 +285,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("extension KawarimiSpec.Endpoint: SpecEndpointProviding"))
     #expect(source.contains("responseList"))
     #expect(source.contains("public struct SpecResponse: Codable, Sendable"))
+    #expect(source.contains("extension SpecResponse: KawarimiFetchedSpec"))
     #expect(source.contains("public var meta: KawarimiSpec.Meta"))
     #expect(source.contains("public var endpoints: [KawarimiSpec.Endpoint]"))
     #expect(source.contains("apiPathPrefix"))
