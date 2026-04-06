@@ -296,8 +296,8 @@ public enum KawarimiJutsu {
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
                 let httpMethod = endpoint.method.rawValue
                 let opContext = openapiOperationContextLabel(routePath: routePath, httpMethod: httpMethod)
-                let typeName = namingStrategy.swiftOperationTypeName(forOperationId: operationId)
-                let methodName = namingStrategy.swiftOperationMethodName(forOperationId: operationId)
+                let typeName = try namingStrategy.swiftOperationTypeName(forOperationId: operationId)
+                let methodName = try namingStrategy.swiftOperationMethodName(forOperationId: operationId)
                 let witnessName = handlerWitnessPropertyName(methodName: methodName)
                 let inputType = "Operations.\(typeName).Input"
                 let outputType = "Operations.\(typeName).Output"
