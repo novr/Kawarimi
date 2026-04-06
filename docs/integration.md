@@ -53,7 +53,7 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ## 2. OpenAPI spec location
 
-Place one `openapi.yaml` in the target’s source directory. The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
+Place one `openapi.yaml` in the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects). **KawarimiPlugin** resolves `openapi.yaml` from that root, not from an arbitrary source file’s folder. The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
 
 ## 3. Optional generator config
 

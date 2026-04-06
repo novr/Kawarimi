@@ -53,7 +53,7 @@ targets: [
 
 ## 2. OpenAPI の置き場所
 
-ターゲットのソースディレクトリに `openapi.yaml` を 1 つ置く。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
+`openapi.yaml` は **Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に 1 つ置く。**KawarimiPlugin** はそのルートから `openapi.yaml` を解決し、任意のソースファイルの親ディレクトリには依存しません。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
 ## 3. オプション: ジェネレータ設定
 
