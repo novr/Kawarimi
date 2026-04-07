@@ -5,6 +5,8 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+**Git tags** use a **`v`** prefix (e.g. **`v1.0.0`**), consistent with GitHub Releases. **SwiftPM** dependency pins use the semver **without** `v` (e.g. `from: "1.0.0"` — SwiftPM strips a leading `v` when resolving tags).
+
 ## [Unreleased]
 
 ## [1.0.0] - 2026-04-06
@@ -35,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Migration from 0.11.x
 
 1. **SwiftPM**  
-   - Bump the package pin to **`from: "1.0.0"`** (or an exact version).  
+   - Bump the package pin to **`from: "1.0.0"`** (or an exact version). The published Git tag is **`v1.0.0`**.  
    - Add **`KawarimiJutsu`** only if you call generation APIs or link the **`Kawarimi`** tool from code; typical apps need **KawarimiCore** / **KawarimiHenge** / plugin only.
 
 2. **`openapi.yaml` location**  
@@ -49,4 +51,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
-[1.0.0]: https://github.com/novr/Kawarimi/compare/v0.11.0...v1.0.0
+[1.0.0]: https://github.com/novr/Kawarimi/releases/tag/v1.0.0
