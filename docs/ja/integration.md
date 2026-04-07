@@ -18,6 +18,8 @@
 
 ## 1. 依存とプラグイン
 
+**0.11.x からの更新**は **[CHANGELOG.md](../../CHANGELOG.md)** の破壊的変更と移行手順を参照。
+
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
@@ -31,7 +33,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.11.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "1.0.0"),
 ],
 targets: [
     .target(

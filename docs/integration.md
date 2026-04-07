@@ -18,6 +18,8 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 ## 1. Dependencies and plugins
 
+Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking changes and migration.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -31,7 +33,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.11.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "1.0.0"),
 ],
 targets: [
     .target(
