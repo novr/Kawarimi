@@ -1,7 +1,7 @@
 import HTTPTypes
 import SwiftUI
 
-/// Fill colors for HTTP method pills in the Henge explorer.
+/// Matches Henge method pill colors for the OpenAPI execute tab.
 enum HTTPMethodBadgeColor {
     static func fill(for method: HTTPRequest.Method) -> Color {
         fill(for: method.rawValue)

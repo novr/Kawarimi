@@ -5,8 +5,8 @@ import UIKit
 #endif
 import DemoAPI
 import Foundation
+import HTTPTypes
 import KawarimiCore
-import KawarimiHenge
 import SwiftUI
 
 // MARK: - OpenAPI execute UI

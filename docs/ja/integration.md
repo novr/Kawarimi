@@ -18,16 +18,31 @@
 
 ## 1. 依存とプラグイン
 
+**0.11.x からの更新**は **[CHANGELOG.md](../../CHANGELOG.md)** の破壊的変更と移行手順を参照。
+
+本パッケージの SwiftPM プロダクト:
+
+- **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
+- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec`、YAML 設定ローダーなど）。OpenAPIKit 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
+- **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。
+
+**KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
+
 ```swift
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.11.0"),
+    .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "1.0.0"),
 ],
 targets: [
     .target(
         name: "MyAPI",
-        dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")],
+        dependencies: [
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "KawarimiCore", package: "Kawarimi"),
+        ],
         plugins: [
             .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
             .plugin(name: "KawarimiPlugin", package: "Kawarimi"),
@@ -40,7 +55,7 @@ targets: [
 
 ## 2. OpenAPI の置き場所
 
-ターゲットのソースディレクトリに `openapi.yaml` を 1 つ置く。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
+`openapi.yaml` は **Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に 1 つ置く。**KawarimiPlugin** はそのルートから `openapi.yaml` を解決し、任意のソースファイルの親ディレクトリには依存しません。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
 ## 3. オプション: ジェネレータ設定
 

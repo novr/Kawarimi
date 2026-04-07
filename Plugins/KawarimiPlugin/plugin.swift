@@ -7,10 +7,8 @@ struct KawarimiPlugin: BuildToolPlugin {
         guard let swiftTarget = target as? SwiftSourceModuleTarget else {
             throw KawarimiPluginError.incompatibleTarget(name: target.name)
         }
-        guard let firstSource = swiftTarget.sourceFiles.first else {
-            throw KawarimiPluginError.noSourceFiles(target: target.name)
-        }
-        let targetDirURL = firstSource.url.deletingLastPathComponent()
+        // Same convention as swift-openapi-generator: `openapi.yaml` at the Swift target root.
+        let targetDirURL = swiftTarget.directoryURL
         let inputURL = targetDirURL.appendingPathComponent("openapi.yaml")
         let outputDirURL = context.pluginWorkDirectoryURL
 
@@ -55,15 +53,12 @@ struct KawarimiPlugin: BuildToolPlugin {
 
 enum KawarimiPluginError: Error, CustomStringConvertible {
     case incompatibleTarget(name: String)
-    case noSourceFiles(target: String)
     case openAPINotFound(target: String, path: String)
 
     var description: String {
         switch self {
         case .incompatibleTarget(let name):
             return "Kawarimi plugin applies only to Swift source modules: \(name)"
-        case .noSourceFiles(let target):
-            return "Target \(target) has no source files"
         case .openAPINotFound(let target, let path):
             return "Target \(target): openapi.yaml not found: \(path)"
         }

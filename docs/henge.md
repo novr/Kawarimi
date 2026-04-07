@@ -32,6 +32,8 @@ KawarimiSpec.endpoints   // all endpoints with their possible responses
 KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
 ```
 
+The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`** so **`KawarimiConfigView(client:specType:)`** can decode `/__kawarimi/spec` without manual wiring.
+
 OpenAPI **named** `content.examples` keys become `exampleId` strings in `endpoints` and as the inner `responseMap` keys.
 
 A single unnamed example (or schema-only fallback) is stored under the reserved key **`__default`**.
@@ -98,7 +100,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
-**KawarimiHenge (`KawarimiConfigView`):** the minus (**Del**) control persists **`isEnabled: false`** for the current response chip when the mock is on. When the mock is **already off** and a **saved** row exists for that chip, **Del** calls **`remove`** so the row is dropped from the server config and the editor returns to the spec draft. Integrators must pass **`removeOverride`** into `KawarimiConfigView` (see **`KawarimiAPIClient.removeOverride(override:)`** in **KawarimiCore**).
+**KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** (aligned with your API `baseURL`) and your generated **`SpecResponse.self`** (conforms to **`KawarimiFetchedSpec`**). The UI shows **`client.baseURL.absoluteString`** as the server label. The minus (**Del**) control persists **`isEnabled: false`** for the current response chip when the mock is on. When the mock is **already off** and a **saved** row exists for that chip, **Del** calls **`remove`** so the row is dropped from the server config and the editor returns to the spec draft (same HTTP as **`KawarimiAPIClient.removeOverride(override:)`** in **KawarimiCore**).
 
 Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try-the-henge-api-demoserver](../Example/README.md#try-the-henge-api-demoserver).
 

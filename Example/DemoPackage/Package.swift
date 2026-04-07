@@ -17,12 +17,14 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
         .package(url: "https://github.com/vapor/swift-openapi-vapor", from: "1.0.0"),
         .package(url: "https://github.com/vapor/vapor", from: "4.89.0"),
+        .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
     ],
     targets: [
         .target(
             name: "DemoAPI",
             dependencies: [
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+                .product(name: "HTTPTypes", package: "swift-http-types"),
                 .product(name: "KawarimiCore", package: "Kawarimi"),
             ],
             plugins: [

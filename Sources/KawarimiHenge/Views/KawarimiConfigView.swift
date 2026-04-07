@@ -2,7 +2,7 @@ import KawarimiCore
 import SwiftUI
 
 public struct KawarimiConfigView: View {
-    public let serverURL: String
+    private let serverURL: String
 
     private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
     private let fetchOverrides: () async throws -> [MockOverride]
@@ -20,27 +20,34 @@ public struct KawarimiConfigView: View {
     /// Bumps after overrides-only refresh (e.g. after configure) so the child reruns `.task(id:)`.
     @State private var overridesRevision = 0
 
-    public init(
-        serverURL: String,
-        specProvider: @escaping () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding]),
-        fetchOverrides: @escaping () async throws -> [MockOverride],
-        configureOverride: @escaping (MockOverride) async throws -> Void,
-        removeOverride: @escaping (MockOverride) async throws -> Void,
-        resetAllOverrides: @escaping () async throws -> Void
-    ) {
-        self.serverURL = serverURL
-        self.specProvider = specProvider
-        self.fetchOverrides = fetchOverrides
-        self.configureOverride = configureOverride
-        self.removeOverride = removeOverride
-        self.resetAllOverrides = resetAllOverrides
+    /// Wires the mock UI to Henge HTTP via ``KawarimiAPIClient``.
+    ///
+    /// Pass your generated `SpecResponse.self` for `specType` (it conforms to ``KawarimiFetchedSpec``).
+    public init<Spec: KawarimiFetchedSpec>(client: KawarimiAPIClient, specType: Spec.Type) {
+        serverURL = client.baseURL.absoluteString
+        specProvider = {
+            let decoded = try await client.fetchSpec(as: specType)
+            return (meta: decoded.meta, endpoints: decoded.endpoints)
+        }
+        fetchOverrides = { try await client.fetchOverrides() }
+        configureOverride = { try await client.configure(override: $0) }
+        removeOverride = { try await client.removeOverride(override: $0) }
+        resetAllOverrides = { try await client.reset() }
     }
 
     public var body: some View {
         OverrideEditorView(
             serverURL: serverURL,
             onRefresh: { Task { await loadSpecAndOverrides() } },
-            onResetAll: { Task { await performResetAll() } },
+            onResetAll: {
+                Task { @MainActor in
+                    do {
+                        try await performResetAll()
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
+                }
+            },
             meta: meta,
             endpoints: endpoints,
             overrides: overridesSnapshot,
@@ -81,8 +88,8 @@ public struct KawarimiConfigView: View {
         }
     }
 
-    private func performResetAll() async {
-        try? await resetAllOverrides()
+    private func performResetAll() async throws {
+        try await resetAllOverrides()
         await loadSpecAndOverrides()
     }
 

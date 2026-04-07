@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiCore
+import KawarimiJutsu
 
 @main
 struct Kawarimi {

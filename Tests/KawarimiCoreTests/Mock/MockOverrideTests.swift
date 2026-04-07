@@ -2,6 +2,11 @@ import Foundation
 import KawarimiCore
 import Testing
 
+@Test func mockOverrideStringMethodInitRejectsEmptyToken() {
+    #expect(MockOverride(path: "/", method: "", statusCode: 200) == nil)
+    #expect(MockOverride(path: "/", method: "   ", statusCode: 200) == nil)
+}
+
 @Test func mockOverrideEncodeDecodeWithBodyAndContentType() throws {
     let override = MockOverride(
         name: "getGreeting",
@@ -12,7 +17,7 @@ import Testing
         isEnabled: true,
         body: "{\"message\":\"Hello\"}",
         contentType: "application/json"
-    )
+    )!
     let data = try JSONEncoder().encode(override)
     let decoded = try JSONDecoder().decode(MockOverride.self, from: data)
     #expect(decoded.name == override.name)
@@ -34,7 +39,7 @@ import Testing
         isEnabled: true,
         body: nil,
         contentType: nil
-    )
+    )!
     let data = try JSONEncoder().encode(override)
     let s = try #require(String(data: data, encoding: .utf8))
     #expect(s.contains("exampleId"))
@@ -51,7 +56,7 @@ import Testing
         isEnabled: false,
         body: nil,
         contentType: nil
-    )
+    )!
     let data = try JSONEncoder().encode(override)
     let decoded = try JSONDecoder().decode(MockOverride.self, from: data)
     #expect(decoded.body == nil)
@@ -60,8 +65,8 @@ import Testing
 
 @Test func hengeConfigRoundtripWithBodyOverrides() throws {
     let config = KawarimiConfig(overrides: [
-        MockOverride(name: "a", path: "/api/a", method: "GET", statusCode: 200, body: "{}", contentType: "application/json"),
-        MockOverride(name: "b", path: "/api/b", method: "POST", statusCode: 201, body: nil, contentType: nil),
+        MockOverride(name: "a", path: "/api/a", method: "GET", statusCode: 200, body: "{}", contentType: "application/json")!,
+        MockOverride(name: "b", path: "/api/b", method: "POST", statusCode: 201, body: nil, contentType: nil)!,
     ])
     let data = try JSONEncoder().encode(config)
     let decoded = try JSONDecoder().decode(KawarimiConfig.self, from: data)
@@ -71,24 +76,24 @@ import Testing
 }
 
 @Test func mockOverrideEquatable() {
-    let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")
-    let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")
-    let c = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{\"x\":1}")
+    let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")!
+    let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")!
+    let c = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{\"x\":1}")!
     #expect(a == b)
     #expect(a != c)
 }
 
 @Test func mockOverrideHasEffectiveCustomBody() {
-    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "x", contentType: nil).hasEffectiveCustomBody == true)
-    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: nil, contentType: nil).hasEffectiveCustomBody == false)
-    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "", contentType: nil).hasEffectiveCustomBody == false)
+    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "x", contentType: nil)!.hasEffectiveCustomBody == true)
+    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: nil, contentType: nil)!.hasEffectiveCustomBody == false)
+    #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "", contentType: nil)!.hasEffectiveCustomBody == false)
 }
 
 @Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path)
-    try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, body: "", contentType: ""))
+    try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, body: "", contentType: "")!)
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
     #expect(overrides[0].body == nil)
@@ -100,7 +105,7 @@ import Testing
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/v1")
-    try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 200))
+    try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 200)!)
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
     #expect(overrides[0].path == "/v1/greet")
@@ -111,11 +116,11 @@ import Testing
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/api")
-    try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false))
+    try await store.configure(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false)!)
     #expect((await store.overrides()).count == 1)
-    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false))
+    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc", isEnabled: false)!)
     #expect((await store.overrides()).isEmpty)
-    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc"))
+    try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc")!)
     #expect((await store.overrides()).isEmpty)
     try? FileManager.default.removeItem(at: url)
 }
@@ -140,7 +145,7 @@ import Testing
     let hugeBody = String(repeating: "x", count: MockOverride.maxBodyLength + 1)
     var thrown = false
     do {
-        try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: hugeBody))
+        try await store.configure(MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: hugeBody)!)
     } catch let e as KawarimiConfigStoreError {
         thrown = true
         if case .bodyTooLong(let actual, let limit) = e {
@@ -169,7 +174,7 @@ struct MockOverrideInterceptorTieBreakTests {
             statusCode: statusCode,
             exampleId: exampleId,
             isEnabled: true
-        )
+        )!
     }
 
     @Test("path ascending breaks ties")

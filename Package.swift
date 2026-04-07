@@ -11,6 +11,7 @@ let package = Package(
     products: [
         .executable(name: "Kawarimi", targets: ["Kawarimi"]),
         .library(name: "KawarimiCore", targets: ["KawarimiCore"]),
+        .library(name: "KawarimiJutsu", targets: ["KawarimiJutsu"]),
         .library(name: "KawarimiHenge", targets: ["KawarimiHenge"]),
         .plugin(
             name: "KawarimiPlugin",
@@ -26,14 +27,20 @@ let package = Package(
         .target(
             name: "KawarimiCore",
             dependencies: [
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+            ]
+        ),
+        .target(
+            name: "KawarimiJutsu",
+            dependencies: [
+                "KawarimiCore",
                 .product(name: "Yams", package: "Yams"),
                 .product(name: "OpenAPIKit30", package: "OpenAPIKit"),
-                .product(name: "HTTPTypes", package: "swift-http-types"),
             ]
         ),
         .executableTarget(
             name: "Kawarimi",
-            dependencies: ["KawarimiCore"],
+            dependencies: ["KawarimiJutsu"],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
         .plugin(
@@ -43,16 +50,22 @@ let package = Package(
         ),
         .target(
             name: "KawarimiHenge",
-            dependencies: ["KawarimiCore"]
+            dependencies: [
+                "KawarimiCore",
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+            ]
         ),
         .testTarget(
             name: "KawarimiCoreTests",
-            dependencies: ["KawarimiCore"],
+            dependencies: ["KawarimiCore", "KawarimiJutsu"],
             resources: [.copy("Fixtures")]
         ),
         .testTarget(
             name: "KawarimiHengeTests",
-            dependencies: ["KawarimiHenge"]
+            dependencies: [
+                "KawarimiHenge",
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+            ]
         ),
         .testTarget(
             name: "KawarimiTests",

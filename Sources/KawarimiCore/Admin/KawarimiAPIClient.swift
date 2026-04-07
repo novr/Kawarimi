@@ -37,11 +37,23 @@ public struct KawarimiAPIClient: Sendable {
         }
     }
 
-    public func fetchSpec<T: Decodable & Sendable>(as type: T.Type) async throws -> T {
+    private func specWireData() async throws -> Data {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("spec")
         let (data, response) = try await session.data(from: url)
         try validateHTTPStatus(response, data: data)
+        return data
+    }
+
+    /// Fetches and decodes `GET …/__kawarimi/spec` for any `Decodable` wire shape.
+    public func fetchSpec<T: Decodable & Sendable>(as type: T.Type) async throws -> T {
+        let data = try await specWireData()
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    /// Fetches the **KawarimiHenge** wire document (`meta` + `endpoints`). Prefer this overload when using a generated `SpecResponse`.
+    public func fetchSpec<Spec: KawarimiFetchedSpec>(as specType: Spec.Type) async throws -> Spec {
+        let data = try await specWireData()
+        return try JSONDecoder().decode(Spec.self, from: data)
     }
 
     public func fetchOverrides() async throws -> [MockOverride] {
@@ -83,7 +95,7 @@ public struct KawarimiAPIClient: Sendable {
         body: String? = nil,
         contentType: String? = nil
     ) async throws {
-        let override = MockOverride(
+        guard let override = MockOverride(
             path: path,
             method: method,
             statusCode: statusCode,
@@ -91,7 +103,9 @@ public struct KawarimiAPIClient: Sendable {
             isEnabled: isEnabled,
             body: body,
             contentType: contentType
-        )
+        ) else {
+            throw MockOverride.InvalidMethodStringError(rawMethod: method)
+        }
         try await configure(override: override)
     }
 

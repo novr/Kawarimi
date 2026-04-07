@@ -1,11 +1,23 @@
 import Foundation
 import HTTPTypes
+import OSLog
 
-public enum KawarimiConfigStoreError: Error, Sendable {
+public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     /// Rejects `..` in the config path to avoid escaping the intended directory.
     case invalidConfigPath(String)
     case bodyTooLong(actual: Int, limit: Int)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidConfigPath(let path):
+            return "Invalid kawarimi config path (must not contain \"..\"): \(path)"
+        case .bodyTooLong(let actual, let limit):
+            return "Override body exceeds limit (\(actual) UTF-8 bytes, max \(limit))"
+        }
+    }
 }
+
+private let kawarimiConfigStoreLog = Logger(subsystem: "Kawarimi", category: "KawarimiConfigStore")
 
 /// Default relative path / basename for persisted runtime overrides consumed by ``KawarimiConfigStore``.
 public enum KawarimiConfigDefaults {
@@ -36,9 +48,16 @@ public actor KawarimiConfigStore {
         }
         self.configPath = absolute
         self.prefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
-        if let data = FileManager.default.contents(atPath: absolute),
-           let config = try? JSONDecoder().decode(KawarimiConfig.self, from: data) {
-            self.cachedOverrides = config.overrides
+        if let data = FileManager.default.contents(atPath: absolute) {
+            do {
+                let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
+                self.cachedOverrides = config.overrides
+            } catch {
+                kawarimiConfigStoreLog.warning(
+                    "Ignoring invalid kawarimi config JSON at \(absolute, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                )
+                self.cachedOverrides = []
+            }
         } else {
             self.cachedOverrides = []
         }

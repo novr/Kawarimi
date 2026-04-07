@@ -18,16 +18,31 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 ## 1. Dependencies and plugins
 
+Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking changes and migration.
+
+SwiftPM products from this package:
+
+- **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
+- **KawarimiJutsu** — generator API (`KawarimiJutsu.loadOpenAPISpec`, YAML config loaders, …). Pulls OpenAPIKit; for CLI/tests/custom tooling, not typical app binaries.
+- **KawarimiHenge** — SwiftUI (`KawarimiConfigView`).
+
+The target that hosts **KawarimiSpec.swift** must declare **`KawarimiCore`** and the **`HTTPTypes`** product as direct dependencies (same [swift-http-types](https://github.com/apple/swift-http-types) package). SwiftPM will not pick that up transitively from **KawarimiCore** alone.
+
 ```swift
 dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "0.11.0"),
+    .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "1.0.0"),
 ],
 targets: [
     .target(
         name: "MyAPI",
-        dependencies: [.product(name: "OpenAPIRuntime", package: "swift-openapi-runtime")],
+        dependencies: [
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "KawarimiCore", package: "Kawarimi"),
+        ],
         plugins: [
             .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
             .plugin(name: "KawarimiPlugin", package: "Kawarimi"),
@@ -40,7 +55,7 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ## 2. OpenAPI spec location
 
-Place one `openapi.yaml` in the target’s source directory. The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
+Place one `openapi.yaml` in the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects). **KawarimiPlugin** resolves `openapi.yaml` from that root, not from an arbitrary source file’s folder. The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
 
 ## 3. Optional generator config
 

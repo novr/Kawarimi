@@ -2,6 +2,16 @@ import Foundation
 import HTTPTypes
 
 public struct MockOverride: Codable, Sendable, Equatable {
+    /// Thrown by APIs that build a ``MockOverride`` from a raw method string when parsing fails.
+    public struct InvalidMethodStringError: Error, Sendable, LocalizedError {
+        public var rawMethod: String
+        public init(rawMethod: String) { self.rawMethod = rawMethod }
+
+        public var errorDescription: String? {
+            "Invalid HTTP method string: \(rawMethod)"
+        }
+    }
+
     public var name: String?
     public var path: String
     public var method: HTTPRequest.Method
@@ -38,7 +48,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.contentType = contentType
     }
 
-    public init(
+    /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
+    public init?(
         name: String? = nil,
         path: String,
         method methodString: String,
@@ -49,9 +60,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         contentType: String? = nil
     ) {
         let normalized = methodString.uppercased()
-        guard let m = HTTPRequest.Method(normalized) else {
-            preconditionFailure("Invalid HTTP method for MockOverride: \(methodString)")
-        }
+        guard let m = HTTPRequest.Method(normalized) else { return nil }
         self.init(
             name: name,
             path: path,

@@ -118,17 +118,21 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
 }
 
 extension KawarimiNamingStrategy {
-    public func swiftOperationTypeName(forOperationId operationID: String) -> String {
+    public func swiftOperationTypeName(forOperationId operationID: String) throws -> String {
         switch self {
-        case .defensive: DefensiveSafeNameGenerator().swiftTypeName(for: operationID)
-        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: operationID)
+        case .defensive:
+            return try DefensiveSafeNameGenerator().swiftTypeName(for: operationID)
+        case .idiomatic:
+            return try IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: operationID)
         }
     }
 
-    public func swiftOperationMethodName(forOperationId operationID: String) -> String {
+    public func swiftOperationMethodName(forOperationId operationID: String) throws -> String {
         switch self {
-        case .defensive: DefensiveSafeNameGenerator().swiftMemberName(for: operationID)
-        case .idiomatic: IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftMemberName(for: operationID)
+        case .defensive:
+            return try DefensiveSafeNameGenerator().swiftMemberName(for: operationID)
+        case .idiomatic:
+            return try IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftMemberName(for: operationID)
         }
     }
 
@@ -162,13 +166,13 @@ private extension String {
 // MARK: - Safe name generators (from Swift OpenAPI Generator)
 
 private protocol SafeNameGenerator {
-    func swiftTypeName(for documentedName: String) -> String
-    func swiftMemberName(for documentedName: String) -> String
+    func swiftTypeName(for documentedName: String) throws -> String
+    func swiftMemberName(for documentedName: String) throws -> String
 }
 
 private struct DefensiveSafeNameGenerator: SafeNameGenerator {
-    func swiftTypeName(for documentedName: String) -> String { swiftName(for: documentedName) }
-    func swiftMemberName(for documentedName: String) -> String { swiftName(for: documentedName) }
+    func swiftTypeName(for documentedName: String) throws -> String { swiftName(for: documentedName) }
+    func swiftMemberName(for documentedName: String) throws -> String { swiftName(for: documentedName) }
 
     private func swiftName(for documentedName: String) -> String {
         guard !documentedName.isEmpty else { return "_empty" }
@@ -227,10 +231,15 @@ private struct DefensiveSafeNameGenerator: SafeNameGenerator {
 private struct IdiomaticSafeNameGenerator: SafeNameGenerator {
     var defensive: DefensiveSafeNameGenerator
 
-    func swiftTypeName(for documentedName: String) -> String { swiftName(for: documentedName, capitalize: true) }
-    func swiftMemberName(for documentedName: String) -> String { swiftName(for: documentedName, capitalize: false) }
+    func swiftTypeName(for documentedName: String) throws -> String {
+        try swiftName(for: documentedName, capitalize: true)
+    }
 
-    private func swiftName(for documentedName: String, capitalize: Bool) -> String {
+    func swiftMemberName(for documentedName: String) throws -> String {
+        try swiftName(for: documentedName, capitalize: false)
+    }
+
+    private func swiftName(for documentedName: String, capitalize: Bool) throws -> String {
         if documentedName.isEmpty { return capitalize ? "_Empty_" : "_empty_" }
 
         let isAllUppercase = documentedName.allSatisfy { !$0.isLowercase }
@@ -338,17 +347,17 @@ private struct IdiomaticSafeNameGenerator: SafeNameGenerator {
                     buffer.append(char)
                 }
             case .modifying:
-                preconditionFailure("Logic error in idiomatic swiftName, string: '\(documentedName)'")
+                throw KawarimiJutsuError.idiomaticNamingInvariantViolated(documentedName: documentedName)
             }
-            precondition(state != .modifying, "Logic error in idiomatic swiftName, string: '\(documentedName)'")
+            if case .modifying = state {
+                throw KawarimiJutsuError.idiomaticNamingInvariantViolated(documentedName: documentedName)
+            }
         }
-        let defensiveFallback: (String) -> String
+        let bufferString = String(buffer)
         if capitalize {
-            defensiveFallback = defensive.swiftTypeName
-        } else {
-            defensiveFallback = defensive.swiftMemberName
+            return try defensive.swiftTypeName(for: bufferString)
         }
-        return defensiveFallback(String(buffer))
+        return try defensive.swiftMemberName(for: bufferString)
     }
 
     private static let wordSeparators: Set<Character> = ["_", "-", " ", "/", "+"]
