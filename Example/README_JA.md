@@ -35,8 +35,6 @@ swift run DemoServer   # kawarimi.json は DemoPackage/ 配下
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
-**`DemoServer`** は `KawarimiSpec.meta.apiPathPrefix`（OpenAPI `servers[0].url` のパス由来）を `pathPrefix` に渡すため、Henge のマウントが Spec と一致し、別の環境変数は不要です。
-
 **`DemoAPITests`** がプロセス内の **`Kawarimi()`** トランスポートを検証します。
 
 ## kawarimi.json（サンプル）
@@ -60,8 +58,6 @@ handlerStubPolicy: throw
 <a id="henge-api-demoserver"></a>
 
 ## Henge API を試す（DemoServer）
-
-既定の **`pathPrefix` `/api`** の例:
 
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/configure \
@@ -109,8 +105,6 @@ Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`Kawarimi
 2. Xcode で **`DemoApp.xcodeproj`** を開き、**DemoApp** スキームを実行する。
 
 **`DemoApp`** は **`DemoPackage` の `DemoAPI`** とリポジトリルートの **KawarimiCore / KawarimiHenge** にリンクしており、**`DemoPackage` に SwiftUI 依存はありません**。
-
-**Server URL** と **API prefix** は `KawarimiSpec.meta` に固定（アプリ内は `KawarimiExampleConfig`）。
 
 サンプルの `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。
 

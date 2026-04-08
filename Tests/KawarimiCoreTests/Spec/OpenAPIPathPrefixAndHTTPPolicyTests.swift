@@ -2,30 +2,27 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func openAPIPathPrefixTrimsAndNormalizes() {
-    #expect(OpenAPIPathPrefix.normalizedPrefix("api") == OpenAPIPathPrefix.defaultMountPath)
-    #expect(OpenAPIPathPrefix.normalizedPrefix("/api/") == OpenAPIPathPrefix.defaultMountPath)
-    #expect(OpenAPIPathPrefix.normalizedPrefix("  /v1/  ") == "/v1")
+@Test func kawarimiPathSplitJoinMatchesFormerSpecPrefix() {
+    func j(_ s: String) -> String {
+        KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(s))
+    }
+    #expect(j("") == "")
+    #expect(j("   ") == "")
+    #expect(j("/") == "")
+    #expect(j("api") == "/api")
+    #expect(j("/v1/") == "/v1")
+    #expect(KawarimiPath.splitPathSegments("/a/b") == ["a", "b"])
 }
 
-@Test func openAPIPathPrefixEmptyUsesDefault() {
-    #expect(OpenAPIPathPrefix.normalizedPrefix("") == OpenAPIPathPrefix.defaultMountPath)
-    #expect(OpenAPIPathPrefix.normalizedPrefix("   ") == OpenAPIPathPrefix.defaultMountPath)
+@Test func kawarimiPathAlignedWithPrefix() {
+    #expect(KawarimiPath.aligned(path: "/greet", pathPrefix: "/api") == "/api/greet")
+    #expect(KawarimiPath.aligned(path: "/api/greet", pathPrefix: "/api") == "/api/greet")
+    #expect(KawarimiPath.aligned(path: "greet", pathPrefix: "/api") == "/api/greet")
 }
 
-@Test func openAPIPathPrefixEmptyUsesCustomDefaultIfEmpty() {
-    #expect(OpenAPIPathPrefix.normalizedPrefix("", defaultIfEmpty: "/v1") == "/v1")
-}
-
-@Test func openAPIPathPrefixStubServerURL() throws {
-    #expect(OpenAPIPathPrefix.configStoredPath(path: "/greet", pathPrefix: "/api") == "/api/greet")
-    #expect(OpenAPIPathPrefix.configStoredPath(path: "/api/greet", pathPrefix: "/api") == "/api/greet")
-    #expect(OpenAPIPathPrefix.configStoredPath(path: "greet", pathPrefix: "/api") == "/api/greet")
-
-    let url = try #require(OpenAPIPathPrefix.stubServerURL(pathPrefix: OpenAPIPathPrefix.defaultMountPath))
-    #expect(url.scheme == "https")
-    #expect(url.host == "kawarimi.openapi.invalid")
-    #expect(url.path == OpenAPIPathPrefix.defaultMountPath)
+@Test func kawarimiPathAlignedRootPrefix() {
+    #expect(KawarimiPath.aligned(path: "/app/setting", pathPrefix: "") == "/app/setting")
+    #expect(KawarimiPath.aligned(path: "greet", pathPrefix: "") == "/greet")
 }
 
 @Test func kawarimiAdminPathDetectsManagementSegment() {

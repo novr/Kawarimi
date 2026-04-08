@@ -1,5 +1,6 @@
 import Foundation
 
+@available(*, deprecated, message: "Use KawarimiPath.splitPathSegments, joinPathPrefix, aligned(path:pathPrefix:), and URLComponents instead.")
 public enum OpenAPIPathPrefix {
     public static let defaultMountPath = "/api"
 
@@ -16,12 +17,11 @@ public enum OpenAPIPathPrefix {
         return trimmed
     }
 
-    /// For `registerHandlers(..., serverURL:)`; runtime matches path only, so host is a fixed invalid placeholder.
     public static func stubServerURL(pathPrefix: String) -> URL? {
         let path = normalizedPrefix(pathPrefix)
         var components = URLComponents()
         components.scheme = "https"
-        components.host = "kawarimi.openapi.invalid"
+        components.host = "kawarimi.openapi.invalid" // swift-openapi matches by path; host is arbitrary
         components.path = path
         return components.url
     }
@@ -37,16 +37,7 @@ public enum OpenAPIPathPrefix {
         return t.hasPrefix("/") ? t : "/" + t
     }
 
-    /// Normalizes `path` the same way ``KawarimiConfigStore`` persists route paths (leading `/` + optional API prefix).
     public static func configStoredPath(path: String, pathPrefix: String) -> String {
-        let prefix = normalizedPrefix(pathPrefix)
-        var result = path.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !result.hasPrefix("/") {
-            result = "/" + result
-        }
-        if !result.hasPrefix(prefix) {
-            result = prefix + (result == "/" ? "" : result)
-        }
-        return (result as NSString).standardizingPath
+        KawarimiPath.aligned(path: path, pathPrefix: pathPrefix)
     }
 }

@@ -19,7 +19,6 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
 
 private let kawarimiConfigStoreLog = Logger(subsystem: "Kawarimi", category: "KawarimiConfigStore")
 
-/// Default relative path / basename for persisted runtime overrides consumed by ``KawarimiConfigStore``.
 public enum KawarimiConfigDefaults {
     public static let fileName = "kawarimi.json"
 }
@@ -30,10 +29,9 @@ public actor KawarimiConfigStore {
     private let prefix: String
     private var cachedOverrides: [MockOverride]
 
-    /// Same prefix as middleware / `registerHandlers` for override resolution.
     public var pathPrefix: String { prefix }
 
-    public init(configPath: String, pathPrefix: String = OpenAPIPathPrefix.defaultMountPath) throws {
+    public init(configPath: String, pathPrefix: String = "") throws {
         let components = (configPath as NSString).pathComponents
         if components.contains("..") {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
@@ -47,7 +45,7 @@ public actor KawarimiConfigStore {
             absolute = (cwd as NSString).appendingPathComponent(expanded)
         }
         self.configPath = absolute
-        self.prefix = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
+        self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
         if let data = FileManager.default.contents(atPath: absolute) {
             do {
                 let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)

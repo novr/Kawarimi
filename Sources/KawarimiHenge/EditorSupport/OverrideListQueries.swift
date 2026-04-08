@@ -2,7 +2,6 @@ import Foundation
 import KawarimiCore
 
 enum OverrideListQueries {
-    /// Same rules as ``KawarimiConfigView`` / ``OpenAPIPathPrefix.configStoredPath``: spec path vs stored path can differ by API prefix.
     static func overrideMatchesRow(
         _ ov: MockOverride,
         rowKey: EndpointRowKey,
@@ -13,8 +12,8 @@ enum OverrideListQueries {
         let na = ov.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let op = operationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !na.isEmpty, !op.isEmpty, na == op { return true }
-        let pa = OpenAPIPathPrefix.configStoredPath(path: ov.path, pathPrefix: pathPrefix)
-        let pb = OpenAPIPathPrefix.configStoredPath(path: rowKey.path, pathPrefix: pathPrefix)
+        let pa = KawarimiPath.aligned(path: ov.path, pathPrefix: pathPrefix)
+        let pb = KawarimiPath.aligned(path: rowKey.path, pathPrefix: pathPrefix)
         return pa == pb
     }
 

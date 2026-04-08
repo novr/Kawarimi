@@ -35,8 +35,6 @@ swift run DemoServer   # kawarimi.json under DemoPackage/
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
-**`DemoServer`** passes `pathPrefix` from `KawarimiSpec.meta.apiPathPrefix` (from OpenAPI `servers[0].url`), so the Henge mount matches the spec without a separate env var.
-
 `DemoAPITests` covers the in-process **`Kawarimi()`** transport path.
 
 ## kawarimi.json (sample)
@@ -60,8 +58,6 @@ Override merge / tie-break rules and empty-body normalization: [henge.md](../doc
 <a id="try-the-henge-api-demoserver"></a>
 
 ## Try the Henge API (DemoServer)
-
-With default **`pathPrefix` `/api`**:
 
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/configure \
@@ -109,8 +105,6 @@ You can use **`Kawarimi()`** (no network) and **`URLSessionTransport()`** from [
 2. Open **`DemoApp.xcodeproj`** in Xcode and run the **DemoApp** scheme.
 
 **`DemoApp`** links **`DemoAPI`** from **`DemoPackage`** and **KawarimiCore** / **KawarimiHenge** from the repo root Swift package—**`DemoPackage` has no SwiftUI dependency**.
-
-**Server URL** and **API prefix** are fixed to `KawarimiSpec.meta` (`KawarimiExampleConfig` in the app).
 
 The sample `openapi.yaml` uses **HTTP** with **`127.0.0.1`** (e.g. `http://127.0.0.1:8080/api`) so clients do not resolve `localhost` to **`::1`** while Vapor listens on **IPv4 loopback** only.
 

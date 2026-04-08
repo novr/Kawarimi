@@ -6,7 +6,6 @@ public protocol SpecMetaProviding: Sendable {
     var version: String { get }
     var description: String? { get }
     var serverURL: String { get }
-    /// Must match the API mount path used by the server and config store.
     var apiPathPrefix: String { get }
 }
 

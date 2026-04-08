@@ -7,9 +7,6 @@ import Observation
 final class OverrideEditorStore {
     var detail: OverrideDetailDraft?
 
-    /// Must match ``KawarimiConfigStore`` / spec `apiPathPrefix` so override paths align with list rows.
-    var apiPathPrefix: String = OpenAPIPathPrefix.defaultMountPath
-
     var selectedRowKey: EndpointRowKey? { detail?.endpointRowKey }
 
     func commitDetail(_ d: OverrideDetailDraft) {
@@ -23,6 +20,7 @@ final class OverrideEditorStore {
     func displayedListStatus(
         for rowKey: EndpointRowKey,
         operationId: String,
+        pathPrefix: String,
         overrides: [MockOverride]
     ) -> Int {
         if let d = detail, d.endpointRowKey == rowKey {
@@ -33,7 +31,7 @@ final class OverrideEditorStore {
             if let code = OverrideListQueries.enabledStatusCode(
                 for: rowKey,
                 operationId: operationId,
-                pathPrefix: apiPathPrefix,
+                pathPrefix: pathPrefix,
                 in: overrides
             ) {
                 return code
@@ -43,7 +41,7 @@ final class OverrideEditorStore {
         if let code = OverrideListQueries.enabledStatusCode(
             for: rowKey,
             operationId: operationId,
-            pathPrefix: apiPathPrefix,
+            pathPrefix: pathPrefix,
             in: overrides
         ) {
             return code
@@ -59,16 +57,26 @@ final class OverrideEditorStore {
         OverrideListQueries.endpoint(for: rowKey, in: endpoints).map { SpecEndpointItem($0) }
     }
 
-    func buildDetail(rowKey: EndpointRowKey, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) -> OverrideDetailDraft? {
+    func buildDetail(
+        rowKey: EndpointRowKey,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride]
+    ) -> OverrideDetailDraft? {
         guard let endpoint = OverrideListQueries.endpoint(for: rowKey, in: endpoints) else { return nil }
         let mock = MockDraftDefaults.specPlaceholder(for: endpoint)
         var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
-        draft.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: apiPathPrefix)
+        draft.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
         return draft
     }
 
-    func selectEndpoint(rowKey: EndpointRowKey, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
-        if let built = buildDetail(rowKey: rowKey, endpoints: endpoints, overrides: overrides) {
+    func selectEndpoint(
+        rowKey: EndpointRowKey,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride]
+    ) {
+        if let built = buildDetail(rowKey: rowKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides) {
             commitDetail(built)
         } else {
             clearSelection()
@@ -77,6 +85,7 @@ final class OverrideEditorStore {
 
     func applySelection(
         _ newKey: EndpointRowKey?,
+        pathPrefix: String,
         endpoints: [any SpecEndpointProviding],
         overrides: [MockOverride]
     ) {
@@ -85,21 +94,21 @@ final class OverrideEditorStore {
             clearSelection()
             return
         }
-        selectEndpoint(rowKey: newKey, endpoints: endpoints, overrides: overrides)
+        selectEndpoint(rowKey: newKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides)
     }
 
-    func resyncDetailAfterSpecReload(endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
+    func resyncDetailAfterSpecReload(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
         guard var d = detail else { return }
         d.isDirty = false
         d.validationMessage = nil
-        d.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: apiPathPrefix)
+        d.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
         commitDetail(d)
     }
 
-    func resyncDetailAfterOverridesRefresh(endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
+    func resyncDetailAfterOverridesRefresh(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
         guard var d = detail, !d.isDirty else { return }
         d.validationMessage = nil
-        d.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: apiPathPrefix)
+        d.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
         commitDetail(d)
     }
 
@@ -174,6 +183,7 @@ final class OverrideEditorStore {
 
     func applyWithBody(
         endpointItem: SpecEndpointItem,
+        pathPrefix: String,
         overrides: [MockOverride],
         configureOverride: @escaping (MockOverride) async throws -> Void,
         setErrorMessage: @escaping (String?) -> Void
@@ -185,7 +195,7 @@ final class OverrideEditorStore {
             mock: draft.mock,
             endpoint: endpoint,
             rowKey: endpointItem.rowKey,
-            pathPrefix: apiPathPrefix,
+            pathPrefix: pathPrefix,
             overrides: overrides
         )
         do {
@@ -229,6 +239,7 @@ final class OverrideEditorStore {
 
     func disableCurrentMockRow(
         endpointItem: SpecEndpointItem,
+        pathPrefix: String,
         overrides: [MockOverride],
         configureOverride: @escaping (MockOverride) async throws -> Void,
         removeOverride: @escaping (MockOverride) async throws -> Void,
@@ -241,7 +252,7 @@ final class OverrideEditorStore {
             mock: draft.mock,
             endpoint: endpoint,
             rowKey: endpointItem.rowKey,
-            pathPrefix: apiPathPrefix,
+            pathPrefix: pathPrefix,
             overrides: overrides
         )
         do {
