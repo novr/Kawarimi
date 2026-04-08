@@ -446,13 +446,13 @@ public enum KawarimiJutsu {
     private static func pathPrefix(in document: OpenAPI.Document) -> String {
         guard let raw = document.servers.first?.urlTemplate.rawValue, !raw.isEmpty,
               let url = URL(string: raw) else {
-            return OpenAPIPathPrefix.defaultMountPath
+            return ""
         }
         let path = url.path
-        if path.isEmpty {
-            return OpenAPIPathPrefix.defaultMountPath
+        if path.isEmpty || path == "/" {
+            return ""
         }
-        return OpenAPIPathPrefix.normalizedPrefix(path)
+        return KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(path))
     }
 
     // MARK: - KawarimiSpec source emission

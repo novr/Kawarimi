@@ -272,6 +272,35 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     }
 }
 
+@Test func kawarimiJutsuSpecUsesEmptyApiPathPrefixWhenServerHasNoPath() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-root-srv-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    servers:
+      - url: http://localhost:3001
+    paths:
+      /app/setting:
+        get:
+          operationId: getSetting
+          responses:
+            '200':
+              description: ok
+              content:
+                application/json:
+                  schema:
+                    type: object
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("apiPathPrefix: \"\""))
+    #expect(source.contains("path: \"/app/setting\""))
+}
+
 @Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
