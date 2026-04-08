@@ -5,9 +5,17 @@ All notable changes to this project are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-**Git tags** use a **`v`** prefix (e.g. **`v1.0.0`**), consistent with GitHub Releases. **SwiftPM** dependency pins use the semver **without** `v` (e.g. `from: "1.0.0"` — SwiftPM strips a leading `v` when resolving tags).
 
-## [Unreleased]
+## [1.0.2] - 2026-04-08
+
+### Changed
+
+- **`KawarimiPath`** (**`splitPathSegments`**, **`joinPathPrefix`**, **`aligned(path:pathPrefix:)`**) is the supported API for OpenAPI-style prefixes and persisted route paths; **`OpenAPIPathPrefix`** is deprecated with the same public API as **v1.0.1**, and **`configStoredPath`** uses **`KawarimiPath.aligned`**.
+- **Generated `KawarimiSpec.meta.apiPathPrefix`**: when **`servers[0].url`** has no path (e.g. `http://localhost:3001`) or path **`/`** only, emits **`""`** so operation paths match the document root (no implicit **`/api`**).
+- **`KawarimiConfigStore`**: default **`pathPrefix`** is **`""`**; prefix is built with **`KawarimiPath`**. Demo **`KawarimiExampleConfig`** / **`OpenAPIExecuteView`** follow the same rules.
+- **`OpenAPIPathPrefix.defaultMountPath`** is deprecated — use an explicit prefix or **`KawarimiSpec.meta.apiPathPrefix`**.
+- From **1.0.1**, if you relied on **`KawarimiConfigStore(configPath:)`** without **`pathPrefix:`**, pass **`pathPrefix: "/api"`** (or **`OpenAPIPathPrefix.defaultMountPath`**, deprecated) when your API lives under **`/api`**, or use **`KawarimiSpec.meta.apiPathPrefix`** from a regenerated spec.
+- Regenerate Kawarimi outputs after upgrade if your OpenAPI server URL has no path segment; refresh persisted **`kawarimi.json`** paths if they no longer match the spec.
 
 ## [1.0.1] - 2026-04-08
 
@@ -57,5 +65,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.0.2]: https://github.com/novr/Kawarimi/releases/tag/v1.0.2
 [1.0.1]: https://github.com/novr/Kawarimi/releases/tag/v1.0.1
 [1.0.0]: https://github.com/novr/Kawarimi/releases/tag/v1.0.0
