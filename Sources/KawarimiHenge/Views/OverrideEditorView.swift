@@ -62,6 +62,8 @@ struct OverrideEditorView: View {
         NavigationLayoutLogic.explorerTightVertical(vertical: verticalSizeClass)
     }
 
+    private var specPathPrefix: String { meta?.apiPathPrefix ?? "" }
+
     private var endpointItems: [SpecEndpointItem] {
         store.endpointItems(endpoints: endpoints)
     }
@@ -107,12 +109,10 @@ struct OverrideEditorView: View {
             }
         }
         .task(id: specLoadID) {
-            store.apiPathPrefix = meta?.apiPathPrefix ?? ""
-            store.resyncDetailAfterSpecReload(endpoints: endpoints, overrides: overrides)
+            store.resyncDetailAfterSpecReload(pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
         }
         .task(id: overridesRevision) {
-            store.apiPathPrefix = meta?.apiPathPrefix ?? ""
-            store.resyncDetailAfterOverridesRefresh(endpoints: endpoints, overrides: overrides)
+            store.resyncDetailAfterOverridesRefresh(pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
         }
         .confirmationDialog(
             "Reset all overrides?",
@@ -151,7 +151,7 @@ struct OverrideEditorView: View {
     /// Subtitle under the path when a mock is on: which OpenAPI example body is selected (`Default` or named).
     private func endpointListExampleCaption(rowKey: EndpointRowKey, item: SpecEndpointItem) -> String? {
         let opId = item.endpoint.operationId
-        let code = store.displayedListStatus(for: rowKey, operationId: opId, overrides: overrides)
+        let code = store.displayedListStatus(for: rowKey, operationId: opId, pathPrefix: specPathPrefix, overrides: overrides)
         guard code != -1 else { return nil }
         let exId: String?
         if let d = store.detail, d.endpointRowKey == rowKey, d.mock.isEnabled {
@@ -160,7 +160,7 @@ struct OverrideEditorView: View {
             exId = OverrideListQueries.primaryEnabledOverride(
                 for: rowKey,
                 operationId: opId,
-                pathPrefix: store.apiPathPrefix,
+                pathPrefix: specPathPrefix,
                 in: overrides
             )?.exampleId
         }
@@ -177,7 +177,7 @@ struct OverrideEditorView: View {
     private var selectionBinding: Binding<EndpointRowKey?> {
         Binding(
             get: { store.selectedRowKey },
-            set: { store.applySelection($0, endpoints: endpoints, overrides: overrides) }
+            set: { store.applySelection($0, pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides) }
         )
     }
 
@@ -207,7 +207,7 @@ struct OverrideEditorView: View {
                 Section {
                     ForEach(filteredEndpointItems) { item in
                         Button {
-                            store.applySelection(item.rowKey, endpoints: endpoints, overrides: overrides)
+                            store.applySelection(item.rowKey, pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
                             compactPath = [item.rowKey]
                         } label: {
                             EndpointRowView(
@@ -215,6 +215,7 @@ struct OverrideEditorView: View {
                                 statusCode: store.displayedListStatus(
                                     for: item.rowKey,
                                     operationId: item.endpoint.operationId,
+                                    pathPrefix: specPathPrefix,
                                     overrides: overrides
                                 ),
                                 exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
@@ -283,6 +284,7 @@ struct OverrideEditorView: View {
                             statusCode: store.displayedListStatus(
                                 for: item.rowKey,
                                 operationId: item.endpoint.operationId,
+                                pathPrefix: specPathPrefix,
                                 overrides: overrides
                             ),
                             exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
@@ -340,7 +342,7 @@ struct OverrideEditorView: View {
             OverrideDetailColumnView(
                 endpointItem: item,
                 overrides: overrides,
-                apiPathPrefix: store.apiPathPrefix,
+                apiPathPrefix: specPathPrefix,
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: d.isDirty,
@@ -366,7 +368,7 @@ struct OverrideEditorView: View {
             OverrideDetailColumnView(
                 endpointItem: item,
                 overrides: overrides,
-                apiPathPrefix: store.apiPathPrefix,
+                apiPathPrefix: specPathPrefix,
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: store.detail?.isDirty == true && store.detail?.endpointRowKey == key,
@@ -381,7 +383,7 @@ struct OverrideEditorView: View {
             )
             .onAppear {
                 if store.detail?.endpointRowKey != key {
-                    store.applySelection(key, endpoints: endpoints, overrides: overrides)
+                    store.applySelection(key, pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
                 }
             }
             .navigationTitle("\(item.endpoint.method.rawValue) \(item.endpoint.path)")
@@ -405,7 +407,7 @@ struct OverrideEditorView: View {
         } else {
             ContentUnavailableView("Unknown endpoint", systemImage: "questionmark.circle")
                 .onAppear {
-                    store.applySelection(key, endpoints: endpoints, overrides: overrides)
+                    store.applySelection(key, pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
                 }
                 #if os(iOS)
                 .toolbar(.hidden, for: .tabBar)
@@ -453,6 +455,7 @@ struct OverrideEditorView: View {
     private func applyWithBody(endpointItem: SpecEndpointItem) async {
         await store.applyWithBody(
             endpointItem: endpointItem,
+            pathPrefix: specPathPrefix,
             overrides: overrides,
             configureOverride: configureOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
@@ -470,6 +473,7 @@ struct OverrideEditorView: View {
     private func disableCurrentMockRow(endpointItem: SpecEndpointItem) async {
         await store.disableCurrentMockRow(
             endpointItem: endpointItem,
+            pathPrefix: specPathPrefix,
             overrides: overrides,
             configureOverride: configureOverride,
             removeOverride: removeOverride,

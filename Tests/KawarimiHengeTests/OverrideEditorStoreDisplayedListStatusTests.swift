@@ -21,12 +21,11 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 private let pathPrefix = "/api"
 
-// MARK: displayedListStatus (plan §1c A1–A3) — drive `@Observable` `detail` / `apiPathPrefix` directly
+// MARK: displayedListStatus (plan §1c A1–A3) — drive `@Observable` `detail` + explicit `pathPrefix`
 
 @MainActor
 @Test func displayedListStatusA1NoDetailUsesPrimaryEnabledStatusCode() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     store.detail = nil
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -45,14 +44,13 @@ private let pathPrefix = "/api"
         body: "{}",
         contentType: "application/json"
     )
-    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, overrides: [ov])
+    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [ov])
     #expect(code == 503)
 }
 
 @MainActor
 @Test func displayedListStatusA1NoDetailReturnsMinusOneWhenNoEnabledOverride() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     store.detail = nil
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -61,14 +59,13 @@ private let pathPrefix = "/api"
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
     )
     let rowKey = EndpointRowKey(endpoint)
-    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, overrides: [])
+    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [])
     #expect(code == -1)
 }
 
 @MainActor
 @Test func displayedListStatusA2SelectedRowEnabledUsesDraftStatusCode() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     let endpoint = FakeSpecEndpoint(
         path: "/a",
         method: .get,
@@ -100,14 +97,13 @@ private let pathPrefix = "/api"
         body: "{}",
         contentType: "application/json"
     )
-    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, overrides: [otherRowEnabled])
+    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [otherRowEnabled])
     #expect(code == 418)
 }
 
 @MainActor
 @Test func displayedListStatusA3SelectedRowDisabledFallsBackToPrimaryEnabled() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     let endpoint = FakeSpecEndpoint(
         path: "/a",
         method: .get,
@@ -139,14 +135,13 @@ private let pathPrefix = "/api"
         body: "{}",
         contentType: "application/json"
     )
-    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, overrides: [enabled])
+    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [enabled])
     #expect(code == 502)
 }
 
 @MainActor
 @Test func displayedListStatusA3SelectedRowDisabledReturnsMinusOneWithoutEnabledOverride() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     let endpoint = FakeSpecEndpoint(
         path: "/a",
         method: .get,
@@ -168,14 +163,13 @@ private let pathPrefix = "/api"
         validationMessage: nil,
         isDirty: false
     )
-    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, overrides: [])
+    let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [])
     #expect(code == -1)
 }
 
 @MainActor
 @Test func displayedListStatusOtherRowIgnoresDraftForDifferentEndpoint() {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = pathPrefix
     let other = FakeSpecEndpoint(
         path: "/other",
         method: .get,
@@ -207,6 +201,6 @@ private let pathPrefix = "/api"
         body: "{}",
         contentType: "application/json"
     )
-    let code = store.displayedListStatus(for: otherKey, operationId: other.operationId, overrides: [ov])
+    let code = store.displayedListStatus(for: otherKey, operationId: other.operationId, pathPrefix: pathPrefix, overrides: [ov])
     #expect(code == 201)
 }
