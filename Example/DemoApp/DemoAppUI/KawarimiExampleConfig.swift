@@ -2,44 +2,34 @@ import DemoAPI
 import Foundation
 import KawarimiCore
 
-/// Demo wiring: keep OpenAPI `servers` / `x-kawarimi` aligned with the demo server.
 enum KawarimiExampleConfig {
     static var serverBaseURL: String { KawarimiSpec.meta.serverURL }
     static var apiPathPrefix: String { KawarimiSpec.meta.apiPathPrefix }
 
-    /// Client base URL: origin plus `apiPathPrefix` (avoids double-appending paths).
     static var clientBaseURL: URL? {
         resolve(origin: serverBaseURL, pathPrefix: apiPathPrefix)
     }
 
     private static func resolve(origin: String, pathPrefix: String) -> URL? {
         let trimmed = origin.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme != nil else { return nil }
+        guard var c = URLComponents(string: trimmed),
+              let scheme = c.scheme, !scheme.isEmpty else { return nil }
 
-        let normalized = OpenAPIPathPrefix.normalizedPrefix(pathPrefix)
-        var urlPath = url.path
-        if urlPath.isEmpty { urlPath = "/" }
-        urlPath = OpenAPIPathPrefix.normalizedPrefix(urlPath, defaultIfEmpty: "/")
+        let prefixSegs = KawarimiPath.splitPathSegments(pathPrefix)
+        let serverSegs = KawarimiPath.splitPathSegments(c.path)
 
-        if urlPath == normalized {
-            return url
+        if serverSegs == prefixSegs {
+            return c.url
         }
-        if urlPath == "/" {
-            var u = url
-            for seg in normalized.split(separator: "/").map(String.init) where !seg.isEmpty {
-                u = u.appendingPathComponent(seg)
-            }
-            return u
+
+        if serverSegs.isEmpty {
+            c.path = KawarimiPath.joinPathPrefix(prefixSegs)
+            return c.url
         }
-        guard var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
-        c.path = ""
+
+        c.path = KawarimiPath.joinPathPrefix(prefixSegs)
         c.query = nil
         c.fragment = nil
-        guard let originOnly = c.url else { return nil }
-        var u = originOnly
-        for seg in normalized.split(separator: "/").map(String.init) where !seg.isEmpty {
-            u = u.appendingPathComponent(seg)
-        }
-        return u
+        return c.url
     }
 }

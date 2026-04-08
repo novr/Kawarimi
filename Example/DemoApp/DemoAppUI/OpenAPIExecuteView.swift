@@ -631,7 +631,9 @@ struct OpenAPIExecuteView: View {
         resultText = ""
         defer { isRunning = false }
 
-        let metaPathPrefix = OpenAPIPathPrefix.normalizedPrefix(KawarimiSpec.meta.apiPathPrefix)
+        let metaPathPrefix = KawarimiPath.joinPathPrefix(
+            KawarimiPath.splitPathSegments(KawarimiSpec.meta.apiPathPrefix)
+        )
         var path = ep.path
         if path.hasPrefix(metaPathPrefix) {
             path = String(path.dropFirst(metaPathPrefix.count))

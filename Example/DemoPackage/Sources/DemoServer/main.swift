@@ -39,7 +39,12 @@ struct DemoServer {
         app.middleware.use(KawarimiInterceptorMiddleware(store: store))
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()
-        guard let serverURL = OpenAPIPathPrefix.stubServerURL(pathPrefix: await store.pathPrefix) else {
+        let stubPath = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(await store.pathPrefix))
+        var stubComponents = URLComponents()
+        stubComponents.scheme = "https"
+        stubComponents.host = "kawarimi.openapi.invalid"
+        stubComponents.path = stubPath.isEmpty ? "/" : stubPath
+        guard let serverURL = stubComponents.url else {
             throw DemoServerError.invalidStubURL
         }
         try handler.registerHandlers(on: transport, serverURL: serverURL)
