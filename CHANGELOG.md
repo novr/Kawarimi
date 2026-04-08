@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-04-08
+
+### Added
+
+- **`LICENSE`** at the repository root (Apache-2.0) so SwiftPM checkouts include a license file for tools such as LicensePlist.
+
 ## [1.0.0] - 2026-04-06
 
 ### Added
@@ -51,4 +57,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.0.1]: https://github.com/novr/Kawarimi/releases/tag/v1.0.1
 [1.0.0]: https://github.com/novr/Kawarimi/releases/tag/v1.0.0
