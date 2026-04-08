@@ -66,7 +66,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: []
     )
     #expect(built.isEnabled == false)
@@ -99,7 +99,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: []
     )
     #expect(built.isEnabled == true)
@@ -123,7 +123,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: []
     )
     guard case let .configureDisable(payload) = plan else {
@@ -157,7 +157,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: [stored]
     )
     guard case let .removeThenReset(removeKey, cleared) = plan else {
@@ -183,7 +183,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         endpoint: endpoint,
         rowKey: item.rowKey,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: []
     )
     guard case .none = plan else {
@@ -215,7 +215,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         mock: mock,
         rowKey: item.rowKey,
         operationId: endpoint.operationId,
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath,
+        pathPrefix: "/api",
         overrides: []
     )
     #expect(selected == true)
@@ -243,7 +243,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpointItem: item,
         endpoint: endpoint,
         overrides: [],
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath
+        pathPrefix: "/api"
     )
     #expect(mock.isEnabled == false)
     #expect(mock.statusCode == 200)
@@ -277,7 +277,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpointItem: item,
         endpoint: endpoint,
         overrides: [stored],
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath
+        pathPrefix: "/api"
     )
     #expect(mock.isEnabled == false)
     #expect(mock.body == "{\"k\":1}")
@@ -299,7 +299,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpointItem: item,
         endpoint: endpoint,
         overrides: [],
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath
+        pathPrefix: "/api"
     )
     #expect(mock.isEnabled == true)
     #expect(mock.statusCode == 200)
@@ -323,7 +323,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpointItem: item,
         endpoint: endpoint,
         overrides: [],
-        pathPrefix: OpenAPIPathPrefix.defaultMountPath
+        pathPrefix: "/api"
     )
     #expect(opts.count == 3)
     #expect(opts.first?.isSpec == true)

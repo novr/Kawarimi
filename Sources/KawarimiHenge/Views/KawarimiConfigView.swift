@@ -106,7 +106,7 @@ public struct KawarimiConfigView: View {
     /// When saving an enabled mock, turn off other enabled mocks for the same OpenAPI operation that use a **different HTTP status**.
     /// Otherwise the interceptor tie-break keeps e.g. 200 ahead of 503 and the list / API calls follow “Default” even though 503 was saved.
     private func disableConflictingStatusMocks(saved: MockOverride) async throws {
-        let pathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
+        let pathPrefix = meta?.apiPathPrefix ?? ""
         let all = try await fetchOverrides()
         for other in all where Self.shouldDisableOtherEnabledMock(
             saved: saved,
@@ -144,8 +144,8 @@ public struct KawarimiConfigView: View {
         if !na.isEmpty, !nb.isEmpty {
             return na == nb
         }
-        let pa = OpenAPIPathPrefix.configStoredPath(path: a.path, pathPrefix: pathPrefix)
-        let pb = OpenAPIPathPrefix.configStoredPath(path: b.path, pathPrefix: pathPrefix)
+        let pa = KawarimiPath.aligned(path: a.path, pathPrefix: pathPrefix)
+        let pb = KawarimiPath.aligned(path: b.path, pathPrefix: pathPrefix)
         return pa == pb
     }
 }

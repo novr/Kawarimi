@@ -107,11 +107,11 @@ struct OverrideEditorView: View {
             }
         }
         .task(id: specLoadID) {
-            store.apiPathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
+            store.apiPathPrefix = meta?.apiPathPrefix ?? ""
             store.resyncDetailAfterSpecReload(endpoints: endpoints, overrides: overrides)
         }
         .task(id: overridesRevision) {
-            store.apiPathPrefix = meta?.apiPathPrefix ?? OpenAPIPathPrefix.defaultMountPath
+            store.apiPathPrefix = meta?.apiPathPrefix ?? ""
             store.resyncDetailAfterOverridesRefresh(endpoints: endpoints, overrides: overrides)
         }
         .confirmationDialog(

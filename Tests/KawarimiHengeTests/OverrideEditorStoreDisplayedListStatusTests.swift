@@ -19,7 +19,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding]
 }
 
-private let pathPrefix = OpenAPIPathPrefix.defaultMountPath
+private let pathPrefix = "/api"
 
 // MARK: displayedListStatus (plan §1c A1–A3) — drive `@Observable` `detail` / `apiPathPrefix` directly
 

@@ -7,8 +7,7 @@ import Observation
 final class OverrideEditorStore {
     var detail: OverrideDetailDraft?
 
-    /// Must match ``KawarimiConfigStore`` / spec `apiPathPrefix` so override paths align with list rows.
-    var apiPathPrefix: String = OpenAPIPathPrefix.defaultMountPath
+    var apiPathPrefix: String = ""
 
     var selectedRowKey: EndpointRowKey? { detail?.endpointRowKey }
 

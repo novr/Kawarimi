@@ -19,7 +19,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding]
 }
 
-private let pathPrefix = OpenAPIPathPrefix.defaultMountPath
+private let pathPrefix = "/api"
 
 // MARK: resyncMockFromServer (plan §1c B1 / B3 / B4)
 

@@ -30,7 +30,7 @@ private enum TestAsyncError: LocalizedError {
 @MainActor
 @Test func applyWithBodyPropagatesErrorViaSetter() async {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = OpenAPIPathPrefix.defaultMountPath
+    store.apiPathPrefix = "/api"
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -57,7 +57,7 @@ private enum TestAsyncError: LocalizedError {
 @MainActor
 @Test func applyWithBodyClearsErrorThenSuccessUpdatesDraft() async {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = OpenAPIPathPrefix.defaultMountPath
+    store.apiPathPrefix = "/api"
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -108,7 +108,7 @@ private enum TestAsyncError: LocalizedError {
 @MainActor
 @Test func clearOverrideAndDisableMockRowPropagateConfiguratorErrors() async {
     let store = OverrideEditorStore()
-    store.apiPathPrefix = OpenAPIPathPrefix.defaultMountPath
+    store.apiPathPrefix = "/api"
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
