@@ -1,6 +1,8 @@
 # サンプル（Examples）
 
-**DemoPackage**（SwiftPM: OpenAPI 生成の `DemoAPI`、Vapor **DemoServer**）と **DemoApp**（Xcode 上の SwiftUI）です。本書は **このリポジトリのサンプル構成**・起動手順・**DemoApp** のスクリーンショットをまとめます。
+**DemoPackage**（SwiftPM: OpenAPI 生成の `DemoAPI`、Vapor **DemoServer**）と **DemoApp**（Xcode 上の SwiftUI）です。
+
+本書は **このリポジトリのサンプル構成**・起動手順・**DemoApp** のスクリーンショットをまとめます。
 
 - **ドキュメント一覧:** [docs/ja/README.md](../docs/ja/README.md) · [導入](../docs/ja/integration.md) · [Henge](../docs/ja/henge.md)
 - **English:** [README.md](README.md)
@@ -9,19 +11,25 @@
 
 | パス | 役割 |
 | --- | --- |
-| [`DemoPackage/`](DemoPackage/) | Swift パッケージ: `DemoAPI`（Types + Client + Kawarimi プラグイン出力）、**`DemoAPITests`**、**`DemoServer`**（macOS・Vapor）。 |
+| [`DemoPackage/`](DemoPackage/) | Swift パッケージ: `DemoAPI`（Types + Client + Kawarimi プラグイン出力）、**`DemoAPITests`**、**`DemoServer`**（macOS・Vapor）、**`HengeCli`**（macOS・`KawarimiConfigView` 用ホスト）。 |
 | [`DemoApp/`](DemoApp/) | SwiftUI のソース。[`DemoApp.xcodeproj`](DemoApp.xcodeproj) を Xcode で開く。 |
 | [`assets/`](assets/) | **DemoApp** の PNG（iOS シミュレータ）。下に本文へ埋め込み。 |
 
 ### DemoPackage の参照ソース
 
-依存の全体像: [`DemoPackage/Package.swift`](DemoPackage/Package.swift)（`DemoServer` ターゲット）。サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。**`KawarimiInterceptorMiddleware` は KawarimiCore の製品ではありません**—自前の Vapor アプリではコピー／改変して使ってください。
+依存の全体像: [`DemoPackage/Package.swift`](DemoPackage/Package.swift)（`DemoServer` ターゲット）。
+
+サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。
+
+**`KawarimiInterceptorMiddleware` は KawarimiCore の製品ではありません**—自前の Vapor アプリではコピー／改変して使ってください。
 
 ## セキュリティ（サンプル限定）
 
 **`__kawarimi`** 管理 API に**認証はありません**。
 
-**`DemoApp`** の OpenAPI 実行は **Spec で定義されたベース URL** に向けます。信頼できる環境でのみ使い、実運用では認証・ネットワーク制御を自前で追加してください。
+**`DemoApp`** の OpenAPI 実行は **Spec で定義されたベース URL** に向けます。
+
+信頼できる環境でのみ使い、実運用では認証・ネットワーク制御を自前で追加してください。
 
 本サンプルは**本番向けの安全対策を含みません**。
 
@@ -36,6 +44,17 @@ KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
 **`DemoAPITests`** がプロセス内の **`Kawarimi()`** トランスポートを検証します。
+
+## HengeCli（macOS）
+
+**`HengeCli`** は **`DemoPackage`** 内の SwiftPM 実行ファイルで、Xcode なしで **Kawarimi Henge** の UI（`KawarimiConfigView`）を起動します。
+
+管理用クライアントの URL は **`KawarimiSpec.meta`**（`openapi.yaml` の `servers` とパスプレフィックス）から決まります。詳細は [henge.md](../docs/ja/henge.md#hengecli-macos)。
+
+```bash
+cd DemoPackage && swift run DemoServer   # ターミナル 1
+cd DemoPackage && swift run HengeCli     # ターミナル 2（macOS のみ）
+```
 
 ## kawarimi.json（サンプル）
 
@@ -89,7 +108,9 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-**通常の API 呼び出し**（`__kawarimi` 以外）では、参照ミドルウェア向けに **`X-Kawarimi-Example-Id`** ヘッダーを付けると、同一ルートに複数オーバーライドが有効なときに一致する例へ絞り込めます。詳細は [henge.md](../docs/ja/henge.md) の `KawarimiMockRequestHeaders.exampleId` を参照してください。
+**通常の API 呼び出し**（`__kawarimi` 以外）では、参照ミドルウェア向けに **`X-Kawarimi-Example-Id`** ヘッダーを付けると、同一ルートに複数オーバーライドが有効なときに一致する例へ絞り込めます。
+
+詳細は [henge.md](../docs/ja/henge.md) の `KawarimiMockRequestHeaders.exampleId` を参照してください。
 
 Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift) を参照してください。
 
@@ -106,7 +127,7 @@ Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`Kawarimi
 
 **`DemoApp`** は **`DemoPackage` の `DemoAPI`** とリポジトリルートの **KawarimiCore / KawarimiHenge** にリンクしており、**`DemoPackage` に SwiftUI 依存はありません**。
 
-サンプルの `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるため。
+サンプルの `openapi.yaml` は **HTTP** かつ **`127.0.0.1`**（例: `http://127.0.0.1:8080/api`）。`localhost` が **`::1`** になり、Vapor が **IPv4 の 127.0.0.1** だけで待ち受けているときの接続拒否を避けるためです。
 
 **`DemoApp-Info.plist`**（同期対象の `DemoApp/` ではなく `DemoApp.xcodeproj` と同階層）で **NSAppTransportSecurity → NSAllowsLocalNetworking** を有効にし、ATS がローカル向け平文 HTTP を許可します。
 
