@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiHenge**: **`pinnedNumberedResponseChip`** is cleared when the draft is edited via **`applyMockEdit`** or **Format** (body / mock fields), not only on chip / save / resync.
 - **Docs**: **henge.md** / **ja/henge.md** — refresh/sync can replace or skip resync of the open detail (no discard confirmation); exclusive-active peer **`configure`** preserves stored bodies; integration samples pin **`from: "1.0.5"`**.
 
-## [1.0.4] - 2026-04-10
+## [1.0.4] - 2026-04-09
 
 ### Added
 
