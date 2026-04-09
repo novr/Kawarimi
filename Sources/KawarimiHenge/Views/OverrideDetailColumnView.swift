@@ -1,6 +1,11 @@
 import KawarimiCore
 import SwiftUI
 
+private enum OverrideDetailFocusField: Hashable {
+    case contentType
+    case jsonBody
+}
+
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -31,6 +36,7 @@ struct OverrideDetailColumnView: View {
     @State private var addCustomSelectedStatus: Int = 503
     @State private var addCustomFormError: String?
     @State private var addCustomScratchExampleId: String = ""
+    @FocusState private var detailFocus: OverrideDetailFocusField?
 
     private var addCustomStatusPickerCandidates: [Int] {
         ResponseChips.commonCustomHTTPStatusCodes
@@ -187,35 +193,14 @@ struct OverrideDetailColumnView: View {
     private var addCustomResponseSheet: some View {
         let candidates = addCustomStatusPickerCandidates
         return NavigationStack {
-            Form {
-                Section {
-                    if candidates.isEmpty {
-                        Text("Every common HTTP status for this sheet already appears in the OpenAPI spec for this operation. Use the chips above instead.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Picker("Status", selection: $addCustomSelectedStatus) {
-                            ForEach(candidates, id: \.self) { code in
-                                Text("\(code) \(HTTPStatusPhrase.text(for: code))")
-                                    .tag(code)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                    }
-                } header: {
-                    Text("HTTP status")
-                } footer: {
-                    Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
-                }
-                if let addCustomFormError {
-                    Section {
-                        Text(addCustomFormError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                }
+            Group {
+                #if os(macOS)
+                addCustomResponseSheetMacOS(candidates: candidates)
+                #else
+                addCustomResponseSheetIOSForm(candidates: candidates)
+                #endif
             }
-            .scrollContentBackground(.hidden)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(ExplorerPalette.surface)
             .navigationTitle("Add response")
             #if os(iOS)
@@ -243,8 +228,85 @@ struct OverrideDetailColumnView: View {
             }
         }
         #if os(macOS)
-        .frame(minWidth: 380, minHeight: 220)
+        .frame(minWidth: 440)
         #endif
+    }
+
+    @ViewBuilder
+    private func addCustomResponseSheetMacOS(candidates: [Int]) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("HTTP status")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.5)
+                if candidates.isEmpty {
+                    Text("Every common HTTP status for this sheet already appears in the OpenAPI spec for this operation. Use the chips above instead.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Status")
+                            .font(.subheadline.weight(.medium))
+                        Picker("Status", selection: $addCustomSelectedStatus) {
+                            ForEach(candidates, id: \.self) { code in
+                                Text("\(code) \(HTTPStatusPhrase.text(for: code))")
+                                    .tag(code)
+                            }
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .accessibilityLabel("Status")
+                    }
+                }
+                Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let addCustomFormError {
+                    Text(addCustomFormError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private func addCustomResponseSheetIOSForm(candidates: [Int]) -> some View {
+        Form {
+            Section {
+                if candidates.isEmpty {
+                    Text("Every common HTTP status for this sheet already appears in the OpenAPI spec for this operation. Use the chips above instead.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Picker("Status", selection: $addCustomSelectedStatus) {
+                        ForEach(candidates, id: \.self) { code in
+                            Text("\(code) \(HTTPStatusPhrase.text(for: code))")
+                                .tag(code)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+            } header: {
+                Text("HTTP status")
+            } footer: {
+                Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
+            }
+            if let addCustomFormError {
+                Section {
+                    Text(addCustomFormError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .scrollContentBackground(.hidden)
     }
 
     private static func autoGeneratedSupplementalExampleId() -> String {
@@ -374,6 +436,7 @@ struct OverrideDetailColumnView: View {
                     .multilineTextAlignment(.trailing)
                     .textFieldStyle(.plain)
                     .frame(maxWidth: 140)
+                    .focused($detailFocus, equals: .contentType)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
@@ -472,6 +535,7 @@ struct OverrideDetailColumnView: View {
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
                                 .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                                .allowsHitTesting(false)
                         )
                     }
                     .buttonStyle(.plain)
@@ -553,6 +617,7 @@ struct OverrideDetailColumnView: View {
                     .frame(minHeight: editorMinHeight)
                     .padding(.vertical, 4)
                     .padding(.trailing, 8)
+                    .focused($detailFocus, equals: .jsonBody)
             }
             .background(editorFill)
         }
@@ -560,6 +625,7 @@ struct OverrideDetailColumnView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
+                .allowsHitTesting(false)
         )
     }
 
@@ -578,6 +644,7 @@ struct OverrideDetailColumnView: View {
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
             Divider()
+                .allowsHitTesting(false)
         }
     }
 
