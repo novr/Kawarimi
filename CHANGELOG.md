@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiHenge**: **Inactive** save path — persist the current chip row with **`isEnabled: false`** without promoting it to primary (**`SavePayload.buildSaveInactive`**, **`OverrideEditorStore.applyWithBodySaveInactive`**).
+- **KawarimiHenge**: Explorer list **warning** when **two or more** enabled overrides exist for the same OpenAPI operation.
+
+### Changed
+
+- **KawarimiHenge**: **Apply** (was the single **Save** capsule) calls **`SavePayload.buildApplyPrimary`** — non–Spec-only drafts always save **enabled** (primary); **Mock active** toggle removed from the detail editor.
+- **KawarimiHenge**: **Primary** indicator is a **`P`** badge on chips and in the endpoint list (server primary only); **Spec** chip is accented when it is the effective response (no enabled override).
+- **KawarimiHenge**: Sidebar **status / example caption** always reflects **server primary**, not the chip selected for editing; **unsaved** indicator uses stashed drafts when you switch endpoints.
+- **KawarimiHenge**: Switching endpoints **stashes dirty drafts per row** (`pendingDraftsByRowKey`) so returning restores them; spec reload clears stashes.
+- **Docs**: **henge.md** / **ja/henge.md** — two save paths, list vs detail semantics, multi-enabled warning, stash behavior.
+
 ## [1.0.5] - 2026-04-09
 
 ### Fixed

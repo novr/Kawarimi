@@ -152,24 +152,27 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 ### 利用の流れ（UX）
 
-エンドポイントを選び、**レスポンスのチップ**で行を選び、必要なら JSON を編集して **Save**（サーバーへ `configure`）。
+エンドポイントを選び、**レスポンスのチップ**で行を選び、必要なら JSON を編集して **Apply** または **Inactive**（サーバーへ `configure`）。
 
 | やりたいこと | 操作 |
 | --- | --- |
-| この操作は OpenAPI のみ（**既定の**レスポンス行をモックしない） | **Spec** をタップ（先頭の spec ステータス・名前付き例なし・本文欄クリア）。**Mock active** をオフにして **Save**。 |
+| この操作は OpenAPI のみ（実効は **Spec**） | **Spec** をタップ（先頭の spec ステータス・名前付き例なし・本文欄クリア）。**Apply** で Spec 専用の**無効化**ペイロードを送る（ドラフトがすでに Spec 形なら **Inactive** でも同じ）。サーバーに **enabled 行が無い** とき実効は **Spec** で、**Spec** チップを強調表示します。 |
 | まだ行を消さずに「テンプレだけ見る」状態に戻す | **Spec** タップで本文クリア、または **enabled なし**＋無効の既定行ならテンプレ JSON が入っていても **Spec** が光る。**200 OK** をタップすると番号チップのまま同じ本文を編集できる。 |
-| ドキュメント上のあるレスポンスをモックする | **ステータス／例**のチップを選び本文を編集、**Mock active** をオン、**Save**。**`KawarimiConfigView`** は同じ OpenAPI 操作の**他の** enabled 行を先に **`isEnabled: false`** で `configure` してから現在の行を保存する（操作あたりアクティブは1行）。 |
-| OpenAPI に無いステータス（や例）を足す | **+**（Add response）でステータスを選び、メイン画面で編集して **Save**。 |
-| モックを止めるが `kawarimi.json` の行は残す | **Mock active** をオフにして **Save**（またはオン中に **Del** → 無効化が保存される）。 |
-| **今選んでいるチップ**に対応する保存行だけ消す | **Mock active** がオフで保存行があるとき **Del**（**`remove`**）。 |
+| ドキュメント上のあるレスポンスをモックする（サーバー上の **プライマリ**にする） | **ステータス／例**のチップを選び本文を編集、**Apply**。**`KawarimiConfigView`** は同じ OpenAPI 操作の**他の** enabled 行を先に **`isEnabled: false`** で `configure` してから現在の行を **有効**で保存します（通常は操作あたりアクティブは1行）。 |
+| OpenAPI に無いステータス（や例）を足す | **+**（Add response）でステータスを選び、メイン画面で編集して **Apply**（有効化しないなら **Inactive**）。 |
+| 行は残すが **アクティブにしない** | **Inactive** — **`isEnabled: false`** のまま upsert（現在のチップの行同一視は無効保存と同じ）。 |
+| モックを止めるが `kawarimi.json` の行は残す | **Inactive**、またはオン中に **Del**（無効化が保存される）。 |
+| **今選んでいるチップ**に対応する保存行だけ消す | モックがオフで保存行があるとき **Del**（**`remove`**）。 |
 | **既定行**（先頭の spec ステータス・無名例）をオフ＋本文クリアにし、エディタをそれに合わせる | 下部 **Reset** — そのキーへの **`configure` のみ**。同じ操作の**別チップ**の行は残るので、消すときはチップごとに **Del**。 |
 | 全オーバーライドを消す | エクスプローラの **Reset all overrides**（確認あり）。 |
 
-**Save** は **`SavePayload`** を組み立てて `configure` します。**Spec 形**のドラフト（下記と同じ判定）のときは、サーバー側にまだ **enabled** の行が残っていても、常に **`isEnabled: false`** と本文クリアを送ります（**Spec** に戻したのに保存でまた active にならないようにするため）。
+**Apply** と **Inactive** の両方が **`SavePayload`** を組み立てて `configure` します。**Spec 形**のドラフト（下記と同じ判定）のときは、サーバー側にまだ **enabled** の行が残っていても、常に **`isEnabled: false`** と本文クリアを送ります。**Spec 形でない**ドラフトでは **Apply** は必ず **`isEnabled: true`**（プライマリ化）、**Inactive** は **`isEnabled: false`** のままです。
+
+番号チップの **`P`** は**サーバー上のプライマリ**行にだけ付きます（未保存の選択とは一致しないことがあります）。**一覧のステータス／例のキャプション**も**サーバープライマリ**基準で、編集中のチップとは切り離されます。同一操作に **enabled 行が2件以上**あるとき（手編集の設定など）は一覧に**警告**が出ます。インターセプターはサーバー側の並び（`sortedForInterceptorTieBreak`）の先頭を使います。
 
 **Del**（−）: モック **オン** → 同一キーで **`configure` でオフ**。**オフ**で保存行が一致 → **`remove`**（設定から行削除）。
 
-**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Save** などのあとの **overrides の更新**では、**未保存がないとき**（`isDirty` が false）だけ詳細がサーバーに合わせて再同期されます。編集中は詳細はそのままなので、**Save** するか、別エンドポイントを選び直すなどで捨ててください。
+**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Apply** / **Inactive** のあとの **overrides の更新**では、**未保存がないとき**（`isDirty` が false）だけ詳細がサーバーに合わせて再同期されます。編集中は詳細はそのままなので、**Apply** / **Inactive** するか、別エンドポイントへ移ります。**別エンドポイントへ移ったとき、未保存（dirty）のドラフトは行キーごとに退避**され、同じ行を再度選ぶと復元されます（**Spec の再取得**で退避は消えます）。
 
 ---
 
@@ -190,7 +193,7 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 **アクティブは1行:** **`KawarimiConfigView`** の `configure` ラッパーが **`peerShouldBeDisabledWhenSavingEnabledRow`** で、**保存対象と同じ override 行でない**（別ステータスや別 `exampleId` も含む）同じ操作の enabled 行を、**先に** `configure` で **`isEnabled: false` のみ**送る（**`body` / `contentType` はそのまま**）。
 
-**Save**（**`SavePayload.build`**）: **`draftRepresentsSpecOnlyRowForSave`** なら先に **無効＋クリア**のペイロードで return。それ以外の **`isEnabled`** は **Mock active**（**`mock.isEnabled` のみ**）。オフ時は本文等をクリアし、**`mock.statusCode` / `mock.exampleId`** で行を特定。
+**Save** — UI では **`SavePayload.buildApplyPrimary`**（**Apply**）と **`SavePayload.buildSaveInactive`**（**Inactive**）を使います。**`draftRepresentsSpecOnlyRowForSave`** なら両方とも先に **無効＋クリア**のペイロードで return。それ以外では **Apply** は **`isEnabled: true`**（本文・CT の整理は有効保存どおり）、**Inactive** は **`isEnabled: false`** で本文等をクリアしつつ **`mock.statusCode` / `mock.exampleId`** で行を特定。従来の **`SavePayload.build(mock:endpoint:)`** は **`mock.isEnabled`** で分岐する後方互換 API です。
 
 **Del** — **`DisableMockPlanner`**: アクティブ → `configure` でオフ。オフ＋保存行一致 → **`remove`** ＋ Spec 寄せのリセット。それ以外は no-op。
 
