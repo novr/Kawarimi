@@ -28,6 +28,8 @@ struct OverrideDetailColumnView: View {
     let onApply: () -> Void
     let onReset: () -> Void
     let onDisableCurrentMock: () -> Void
+    let pinnedNumberedResponseChip: Bool
+    let onResponseChipSelected: (ResponseChip) -> Void
 
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
@@ -70,10 +72,8 @@ struct OverrideDetailColumnView: View {
         ResponseChips.chipIsSelected(
             option: opt,
             mock: mock,
-            rowKey: endpointItem.rowKey,
-            operationId: endpoint.operationId,
-            pathPrefix: apiPathPrefix,
-            overrides: overrides
+            endpoint: endpoint,
+            pinnedNumberedResponseChip: pinnedNumberedResponseChip
         )
     }
 
@@ -88,6 +88,7 @@ struct OverrideDetailColumnView: View {
             pathPrefix: apiPathPrefix
         )
         mock = m
+        onResponseChipSelected(opt)
     }
 
     private var shouldShowResponseBodySection: Bool {

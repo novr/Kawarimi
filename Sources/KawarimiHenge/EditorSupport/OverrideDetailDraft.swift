@@ -5,6 +5,7 @@ struct OverrideDetailDraft {
     var mock: MockOverride
     var validationMessage: String?
     var isDirty: Bool
+    var pinnedNumberedResponseChip: Bool = false
 
     init(mock: MockOverride, validationMessage: String?, isDirty: Bool = false) {
         self.mock = mock
@@ -21,8 +22,8 @@ struct OverrideDetailDraft {
         endpoints: [any SpecEndpointProviding],
         pathPrefix: String
     ) {
-        let draftRowKey = endpointRowKey
-        guard let endpoint = OverrideListQueries.endpoint(for: draftRowKey, in: endpoints) else { return }
+        pinnedNumberedResponseChip = false
+        guard let endpoint = OverrideListQueries.endpoint(for: endpointRowKey, in: endpoints) else { return }
         let rowKey = EndpointRowKey(endpoint)
         let opId = endpoint.operationId
 
@@ -61,7 +62,6 @@ struct OverrideDetailDraft {
             pathPrefix: pathPrefix,
             in: overrides
            ) {
-            mock.isEnabled = true
             mock.statusCode = pinned.statusCode
             mock.exampleId = pinned.exampleId
             mock.name = pinned.name ?? endpoint.operationId
@@ -75,14 +75,11 @@ struct OverrideDetailDraft {
             return
         }
 
-        // When the draft is off (or no exact row), do not jump to another example's enabled row — that
-        // made the default/spec chip look like its `isEnabled` flipped after selection or refresh.
         if mock.isEnabled {
             let candidates = overrides.filter {
                 $0.isEnabled && OverrideListQueries.overrideMatchesRow($0, rowKey: rowKey, pathPrefix: pathPrefix, operationId: opId)
             }
             if let ov = MockOverride.sortedForInterceptorTieBreak(candidates).first {
-                mock.isEnabled = true
                 mock.statusCode = ov.statusCode
                 mock.exampleId = ov.exampleId
                 mock.name = ov.name ?? endpoint.operationId

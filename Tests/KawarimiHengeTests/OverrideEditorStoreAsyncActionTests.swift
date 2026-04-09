@@ -45,8 +45,6 @@ private enum TestAsyncError: LocalizedError {
     var lastError: String?
     await store.applyWithBody(
         endpointItem: item,
-        pathPrefix: "/api",
-        overrides: [],
         configureOverride: { _ in throw TestAsyncError.kaboom },
         setErrorMessage: { lastError = $0 }
     )
@@ -72,8 +70,6 @@ private enum TestAsyncError: LocalizedError {
     var steps: [String?] = []
     await store.applyWithBody(
         endpointItem: item,
-        pathPrefix: "/api",
-        overrides: [],
         configureOverride: { sent in
             #expect(sent.isEnabled == true)
         },
@@ -96,8 +92,6 @@ private enum TestAsyncError: LocalizedError {
     var callCount = 0
     await store.applyWithBody(
         endpointItem: item,
-        pathPrefix: "/api",
-        overrides: [],
         configureOverride: { _ in
             callCount += 1
         },
