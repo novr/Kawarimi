@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.3] - 2026-04-09
+
+### Fixed
+
+- **KawarimiHenge** (macOS): explorer list — endpoint path and related labels could disappear when a row was selected (`List(selection:)` with a custom `listRowBackground`); use explicit AppKit label colors for row text and the search field.
+- **KawarimiHenge** (macOS): response JSON editor — `TextEditor` could show light backing under white monospace text; apply the dark `editorFill` behind the field after `scrollContentBackground(.hidden)`.
+- **KawarimiHenge** (macOS): search field could not accept focus or typing when hosted in a `List` `safeAreaInset`; stack `ExplorerTopInset` above the `List` instead.
+
 ## [1.0.2] - 2026-04-08
 
 ### Changed
@@ -65,6 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.0.3]: https://github.com/novr/Kawarimi/releases/tag/v1.0.3
 [1.0.2]: https://github.com/novr/Kawarimi/releases/tag/v1.0.2
 [1.0.1]: https://github.com/novr/Kawarimi/releases/tag/v1.0.1
 [1.0.0]: https://github.com/novr/Kawarimi/releases/tag/v1.0.0
