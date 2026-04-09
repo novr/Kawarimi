@@ -10,6 +10,7 @@ let package = Package(
     ],
     products: [
         .library(name: "DemoAPI", targets: ["DemoAPI"]),
+        .executable(name: "HengeCli", targets: ["HengeCli"]),
     ],
     dependencies: [
         .package(name: "Kawarimi", path: "../.."),
@@ -45,6 +46,14 @@ let package = Package(
                 .product(name: "Vapor", package: "vapor", condition: .when(platforms: [.macOS])),
             ],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+        ),
+        .executableTarget(
+            name: "HengeCli",
+            dependencies: [
+                "DemoAPI",
+                .product(name: "KawarimiCore", package: "Kawarimi"),
+                .product(name: "KawarimiHenge", package: "Kawarimi"),
+            ]
         ),
         .testTarget(
             name: "DemoAPITests",
