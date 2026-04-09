@@ -185,18 +185,16 @@ struct OverrideEditorView: View {
 
     private var compactExplorerRoot: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        explorerHeaderSafeAreaInset
-                    }
-            } else {
-                compactEndpointList
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        explorerHeaderSafeAreaInset
-                    }
+            explorerChromeHeader
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    compactEndpointList
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             errorBanner
         }
     }
@@ -245,18 +243,16 @@ struct OverrideEditorView: View {
 
     private var splitSidebarContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if isLoading {
-                ProgressView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        explorerHeaderSafeAreaInset
-                    }
-            } else {
-                splitEndpointList
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        explorerHeaderSafeAreaInset
-                    }
+            explorerChromeHeader
+            Group {
+                if isLoading {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    splitEndpointList
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             errorBanner
         }
         #if os(iOS)
@@ -311,8 +307,8 @@ struct OverrideEditorView: View {
 
     // MARK: - Shared chrome
 
-    /// Pinned above the endpoint `List` via `safeAreaInset` so rows never draw under the search bar.
-    private var explorerHeaderSafeAreaInset: some View {
+    /// Stacked above the endpoint `List` (not `safeAreaInset`) so the search field receives clicks and keyboard focus on macOS, where `List` + `safeAreaInset` often blocks `TextField` input.
+    private var explorerChromeHeader: some View {
         ExplorerTopInset(
             serverURL: serverURL,
             searchText: $searchText,
