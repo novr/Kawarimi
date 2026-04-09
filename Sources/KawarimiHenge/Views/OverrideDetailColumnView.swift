@@ -17,6 +17,8 @@ struct OverrideDetailColumnView: View {
     let endpointItem: SpecEndpointItem
     let overrides: [MockOverride]
     let apiPathPrefix: String
+    /// Server-side primary enabled row for this operation (`nil` = effective Spec).
+    let primaryOverride: MockOverride?
     @Binding var mock: MockOverride
     @Binding var validationMessage: String?
     let hasUnsavedChanges: Bool
@@ -25,7 +27,8 @@ struct OverrideDetailColumnView: View {
     let onRefresh: () -> Void
     let onValidate: () -> Void
     let onFormat: () -> Void
-    let onApply: () -> Void
+    let onApplyPrimary: () -> Void
+    let onSaveInactive: () -> Void
     let onReset: () -> Void
     let onDisableCurrentMock: () -> Void
     let pinnedNumberedResponseChip: Bool
@@ -127,17 +130,6 @@ struct OverrideDetailColumnView: View {
             get: { mock.contentType ?? "application/json" },
             set: { newValue in
                 mock.contentType = newValue.isEmpty ? nil : newValue
-            }
-        )
-    }
-
-    private var mockEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { mock.isEnabled },
-            set: { newValue in
-                var m = mock
-                m.isEnabled = newValue
-                mock = m
             }
         )
     }
@@ -364,7 +356,7 @@ struct OverrideDetailColumnView: View {
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(.secondary)
                         .tracking(0.6)
-                    Text("Pick Spec to clear the mock, or a response row from the OpenAPI spec (each status / example is its own chip). Add creates another row for any HTTP status (new example id). Long-press a chip to copy its example id for X-Kawarimi-Example-Id. Del turns off an active mock; if it is already off, Del removes that row from the server config.")
+                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Apply saves and makes the selected row primary. Save inactive keeps the row disabled on the server. Add creates another row. Long-press a chip to copy example id. Del turns off an active mock or removes an inactive row.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(detailTightVertical ? 4 : nil)
@@ -397,21 +389,17 @@ struct OverrideDetailColumnView: View {
                 .padding(.top, 2)
             }
             responseStatusChipStrip
-
-            Toggle(isOn: mockEnabledBinding) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Mock active")
-                        .font(.subheadline.weight(.medium))
-                    Text("Off: requests hit the real handler (same as Spec). On: the interceptor returns this row after Save.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .toggleStyle(.switch)
-            .padding(.top, detailTightVertical ? 8 : 10)
-            .accessibilityLabel("Mock response active")
         }
+    }
+
+    private func chipMatchesServerPrimary(_ opt: ResponseChip) -> Bool {
+        guard !opt.isSpec, let p = primaryOverride else { return false }
+        return opt.statusCode == p.statusCode
+            && MockExamplePresentation.exampleIdsEqual(opt.exampleId, p.exampleId)
+    }
+
+    private var specChipIsServerEffective: Bool {
+        primaryOverride == nil
     }
 
     @ViewBuilder
@@ -510,14 +498,17 @@ struct OverrideDetailColumnView: View {
             HStack(spacing: 8) {
                 ForEach(chipOptions) { opt in
                     let selected = responseChipIsSelected(opt)
+                    let primaryHere = chipMatchesServerPrimary(opt)
+                    let specEffective = opt.isSpec && specChipIsServerEffective
                     Button {
                         applyResponseChip(opt)
                     } label: {
                         HStack(spacing: 6) {
-                            if selected, !opt.isSpec, mock.isEnabled {
-                                Circle()
-                                    .fill(Color.green)
-                                    .frame(width: 6, height: 6)
+                            if primaryHere {
+                                Text("P")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(Color.green)
+                                    .accessibilityLabel("Primary on server")
                             }
                             Text(opt.label)
                                 .font(.subheadline.weight(selected ? .semibold : .regular))
@@ -535,11 +526,15 @@ struct OverrideDetailColumnView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                                .strokeBorder(
+                                    specEffective ? Color.accentColor.opacity(0.85) : ExplorerPalette.groupedFieldStroke,
+                                    lineWidth: specEffective ? 2 : 1
+                                )
                                 .allowsHitTesting(false)
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityHint(primaryHere ? "Primary mock on server" : "")
                     .contextMenu {
                         Button {
                             copyChipExampleIdToPasteboard(opt)
@@ -634,7 +629,8 @@ struct OverrideDetailColumnView: View {
         HStack(spacing: 4) {
             toolbarPlainButton(title: "Validate", systemImage: "checkmark.circle", action: onValidate)
             toolbarPlainButton(title: "Format", systemImage: "text.alignleft", action: onFormat)
-            saveCapsuleButton
+            applyPrimaryCapsuleButton
+            saveInactiveToolbarButton
             toolbarPlainButton(title: "Reset", systemImage: "arrow.counterclockwise", foreground: .red) {
                 confirmResetEndpoint = true
             }
@@ -649,12 +645,12 @@ struct OverrideDetailColumnView: View {
         }
     }
 
-    private var saveCapsuleButton: some View {
-        Button(action: onApply) {
+    private var applyPrimaryCapsuleButton: some View {
+        Button(action: onApplyPrimary) {
             VStack(spacing: 4) {
                 Image(systemName: "square.and.arrow.down")
                     .font(.system(size: 20))
-                Text("Save")
+                Text("Apply")
                     .font(.caption2.weight(.semibold))
                     .lineLimit(1)
             }
@@ -666,6 +662,30 @@ struct OverrideDetailColumnView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
+        .accessibilityLabel("Apply mock — save and set as primary on server")
+    }
+
+    private var saveInactiveToolbarButton: some View {
+        Button(action: onSaveInactive) {
+            VStack(spacing: 4) {
+                Image(systemName: "tray.and.arrow.down")
+                    .font(.system(size: 18))
+                Text("Inactive")
+                    .font(.caption2.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Color.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, detailTightVertical ? 6 : 8)
+            .padding(.horizontal, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .strokeBorder(Color.secondary.opacity(0.45), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel("Save without activating — keep row disabled on server")
     }
 
     private func toolbarPlainButton(

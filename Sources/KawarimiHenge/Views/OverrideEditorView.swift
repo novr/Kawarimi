@@ -169,22 +169,17 @@ struct OverrideEditorView: View {
         )
     }
 
-    /// Subtitle under the path when a mock is on: which OpenAPI example body is selected (`Default` or named).
+    /// Subtitle: **server primary** example label (list is never driven by unsaved draft selection).
     private func endpointListExampleCaption(rowKey: EndpointRowKey, item: SpecEndpointItem) -> String? {
         let opId = item.endpoint.operationId
         let code = store.displayedListStatus(for: rowKey, operationId: opId, pathPrefix: specPathPrefix, overrides: overrides)
         guard code != -1 else { return nil }
-        let exId: String?
-        if let d = store.detail, d.endpointRowKey == rowKey, d.mock.isEnabled {
-            exId = d.mock.exampleId
-        } else {
-            exId = OverrideListQueries.primaryEnabledOverride(
-                for: rowKey,
-                operationId: opId,
-                pathPrefix: specPathPrefix,
-                in: overrides
-            )?.exampleId
-        }
+        let exId = OverrideListQueries.primaryEnabledOverride(
+            for: rowKey,
+            operationId: opId,
+            pathPrefix: specPathPrefix,
+            in: overrides
+        )?.exampleId
         let choices = item.mockResponsePickerItems.filter { $0.response.statusCode == code }
         if let pick = MockExamplePresentation.matchingPickerItem(exampleId: exId, in: choices) {
             return MockExamplePresentation.label(for: pick.response)
@@ -193,6 +188,24 @@ struct OverrideEditorView: View {
             return raw
         }
         return nil
+    }
+
+    private func primaryOverride(for item: SpecEndpointItem) -> MockOverride? {
+        OverrideListQueries.primaryEnabledOverride(
+            for: item.rowKey,
+            operationId: item.endpoint.operationId,
+            pathPrefix: specPathPrefix,
+            in: overrides
+        )
+    }
+
+    private func showsMultipleActiveMocksWarning(for item: SpecEndpointItem) -> Bool {
+        OverrideListQueries.hasMultipleEnabledOverridesForOperation(
+            rowKey: item.rowKey,
+            operationId: item.endpoint.operationId,
+            pathPrefix: specPathPrefix,
+            in: overrides
+        )
     }
 
     private var selectionBinding: Binding<EndpointRowKey?> {
@@ -238,7 +251,8 @@ struct OverrideEditorView: View {
                                     overrides: overrides
                                 ),
                                 exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
-                                hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
+                                hasUnsavedDraft: store.hasUnsavedDraft(for: item.rowKey),
+                                showMultipleActiveMocksWarning: showsMultipleActiveMocksWarning(for: item),
                                 showChevron: true
                             )
                         }
@@ -305,7 +319,8 @@ struct OverrideEditorView: View {
                                 overrides: overrides
                             ),
                             exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
-                            hasUnsavedDraft: store.detail?.isDirty == true && store.detail?.endpointRowKey == item.rowKey,
+                            hasUnsavedDraft: store.hasUnsavedDraft(for: item.rowKey),
+                            showMultipleActiveMocksWarning: showsMultipleActiveMocksWarning(for: item),
                             showChevron: false
                         )
                         .tag(item.rowKey)
@@ -360,6 +375,7 @@ struct OverrideEditorView: View {
                 endpointItem: item,
                 overrides: overrides,
                 apiPathPrefix: specPathPrefix,
+                primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
                 hasUnsavedChanges: d.isDirty,
@@ -368,7 +384,8 @@ struct OverrideEditorView: View {
                 onRefresh: onRefresh,
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
-                onApply: { Task { await applyWithBody(endpointItem: item) } },
+                onApplyPrimary: { Task { await applyWithBodyApplyPrimary(endpointItem: item) } },
+                onSaveInactive: { Task { await applyWithBodySaveInactive(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: d.endpointRowKey),
@@ -388,15 +405,17 @@ struct OverrideEditorView: View {
                 endpointItem: item,
                 overrides: overrides,
                 apiPathPrefix: specPathPrefix,
+                primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
-                hasUnsavedChanges: store.detail?.isDirty == true && store.detail?.endpointRowKey == key,
+                hasUnsavedChanges: store.hasUnsavedDraft(for: key),
                 embedNavigationStack: false,
                 showToolbarRefresh: false,
                 onRefresh: onRefresh,
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
-                onApply: { Task { await applyWithBody(endpointItem: item) } },
+                onApplyPrimary: { Task { await applyWithBodyApplyPrimary(endpointItem: item) } },
+                onSaveInactive: { Task { await applyWithBodySaveInactive(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: key),
@@ -464,7 +483,7 @@ struct OverrideEditorView: View {
             compactPop()
             return
         }
-        await applyWithBody(endpointItem: item)
+        await applyWithBodyApplyPrimary(endpointItem: item)
         if errorMessage.wrappedValue == nil {
             compactPop()
         }
@@ -477,8 +496,16 @@ struct OverrideEditorView: View {
         )
     }
 
-    private func applyWithBody(endpointItem: SpecEndpointItem) async {
-        await store.applyWithBody(
+    private func applyWithBodyApplyPrimary(endpointItem: SpecEndpointItem) async {
+        await store.applyWithBodyApplyPrimary(
+            endpointItem: endpointItem,
+            configureOverride: configureOverride,
+            setErrorMessage: { errorMessage.wrappedValue = $0 }
+        )
+    }
+
+    private func applyWithBodySaveInactive(endpointItem: SpecEndpointItem) async {
+        await store.applyWithBodySaveInactive(
             endpointItem: endpointItem,
             configureOverride: configureOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }

@@ -61,7 +61,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: "{ \"a\": 1 }",
         contentType: "application/json"
     )
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == false)
     #expect(built.statusCode == 200)
     #expect(built.exampleId == nil)
@@ -88,7 +88,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: nil,
         contentType: nil
     )
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == false)
     #expect(built.statusCode == 201)
     #expect(built.exampleId == nil)
@@ -114,7 +114,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: nil,
         contentType: nil
     )
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == false)
     #expect(built.statusCode == 200)
     #expect(built.exampleId == "beta")
@@ -140,7 +140,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: "{ }",
         contentType: "application/json"
     )
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == true)
     #expect(built.statusCode == 200)
     #expect(built.exampleId == "beta")
@@ -411,7 +411,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
     #expect(serverRow.isEnabled)
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == false)
     #expect(built.body == nil)
     #expect(built.exampleId == nil)
@@ -435,7 +435,6 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: "{\"x\":1}",
         contentType: "application/json"
     )
-    // Non–Spec-only draft (body not empty): previously `hasRow` forced `isEnabled` true and flipped Mock active after Save.
     let mock = MockOverride(
         name: "op",
         path: "/p",
@@ -447,8 +446,33 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         contentType: "application/json"
     )
     #expect(serverRow.isEnabled)
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
-    #expect(built.isEnabled == false)
+    let inactiveBuilt = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
+    #expect(inactiveBuilt.isEnabled == false)
+    let applyBuilt = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
+    // Draft matches spec template → both paths send the Spec-only disable payload.
+    #expect(applyBuilt.isEnabled == false)
+}
+
+@Test func savePayloadApplyPrimaryPromotesWhenBodyDiffersFromSpec() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let mock = MockOverride(
+        name: "op",
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: "{\"x\":1}",
+        contentType: "application/json"
+    )
+    let built = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
+    #expect(built.isEnabled == true)
+    #expect(built.body == "{\"x\":1}")
 }
 
 @Test func applyChipSpecClearsMock() {
@@ -701,9 +725,55 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         body: specBody,
         contentType: "application/json"
     )
-    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    let built = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
     #expect(built.isEnabled == false)
     #expect(built.body == nil)
+}
+
+@Test func hasMultipleEnabledOverridesForOperationDetectsTwoOnSameOperation() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/pets",
+        method: .get,
+        operationId: "listPets",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let a = MockOverride(
+        name: "listPets",
+        path: "/api/pets",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
+    let b = MockOverride(
+        name: "listPets",
+        path: "/api/pets",
+        method: .get,
+        statusCode: 503,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
+    #expect(
+        OverrideListQueries.hasMultipleEnabledOverridesForOperation(
+            rowKey: item.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: "/api",
+            in: [a, b]
+        )
+    )
+    #expect(
+        !OverrideListQueries.hasMultipleEnabledOverridesForOperation(
+            rowKey: item.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: "/api",
+            in: [a]
+        )
+    )
 }
 
 // MARK: - Exclusive enabled row (configure)

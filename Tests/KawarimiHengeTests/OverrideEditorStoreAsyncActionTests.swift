@@ -25,10 +25,10 @@ private enum TestAsyncError: LocalizedError {
     var errorDescription: String? { "kaboom" }
 }
 
-// MARK: ``OverrideEditorStore/applyWithBody`` (async + injected `configureOverride`)
+// MARK: ``OverrideEditorStore/applyWithBodyApplyPrimary`` / ``applyWithBodySaveInactive``
 
 @MainActor
-@Test func applyWithBodyPropagatesErrorViaSetter() async {
+@Test func applyPrimaryPropagatesErrorViaSetter() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -43,7 +43,7 @@ private enum TestAsyncError: LocalizedError {
         isDirty: true
     )
     var lastError: String?
-    await store.applyWithBody(
+    await store.applyWithBodyApplyPrimary(
         endpointItem: item,
         configureOverride: { _ in throw TestAsyncError.kaboom },
         setErrorMessage: { lastError = $0 }
@@ -53,7 +53,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func applyWithBodyClearsErrorThenSuccessUpdatesDraft() async {
+@Test func applyPrimaryClearsErrorThenSuccessUpdatesDraft() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -68,7 +68,7 @@ private enum TestAsyncError: LocalizedError {
         isDirty: true
     )
     var steps: [String?] = []
-    await store.applyWithBody(
+    await store.applyWithBodyApplyPrimary(
         endpointItem: item,
         configureOverride: { sent in
             #expect(sent.isEnabled == true)
@@ -80,7 +80,36 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func applyWithBodySkipsConfiguratorWhenDetailMissing() async {
+@Test func saveInactiveClearsErrorThenSuccessSendsDisabledPayload() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(name: "op", path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: "{\"x\":1}", contentType: "application/json"),
+        validationMessage: nil,
+        isDirty: true
+    )
+    var steps: [String?] = []
+    await store.applyWithBodySaveInactive(
+        endpointItem: item,
+        configureOverride: { sent in
+            #expect(sent.isEnabled == false)
+            #expect(sent.statusCode == 200)
+        },
+        setErrorMessage: { steps.append($0) }
+    )
+    #expect(steps == [nil])
+    #expect(store.detail?.isDirty == false)
+    #expect(store.detail?.mock.isEnabled == false)
+}
+
+@MainActor
+@Test func applyPrimarySkipsConfiguratorWhenDetailMissing() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -90,7 +119,28 @@ private enum TestAsyncError: LocalizedError {
     )
     let item = SpecEndpointItem(endpoint)
     var callCount = 0
-    await store.applyWithBody(
+    await store.applyWithBodyApplyPrimary(
+        endpointItem: item,
+        configureOverride: { _ in
+            callCount += 1
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(callCount == 0)
+}
+
+@MainActor
+@Test func saveInactiveSkipsConfiguratorWhenDetailMissing() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    var callCount = 0
+    await store.applyWithBodySaveInactive(
         endpointItem: item,
         configureOverride: { _ in
             callCount += 1

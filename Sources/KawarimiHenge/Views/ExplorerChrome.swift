@@ -118,6 +118,8 @@ struct EndpointRowView: View {
     let statusCode: Int
     let exampleCaption: String?
     let hasUnsavedDraft: Bool
+    /// True when the server has two or more `isEnabled` overrides for this OpenAPI operation (ambiguous primary).
+    let showMultipleActiveMocksWarning: Bool
     let showChevron: Bool
 
     private var endpoint: any SpecEndpointProviding { item.endpoint }
@@ -171,6 +173,13 @@ struct EndpointRowView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 8) {
+                if showMultipleActiveMocksWarning {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .help("Multiple enabled mocks exist for this operation; interceptor uses the first after server ordering.")
+                        .accessibilityLabel("Warning: multiple enabled mocks for this operation")
+                }
                 if hasUnsavedDraft {
                     Text("Unsaved")
                         .font(.caption2.weight(.semibold))
@@ -183,9 +192,10 @@ struct EndpointRowView: View {
                             .foregroundStyle(rowSecondaryForeground)
                     } else {
                         HStack(spacing: 5) {
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 6, height: 6)
+                            Text("P")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.green)
+                                .accessibilityLabel("Primary mock on server")
                             Text("\(statusCode)")
                                 .font(.caption.monospaced().weight(.semibold))
                                 .foregroundStyle(rowPathForeground)

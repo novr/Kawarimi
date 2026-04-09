@@ -21,7 +21,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 private let pathPrefix = "/api"
 
-// MARK: displayedListStatus (plan §1c A1–A3) — drive `@Observable` `detail` + explicit `pathPrefix`
+// MARK: displayedListStatus — server-primary list (ignores open detail for same-row edits)
 
 @MainActor
 @Test func displayedListStatusA1NoDetailUsesPrimaryEnabledStatusCode() {
@@ -64,7 +64,8 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusA2SelectedRowEnabledUsesDraftStatusCode() {
+/// List status is **always** the server primary enabled row; the open detail selection does not drive the sidebar.
+@Test func displayedListStatusA2IgnoresSelectedDraftUsesPrimaryEnabled() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -98,7 +99,7 @@ private let pathPrefix = "/api"
         contentType: "application/json"
     )
     let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [otherRowEnabled])
-    #expect(code == 418)
+    #expect(code == 500)
 }
 
 @MainActor

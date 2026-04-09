@@ -40,6 +40,34 @@ enum OverrideListQueries {
         primaryEnabledOverride(for: rowKey, operationId: operationId, pathPrefix: pathPrefix, in: overrides)?.statusCode
     }
 
+    /// All **enabled** overrides for this OpenAPI operation (path/method or `operationId`), interceptor tie-break order.
+    static func enabledOverridesForOperation(
+        rowKey: EndpointRowKey,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> [MockOverride] {
+        let candidates = overrides.filter { ov in
+            ov.isEnabled && overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
+        }
+        return MockOverride.sortedForInterceptorTieBreak(candidates)
+    }
+
+    /// More than one enabled row for the same operation (e.g. hand-edited config); interceptor uses tie-break order.
+    static func hasMultipleEnabledOverridesForOperation(
+        rowKey: EndpointRowKey,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> Bool {
+        enabledOverridesForOperation(
+            rowKey: rowKey,
+            operationId: operationId,
+            pathPrefix: pathPrefix,
+            in: overrides
+        ).count >= 2
+    }
+
     static func endpoint(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> (any SpecEndpointProviding)? {
         endpoints.first { EndpointRowKey($0) == rowKey }
     }
