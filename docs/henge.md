@@ -149,34 +149,53 @@ Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try
 
 The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint explorer + detail column).
 
-**Editing rules** (response chips, Save payload shape, Del branching, endpoint search) live under **`Sources/KawarimiHenge/EditorSupport/`** — e.g. `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`.
+<a id="henge-editor-ux"></a>
 
-**Which row is selected** and draft metadata (`validationMessage`, `isDirty`) are owned by **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
+### User workflow (UX)
 
-Keep those rule chains out of the store except where it orchestrates (validate/format/save/resync); shared matching stays in **`OverrideListQueries`** and **KawarimiCore**.
+Pick an endpoint, then a **response row** (chips), edit JSON if needed, and **Save** to call `configure` on the server.
+
+| Goal | What to do |
+| --- | --- |
+| Rely on OpenAPI only for this operation (no active mock for the **default** response row) | Tap **Spec** (draft clears to the operation’s **first** spec status, no named example, empty editor body). Turn **Mock active** off. **Save**. |
+| Return the UI to that “template-only” state without deleting rows yet | Tap **Spec** (clears body) or rely on **no enabled mock** + default disabled row: **Spec** highlights even when the editor shows merged OpenAPI JSON; tap **200 OK** if you want the numbered chip while editing the same template. |
+| Mock one documented response | Select the **status / example** chip, edit body, turn **Mock active** on, **Save**. **`KawarimiConfigView`** turns **`isEnabled: false`** on every **other** enabled row for the **same OpenAPI operation** first (any status / `exampleId`), then saves the current row — only one active mock per operation. |
+| Add a status (or example) not in the doc | **+** (Add response), pick status, edit on the main screen, **Save**. |
+| Turn the mock off but keep the row in `kawarimi.json` | **Mock active** off, **Save** (or **Del** while the mock is on — that saves **disabled**). |
+| Remove the saved row for the **current** chip | **Del** when **Mock active** is already off and a matching saved row exists (calls **`remove`**). |
+| Reset the **default** row to “off + cleared” and align the editor | **Reset** in the bottom bar — sends **`configure`** for the operation’s **first** spec status (no named example) only. **Other** chips’ rows for the same operation stay in `kawarimi.json` until you **Del** each. |
+| Clear every override | **Reset all overrides** in the explorer chrome (with confirmation). |
+
+**Save** builds **`SavePayload`** then `configure`. If the draft is **Spec-shaped** (see below), **Save** always sends **`isEnabled: false`** and cleared body fields for that default row — even if an **enabled** line for the same keys was still on the server — so you don’t accidentally stay “active” after choosing **Spec**.
+
+**Del** (−): mock **on** → **`configure`** with **off** for the same keys; mock **off** and a **saved** row matches the chip → **`remove`** (row deleted from config).
+
+**Refresh / sync:** The editor assumes a **local, single-user** workflow — there is **no confirmation dialog** when a refresh would replace the open detail. **Reloading spec** refetches endpoints and **replaces the current detail** from server state (unsaved edits are dropped). **Refreshing overrides** after **Save** / **configure** updates the list; the open detail **resyncs from the server only when there are no unsaved changes** (`isDirty` is false). If you have unsaved edits, the detail is left as-is until you **Save** or discard by changing selection.
+
+---
+
+### Implementors (code map)
+
+**Editing rules** live under **`Sources/KawarimiHenge/EditorSupport/`** — `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`, **`OverrideListQueries`** (e.g. **`draftRepresentsSpecOnlyRowForSave`**). **Selection + draft meta** (`validationMessage`, `isDirty`) are **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
 
 | UI / doc term | Code | Notes |
 | --- | --- | --- |
 | Endpoint list row | `EndpointRowKey` + `SpecEndpointItem` | Selection is by `EndpointRowKey`. |
-| Detail editor | One `MockOverride` in `OverrideDetailDraft` | A snapshot for the selected logical row, not the entire overrides array. |
-| Server / config row | `MockOverride` in `kawarimi.json` | Same identity as configure/remove: **`path` + `method` + `statusCode` + normalized `exampleId`**. Do not describe deletes as “by `operationId` only”. |
-| Default / unnamed example | `exampleId` nil (after trim) | Aligns with reserved **`__default`** at lookup time; UI treats it as “no example id”. |
+| Detail editor | One `MockOverride` in `OverrideDetailDraft` | Snapshot for the selected logical row, not the whole overrides array. |
+| Server / config row | `MockOverride` in `kawarimi.json` | Same identity as configure/remove: **`path` + `method` + `statusCode` + normalized `exampleId`**. |
+| Default / unnamed example | `exampleId` nil (after trim) | Lookup uses reserved **`__default`**; UI “no example id”. |
 
-**Spec** response chip is selected when the draft mock is **disabled** and **no stored row** matches the current `statusCode` and `exampleId` (so disabled-but-persisted rows stay on their chip, not Spec).
+**Response chips (mock off):** **`ResponseChips.chipIsSelected`** treats **`draftRepresentsSpecOnlyRowForSave`** like **Save** (empty or template-matching body) for highlighting **Spec**, unless **`OverrideDetailDraft.pinnedNumberedResponseChip`** is set (cleared on resync, successful **Save**, reset, and whenever the store changes the draft body or mock fields — `applyMockEdit`, **Format**).
 
-**Save** calls `configure` with **`SavePayload`**.
+**SavePayload** early exit uses **`draftRepresentsSpecOnlyRowForSave`** only.
 
-The override is sent as enabled if the mock toggle is on, or a stored row exists for that status/example, or the response is **not** listed in the OpenAPI operation (custom status/example).
+**Exclusive active mock:** **`KawarimiConfigView`**’s `configure` wrapper calls **`OverrideListQueries.peerShouldBeDisabledWhenSavingEnabledRow`** so that, before the enabled row is written, every **other** enabled override for the same operation (same `operationId` or aligned path; **any** status/`exampleId` pair except the row being saved) is **`configure`**d with **`isEnabled: false`** only — **`body` / `contentType` on those peers are unchanged**.
 
-If the payload is disabled for a spec-only choice, **`statusCode`** is the operation’s first spec status, **`exampleId`** is cleared, and body fields are cleared for the wire.
+**Save** (`SavePayload.build`): if **`draftRepresentsSpecOnlyRowForSave`**, return a fixed **disabled** payload for the first spec status (early exit). Otherwise **`isEnabled`** is **`mock.isEnabled`** (Mock active) only — not forced on by a matching server row. Trim body / clear content type when off; keep **`mock.statusCode`** and **`mock.exampleId`** for row identity.
 
-**Del** uses **`DisableMockPlanner`**:
+**Del** — **`DisableMockPlanner`**: active mock → `configure` **off**; off + matching stored row → **`remove`** + draft reset toward spec; else **no-op**.
 
-- Active mock → `configure` with `isEnabled: false` (same keys).
-- Already off with a matching stored row → **`remove`**, then reset the draft toward the spec default.
-- Otherwise → **no-op**.
-
-**Automated tests:** target **`KawarimiHengeTests`** (`Tests/KawarimiHengeTests/`) exercises filter, chip transitions, save payload, and Del planning.
+**Automated tests:** **`KawarimiHengeTests`** (`Tests/KawarimiHengeTests/`).
 
 ## Client: real server vs Kawarimi mock
 

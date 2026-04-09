@@ -55,10 +55,10 @@ public struct KawarimiConfigView: View {
             specLoadID: specLoadID,
             overridesRevision: overridesRevision,
             configureOverride: { override in
-                try await configureOverride(override)
                 if override.isEnabled {
                     try await disableConflictingStatusMocks(saved: override)
                 }
+                try await configureOverride(override)
                 await refreshOverridesOnly()
             },
             removeOverride: { override in
@@ -103,49 +103,19 @@ public struct KawarimiConfigView: View {
         }
     }
 
-    /// When saving an enabled mock, turn off other enabled mocks for the same OpenAPI operation that use a **different HTTP status**.
-    /// Otherwise the interceptor tie-break keeps e.g. 200 ahead of 503 and the list / API calls follow “Default” even though 503 was saved.
+    /// When saving an enabled mock, turn off every **other** enabled override for the same OpenAPI operation
+    /// (different status **or** same status with a different `exampleId`) so only one row stays active.
     private func disableConflictingStatusMocks(saved: MockOverride) async throws {
         let pathPrefix = meta?.apiPathPrefix ?? ""
         let all = try await fetchOverrides()
-        for other in all where Self.shouldDisableOtherEnabledMock(
+        for other in all where OverrideListQueries.peerShouldBeDisabledWhenSavingEnabledRow(
             saved: saved,
-            other: other,
+            peer: other,
             pathPrefix: pathPrefix
         ) {
             var dis = other
             dis.isEnabled = false
-            dis.body = nil
-            dis.contentType = nil
             try await configureOverride(dis)
         }
-    }
-
-    private static func shouldDisableOtherEnabledMock(
-        saved: MockOverride,
-        other: MockOverride,
-        pathPrefix: String
-    ) -> Bool {
-        guard other.isEnabled else { return false }
-        guard saved.method == other.method else { return false }
-        guard sameOpenAPIOperation(saved, other, pathPrefix: pathPrefix) else { return false }
-        guard saved.statusCode != other.statusCode else { return false }
-        return true
-    }
-
-    /// Treats spec paths (e.g. `/greet`) and stored paths (e.g. `/api/greet`) as the same operation when prefixes align.
-    private static func sameOpenAPIOperation(
-        _ a: MockOverride,
-        _ b: MockOverride,
-        pathPrefix: String
-    ) -> Bool {
-        let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !na.isEmpty, !nb.isEmpty {
-            return na == nb
-        }
-        let pa = KawarimiPath.aligned(path: a.path, pathPrefix: pathPrefix)
-        let pb = KawarimiPath.aligned(path: b.path, pathPrefix: pathPrefix)
-        return pa == pb
     }
 }

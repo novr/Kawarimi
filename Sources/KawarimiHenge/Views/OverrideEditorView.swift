@@ -370,7 +370,9 @@ struct OverrideEditorView: View {
                 onFormat: { store.formatBody() },
                 onApply: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
-                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } }
+                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
+                pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: d.endpointRowKey),
+                onResponseChipSelected: syncPinnedNumberedResponseChip(afterSelecting:)
             )
         } else {
             Text("Select an endpoint")
@@ -396,7 +398,9 @@ struct OverrideEditorView: View {
                 onFormat: { store.formatBody() },
                 onApply: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
-                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } }
+                onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
+                pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: key),
+                onResponseChipSelected: syncPinnedNumberedResponseChip(afterSelecting:)
             )
             .onAppear {
                 if store.detail?.endpointRowKey != key {
@@ -449,6 +453,10 @@ struct OverrideEditorView: View {
         store.clearSelection()
     }
 
+    private func syncPinnedNumberedResponseChip(afterSelecting chip: ResponseChip) {
+        store.setPinnedNumberedResponseChip(!chip.isSpec)
+    }
+
     private func saveAndCompactPopIfSuccess() async {
         guard let key = store.detail?.endpointRowKey,
               let item = store.specItem(for: key, endpoints: endpoints)
@@ -472,8 +480,6 @@ struct OverrideEditorView: View {
     private func applyWithBody(endpointItem: SpecEndpointItem) async {
         await store.applyWithBody(
             endpointItem: endpointItem,
-            pathPrefix: specPathPrefix,
-            overrides: overrides,
             configureOverride: configureOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )

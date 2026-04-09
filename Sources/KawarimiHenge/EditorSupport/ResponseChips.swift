@@ -121,22 +121,22 @@ enum ResponseChips {
     static func chipIsSelected(
         option: ResponseChip,
         mock: MockOverride,
-        rowKey: EndpointRowKey,
-        operationId: String,
-        pathPrefix: String,
-        overrides: [MockOverride]
+        endpoint: any SpecEndpointProviding,
+        pinnedNumberedResponseChip: Bool = false
     ) -> Bool {
-        if option.isSpec {
-            if mock.isEnabled { return false }
-            return !OverrideListQueries.hasStoredRowMatchingDraft(
-                mock,
-                rowKey: rowKey,
-                operationId: operationId,
-                pathPrefix: pathPrefix,
-                in: overrides
-            )
+        if mock.isEnabled {
+            if option.isSpec { return false }
+            return numberedChipMatchesMock(option, mock)
         }
-        return mock.statusCode == option.statusCode
+        let specSelected = !pinnedNumberedResponseChip
+            && OverrideListQueries.draftRepresentsSpecOnlyRowForSave(mock: mock, endpoint: endpoint)
+        if option.isSpec { return specSelected }
+        guard numberedChipMatchesMock(option, mock) else { return false }
+        return !specSelected
+    }
+
+    private static func numberedChipMatchesMock(_ option: ResponseChip, _ mock: MockOverride) -> Bool {
+        mock.statusCode == option.statusCode
             && MockExamplePresentation.exampleIdsEqual(mock.exampleId, option.exampleId)
     }
 

@@ -23,30 +23,19 @@ final class OverrideEditorStore {
         pathPrefix: String,
         overrides: [MockOverride]
     ) -> Int {
-        if let d = detail, d.endpointRowKey == rowKey {
-            if d.mock.isEnabled {
-                return d.mock.statusCode
-            }
-            // Current chip is off; still show this operation's primary enabled mock if any (same as when unselected).
-            if let code = OverrideListQueries.enabledStatusCode(
-                for: rowKey,
-                operationId: operationId,
-                pathPrefix: pathPrefix,
-                in: overrides
-            ) {
-                return code
-            }
-            return -1
-        }
-        if let code = OverrideListQueries.enabledStatusCode(
+        let primaryCode = OverrideListQueries.enabledStatusCode(
             for: rowKey,
             operationId: operationId,
             pathPrefix: pathPrefix,
             in: overrides
-        ) {
-            return code
+        ) ?? -1
+        guard let d = detail, d.endpointRowKey == rowKey else {
+            return primaryCode
         }
-        return -1
+        if d.mock.isEnabled {
+            return d.mock.statusCode
+        }
+        return primaryCode
     }
 
     func endpointItems(endpoints: [any SpecEndpointProviding]) -> [SpecEndpointItem] {
@@ -138,12 +127,12 @@ final class OverrideEditorStore {
         d.mock.body = str
         d.validationMessage = EditorValidation.formattedMessage
         d.isDirty = true
+        d.pinnedNumberedResponseChip = false
         commitDetail(d)
     }
 
     func applyMockEdit(from item: SpecEndpointItem, newMock: MockOverride) {
         guard var d = detail else { return }
-        // Prefer row-key match; also accept operationId when path strings diverge (e.g. configured vs spec path).
         let sameRow = d.endpointRowKey == item.rowKey
         let sameOp = d.endpointRowKey.method == item.rowKey.method
             && d.mock.name == item.endpoint.operationId
@@ -156,6 +145,7 @@ final class OverrideEditorStore {
         d.mock = m
         d.isDirty = true
         d.validationMessage = nil
+        d.pinnedNumberedResponseChip = false
         commitDetail(d)
     }
 
@@ -169,12 +159,23 @@ final class OverrideEditorStore {
     func applyServerReset(mock: MockOverride, rowKey: EndpointRowKey) {
         guard var d = detail, d.endpointRowKey == rowKey else { return }
         d.mock = mock
+        d.pinnedNumberedResponseChip = false
         d.isDirty = false
         d.validationMessage = nil
         commitDetail(d)
     }
 
-    /// Matches ``OverrideEditorView/validationMessageBinding`` set side (detail must exist).
+    func pinnedNumberedResponseChip(for rowKey: EndpointRowKey) -> Bool {
+        guard let d = detail, d.endpointRowKey == rowKey else { return false }
+        return d.pinnedNumberedResponseChip
+    }
+
+    func setPinnedNumberedResponseChip(_ value: Bool) {
+        guard var d = detail else { return }
+        d.pinnedNumberedResponseChip = value
+        commitDetail(d)
+    }
+
     func setDetailValidationMessage(_ message: String?) {
         guard var d = detail else { return }
         d.validationMessage = message
@@ -183,21 +184,13 @@ final class OverrideEditorStore {
 
     func applyWithBody(
         endpointItem: SpecEndpointItem,
-        pathPrefix: String,
-        overrides: [MockOverride],
         configureOverride: @escaping (MockOverride) async throws -> Void,
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         let endpoint = endpointItem.endpoint
         setErrorMessage(nil)
         guard var draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
-        let override = SavePayload.build(
-            mock: draft.mock,
-            endpoint: endpoint,
-            rowKey: endpointItem.rowKey,
-            pathPrefix: pathPrefix,
-            overrides: overrides
-        )
+        let override = SavePayload.build(mock: draft.mock, endpoint: endpoint)
         do {
             try await configureOverride(override)
             draft.mock.isEnabled = override.isEnabled
@@ -205,6 +198,7 @@ final class OverrideEditorStore {
             draft.mock.exampleId = override.exampleId
             draft.mock.body = override.body
             draft.mock.contentType = override.contentType
+            draft.pinnedNumberedResponseChip = false
             commitDetail(draft)
             markSavedClean()
         } catch {

@@ -80,7 +80,6 @@ enum OverrideListQueries {
         }
     }
 
-    /// True when the draft corresponds to a persisted override row (used for Spec chip vs disabled-row selection).
     static func hasStoredRowMatchingDraft(
         _ draft: MockOverride,
         rowKey: EndpointRowKey,
@@ -152,5 +151,100 @@ enum OverrideListQueries {
         endpoint.responseList.contains { r in
             r.statusCode == statusCode && MockExamplePresentation.exampleIdsEqual(r.exampleId, exampleId)
         }
+    }
+
+    static func draftRepresentsSpecOnlyRowForSave(
+        mock: MockOverride,
+        endpoint: any SpecEndpointProviding
+    ) -> Bool {
+        guard !mock.isEnabled else { return false }
+        guard mock.statusCode == (endpoint.responseList.first?.statusCode ?? 200) else { return false }
+        guard MockExamplePresentation.normalizedExampleId(mock.exampleId) == nil else { return false }
+        let bodyTrim = (mock.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let ctTrim = (mock.contentType ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if bodyTrim.isEmpty && ctTrim.isEmpty { return true }
+        return mockBodyAndContentTypeMatchSpecTemplate(mock: mock, endpoint: endpoint)
+    }
+
+    // MARK: - Exclusive enabled row (same OpenAPI operation)
+
+    /// Same `paths` entry + HTTP method (via `operationId` when both set, else aligned paths).
+    static func sameOpenAPIOperation(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
+        let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !na.isEmpty, !nb.isEmpty { return na == nb }
+        let pa = KawarimiPath.aligned(path: a.path, pathPrefix: pathPrefix)
+        let pb = KawarimiPath.aligned(path: b.path, pathPrefix: pathPrefix)
+        return pa == pb
+    }
+
+    /// Same persisted row identity as `configure` / `remove` (path + method + status + example id).
+    static func isSameOverrideRow(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
+        guard a.method == b.method else { return false }
+        guard a.statusCode == b.statusCode else { return false }
+        guard MockExamplePresentation.exampleIdsEqual(a.exampleId, b.exampleId) else { return false }
+        let pa = KawarimiPath.aligned(path: a.path, pathPrefix: pathPrefix)
+        let pb = KawarimiPath.aligned(path: b.path, pathPrefix: pathPrefix)
+        return pa == pb
+    }
+
+    /// When saving **`saved`** with **`isEnabled: true`**, each matching **other** enabled row for the same operation
+    /// (including same status + different `exampleId`) should be turned off so only one mock is active.
+    static func peerShouldBeDisabledWhenSavingEnabledRow(
+        saved: MockOverride,
+        peer: MockOverride,
+        pathPrefix: String
+    ) -> Bool {
+        guard peer.isEnabled else { return false }
+        guard saved.method == peer.method else { return false }
+        guard sameOpenAPIOperation(saved, peer, pathPrefix: pathPrefix) else { return false }
+        return !isSameOverrideRow(saved, peer, pathPrefix: pathPrefix)
+    }
+
+    // MARK: - Spec template matching (Save payload only)
+
+    private static func mockBodyAndContentTypeMatchSpecTemplate(
+        mock: MockOverride,
+        endpoint: any SpecEndpointProviding
+    ) -> Bool {
+        guard let specResp = endpoint.responseList.first(where: { r in
+            r.statusCode == mock.statusCode && MockExamplePresentation.exampleIdsEqual(r.exampleId, mock.exampleId)
+        }) else { return false }
+        return bodiesAndContentTypesMatchSpec(mock: mock, spec: specResp)
+    }
+
+    private static func bodiesAndContentTypesMatchSpec(
+        mock: MockOverride,
+        spec: any SpecMockResponseProviding
+    ) -> Bool {
+        let mb = (mock.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let sb = spec.body.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bodyOK: Bool
+        if mb.isEmpty, sb.isEmpty {
+            bodyOK = true
+        } else {
+            bodyOK = bodiesLogicallyEqual(trimmedMock: mb, trimmedSpec: sb)
+        }
+        return bodyOK && contentTypesAligned(mockContentType: mock.contentType, specContentType: spec.contentType)
+    }
+
+    private static func bodiesLogicallyEqual(trimmedMock: String, trimmedSpec: String) -> Bool {
+        if trimmedMock == trimmedSpec { return true }
+        guard let dm = trimmedMock.data(using: .utf8),
+              let ds = trimmedSpec.data(using: .utf8),
+              let jm = try? JSONSerialization.jsonObject(with: dm),
+              let js = try? JSONSerialization.jsonObject(with: ds) else {
+            return false
+        }
+        return (jm as? NSObject)?.isEqual(js) ?? false
+    }
+
+    private static func contentTypesAligned(mockContentType: String?, specContentType: String) -> Bool {
+        let m = (mockContentType ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let s = specContentType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if m.isEmpty, s.isEmpty { return true }
+        if m.isEmpty { return s == "application/json" || s.isEmpty }
+        if s.isEmpty { return m == "application/json" || m.isEmpty }
+        return m == s
     }
 }

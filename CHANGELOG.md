@@ -6,7 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.4] - 2026-04-10
+## [Unreleased]
+
+## [1.0.5] - 2026-04-09
+
+### Fixed
+
+- **KawarimiHenge**: **Spec** vs **200 OK** when **no enabled override** — **chip** selection treats merged template like **Save** (JSON-matched default row → **Spec**) unless the user chose a numbered chip (**`pinnedNumberedResponseChip`** on **`OverrideDetailDraft`**, cleared on resync / save / reset).
+- **KawarimiHenge**: **Save** respects **Mock active** — **`isEnabled`** is no longer forced **on** when a matching row exists on the server or for custom responses; the toggle no longer flips after **Save**.
+- **KawarimiHenge**: **Save** with **Mock active** off no longer sent **`configure`** for the **first** OpenAPI status only — e.g. disabling **201** incorrectly targeted **200**. **`SavePayload`** now keeps the draft **statusCode** and **exampleId** whenever **Spec-only** early exit does not apply.
+
+### Changed
+
+- **KawarimiConfigView**: enabling a row (**Save** with **Mock active** on) **`configure`**-disables every **other** enabled override for the **same operation** (including **same status**, different **`exampleId`**), before applying the new row — peers keep **`body`** / **`contentType`** (only **`isEnabled: false`**).
+- **KawarimiHenge**: **`pinnedNumberedResponseChip`** is cleared when the draft is edited via **`applyMockEdit`** or **Format** (body / mock fields), not only on chip / save / resync.
+- **Docs**: **henge.md** / **ja/henge.md** — refresh/sync can replace or skip resync of the open detail (no discard confirmation); exclusive-active peer **`configure`** preserves stored bodies; integration samples pin **`from: "1.0.5"`**.
+
+## [1.0.4] - 2026-04-09
 
 ### Added
 
@@ -89,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.0.5]: https://github.com/novr/Kawarimi/releases/tag/v1.0.5
 [1.0.4]: https://github.com/novr/Kawarimi/releases/tag/v1.0.4
 [1.0.3]: https://github.com/novr/Kawarimi/releases/tag/v1.0.3
 [1.0.2]: https://github.com/novr/Kawarimi/releases/tag/v1.0.2

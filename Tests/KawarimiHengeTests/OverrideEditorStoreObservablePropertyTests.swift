@@ -149,3 +149,46 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(store.detail?.validationMessage == nil)
 }
 
+@MainActor
+@Test func applyMockEditClearsPinnedNumberedResponseChip() {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "getP",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    var draft = OverrideDetailDraft(
+        mock: MockOverride(
+            name: "getP",
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: false,
+            body: "{}",
+            contentType: "application/json"
+        ),
+        validationMessage: nil,
+        isDirty: false
+    )
+    draft.pinnedNumberedResponseChip = true
+    store.commitDetail(draft)
+    #expect(store.pinnedNumberedResponseChip(for: item.rowKey) == true)
+    store.applyMockEdit(
+        from: item,
+        newMock: MockOverride(
+            name: "getP",
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: false,
+            body: "{\"a\":1}",
+            contentType: "application/json"
+        )
+    )
+    #expect(store.detail?.pinnedNumberedResponseChip == false)
+}
+
