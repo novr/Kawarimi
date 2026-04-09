@@ -64,6 +64,14 @@ struct OverrideEditorView: View {
 
     private var specPathPrefix: String { meta?.apiPathPrefix ?? "" }
 
+    private var explorerShowsInlineSearch: Bool {
+        #if os(iOS)
+        true
+        #else
+        false
+        #endif
+    }
+
     private var endpointItems: [SpecEndpointItem] {
         store.endpointItems(endpoints: endpoints)
     }
@@ -80,6 +88,12 @@ struct OverrideEditorView: View {
                     compactExplorerRoot
                         #if os(iOS)
                         .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                        #if os(macOS)
+                        .searchable(
+                            text: $searchText,
+                            prompt: Text("Search endpoints, methods, or descriptions")
+                        )
                         #endif
                         .toolbar {
                             ToolbarItem(placement: .principal) {
@@ -268,6 +282,13 @@ struct OverrideEditorView: View {
                 Button("Refresh", action: onRefresh)
             }
         }
+        #if os(macOS)
+        .searchable(
+            text: $searchText,
+            placement: .sidebar,
+            prompt: Text("Search endpoints, methods, or descriptions")
+        )
+        #endif
     }
 
     private var splitEndpointList: some View {
@@ -307,14 +328,14 @@ struct OverrideEditorView: View {
 
     // MARK: - Shared chrome
 
-    /// Stacked above the endpoint `List` (not `safeAreaInset`) so the search field receives clicks and keyboard focus on macOS, where `List` + `safeAreaInset` often blocks `TextField` input.
     private var explorerChromeHeader: some View {
         ExplorerTopInset(
             serverURL: serverURL,
             searchText: $searchText,
             explorerTightVertical: explorerTightVertical,
             horizontalMargin: Self.explorerHorizontalMargin,
-            onRequestResetAll: { confirmResetAll = true }
+            onRequestResetAll: { confirmResetAll = true },
+            showsInlineSearch: explorerShowsInlineSearch
         )
     }
 

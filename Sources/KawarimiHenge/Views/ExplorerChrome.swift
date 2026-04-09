@@ -35,12 +35,15 @@ struct ExplorerTopInset: View {
     let explorerTightVertical: Bool
     let horizontalMargin: CGFloat
     let onRequestResetAll: () -> Void
+    var showsInlineSearch: Bool = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: explorerTightVertical ? 8 : 12) {
                 serverStatusCard
-                searchField
+                if showsInlineSearch {
+                    searchField
+                }
             }
             .padding(.horizontal, horizontalMargin)
             .padding(.top, explorerTightVertical ? 4 : 8)
@@ -95,9 +98,6 @@ struct ExplorerTopInset: View {
                 .foregroundStyle(.secondary)
             TextField("Search endpoints, methods, or descriptions", text: $searchText)
                 .textFieldStyle(.plain)
-                #if os(macOS)
-                .foregroundStyle(Color(nsColor: .labelColor))
-                #endif
         }
         .padding(explorerTightVertical ? 8 : 12)
         .background(
@@ -120,7 +120,6 @@ struct EndpointRowView: View {
 
     private var endpoint: any SpecEndpointProviding { item.endpoint }
 
-    /// Avoids macOS `List(selection:)` + custom `listRowBackground` mismatch where SwiftUI still applies “selected row” label coloring without drawing the selection fill (white-on-card).
     private var rowPathForeground: Color {
         #if os(macOS)
         Color(nsColor: .labelColor)
