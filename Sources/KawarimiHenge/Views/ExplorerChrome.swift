@@ -2,6 +2,13 @@ import HTTPTypes
 import KawarimiCore
 import SwiftUI
 
+#if canImport(UIKit)
+import UIKit
+#endif
+#if canImport(AppKit) && !os(iOS)
+import AppKit
+#endif
+
 struct ExplorerListHeader: View {
     let meta: any SpecMetaProviding
     let horizontalMargin: CGFloat
@@ -88,6 +95,9 @@ struct ExplorerTopInset: View {
                 .foregroundStyle(.secondary)
             TextField("Search endpoints, methods, or descriptions", text: $searchText)
                 .textFieldStyle(.plain)
+                #if os(macOS)
+                .foregroundStyle(Color(nsColor: .labelColor))
+                #endif
         }
         .padding(explorerTightVertical ? 8 : 12)
         .background(
@@ -110,6 +120,31 @@ struct EndpointRowView: View {
 
     private var endpoint: any SpecEndpointProviding { item.endpoint }
 
+    /// Avoids macOS `List(selection:)` + custom `listRowBackground` mismatch where SwiftUI still applies “selected row” label coloring without drawing the selection fill (white-on-card).
+    private var rowPathForeground: Color {
+        #if os(macOS)
+        Color(nsColor: .labelColor)
+        #else
+        Color(UIColor.label)
+        #endif
+    }
+
+    private var rowCaptionTertiaryForeground: Color {
+        #if os(macOS)
+        Color(nsColor: .tertiaryLabelColor)
+        #else
+        Color(UIColor.tertiaryLabel)
+        #endif
+    }
+
+    private var rowSecondaryForeground: Color {
+        #if os(macOS)
+        Color(nsColor: .secondaryLabelColor)
+        #else
+        Color(UIColor.secondaryLabel)
+        #endif
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Text(endpoint.method.rawValue.uppercased())
@@ -124,10 +159,11 @@ struct EndpointRowView: View {
                     .font(.system(.body, design: .monospaced))
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    .foregroundStyle(rowPathForeground)
                 if let exampleCaption {
                     Text(exampleCaption)
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(rowCaptionTertiaryForeground)
                         .lineLimit(1)
                 }
             }
@@ -143,7 +179,7 @@ struct EndpointRowView: View {
                     if statusCode == -1 {
                         Text("Spec")
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(rowSecondaryForeground)
                     } else {
                         HStack(spacing: 5) {
                             Circle()
@@ -151,7 +187,7 @@ struct EndpointRowView: View {
                                 .frame(width: 6, height: 6)
                             Text("\(statusCode)")
                                 .font(.caption.monospaced().weight(.semibold))
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(rowPathForeground)
                         }
                     }
                 }
@@ -159,7 +195,7 @@ struct EndpointRowView: View {
                 if showChevron {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(rowCaptionTertiaryForeground)
                 }
             }
         }
