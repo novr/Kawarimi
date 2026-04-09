@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.4] - 2026-04-10
+
+### Added
+
+- **Example/DemoPackage**: **`HengeCli`** executable — macOS SwiftUI host for **`KawarimiConfigView`**, admin **`baseURL`** from generated **`KawarimiSpec.meta`**; **quit** when the last window closes; **activate** the app on launch so text fields work when started from Terminal.
+
+### Fixed
+
+- **KawarimiHenge** (macOS): **TextEditor** / **TextField** input — decorative **`strokeBorder`** overlays use **`allowsHitTesting(false)`**; **`@FocusState`** on content-type and JSON body; JSON editor stays **outside** the outer vertical **`ScrollView`**; drop AppKit search / plain-text wrappers in favor of SwiftUI (**`.searchable`** and **`TextEditor`**).
+- **KawarimiHenge** (macOS): **NavigationSplitView** explorer — wrap the sidebar in **`NavigationStack`**, set **`navigationSplitViewColumnWidth`**, use **inline search** in the split layout; compact navigation keeps **`.searchable`** on the stack.
+- **KawarimiHenge** (macOS): **Add response** sheet — **`ScrollView`** + **`VStack`** layout instead of **`Form`** section footers that broke spacing on macOS.
+
+### Changed
+
+- **Docs**: **HengeCli** section in **henge.md** / **ja/henge.md**; **Example/README** paragraph breaks; English and Japanese integration samples pin **`from: "1.0.4"`**.
+
 ## [1.0.3] - 2026-04-09
 
 ### Fixed
@@ -73,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.0.4]: https://github.com/novr/Kawarimi/releases/tag/v1.0.4
 [1.0.3]: https://github.com/novr/Kawarimi/releases/tag/v1.0.3
 [1.0.2]: https://github.com/novr/Kawarimi/releases/tag/v1.0.2
 [1.0.1]: https://github.com/novr/Kawarimi/releases/tag/v1.0.1
