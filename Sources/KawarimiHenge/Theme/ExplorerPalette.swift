@@ -61,6 +61,14 @@ enum ExplorerPalette {
         #endif
     }
 
+    static var chipSelectedLabel: Color {
+        #if os(iOS)
+        Color.primary
+        #else
+        Color(nsColor: .alternateSelectedControlTextColor)
+        #endif
+    }
+
     static var listCardFill: Color { surfaceElevated }
 
     static var groupedFieldStroke: Color {

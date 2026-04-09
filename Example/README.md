@@ -1,6 +1,8 @@
 # Examples
 
-Sample **DemoPackage** (SwiftPM: OpenAPI-generated `DemoAPI`, Vapor **DemoServer**) and **DemoApp** (SwiftUI in Xcode). This document is the **reference for this repository’s sample layout**, run commands, and **DemoApp** screenshots.
+Sample **DemoPackage** (SwiftPM: OpenAPI-generated `DemoAPI`, Vapor **DemoServer**) and **DemoApp** (SwiftUI in Xcode).
+
+This document is the **reference for this repository’s sample layout**, run commands, and **DemoApp** screenshots.
 
 - **Full docs:** [Documentation index](../docs/README.md) · [Integration](../docs/integration.md) · [Henge](../docs/henge.md)
 - **Japanese:** [README_JA.md](README_JA.md)
@@ -9,19 +11,25 @@ Sample **DemoPackage** (SwiftPM: OpenAPI-generated `DemoAPI`, Vapor **DemoServer
 
 | Path | Role |
 | --- | --- |
-| [`DemoPackage/`](DemoPackage/) | Swift package: `DemoAPI` target (Types + Client + Kawarimi plugin output), **`DemoAPITests`**, and **`DemoServer`** (macOS, Vapor). |
+| [`DemoPackage/`](DemoPackage/) | Swift package: `DemoAPI` target (Types + Client + Kawarimi plugin output), **`DemoAPITests`**, **`DemoServer`** (macOS, Vapor), and **`HengeCli`** (macOS SwiftUI host for `KawarimiConfigView`). |
 | [`DemoApp/`](DemoApp/) | SwiftUI sources; open [`DemoApp.xcodeproj`](DemoApp.xcodeproj) in Xcode. |
 | [`assets/`](assets/) | PNG screenshots of **DemoApp** (iOS Simulator), embedded below. |
 
 ### DemoPackage reference sources
 
-Wiring: [`DemoPackage/Package.swift`](DemoPackage/Package.swift) (`DemoServer` target). Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift). **`KawarimiInterceptorMiddleware` is not a KawarimiCore product**—copy or adapt it for your own Vapor app.
+Wiring: [`DemoPackage/Package.swift`](DemoPackage/Package.swift) (`DemoServer` target).
+
+Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift).
+
+**`KawarimiInterceptorMiddleware` is not a KawarimiCore product**—copy or adapt it for your own Vapor app.
 
 ## Security (sample only)
 
 **`__kawarimi`** admin endpoints have **no authentication**.
 
-**`DemoApp`** sends OpenAPI try-out requests to the **spec-defined base URL** only. Use only in trusted environments; add your own auth and network controls for real deployments.
+**`DemoApp`** sends OpenAPI try-out requests to the **spec-defined base URL** only.
+
+Use only in trusted environments; add your own auth and network controls for real deployments.
 
 This sample is **not** hardened for production.
 
@@ -36,6 +44,17 @@ KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
 `DemoAPITests` covers the in-process **`Kawarimi()`** transport path.
+
+## HengeCli (macOS)
+
+**`HengeCli`** is a small SwiftPM executable in **`DemoPackage`** that runs the same **Kawarimi Henge** UI as the DemoApp tab, without Xcode.
+
+It resolves the admin client URL from **`KawarimiSpec.meta`** (your `openapi.yaml` `servers` + path prefix). See [henge.md](../docs/henge.md#hengecli-macos).
+
+```bash
+cd DemoPackage && swift run DemoServer   # terminal 1
+cd DemoPackage && swift run HengeCli     # terminal 2, macOS only
+```
 
 ## kawarimi.json (sample)
 
@@ -89,7 +108,9 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so the Example interceptor picks the matching enabled override among several for the same route. See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
+When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so the Example interceptor picks the matching enabled override among several for the same route.
+
+See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
 
 Vapor registration pattern: [henge.md](../docs/henge.md) and [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
 

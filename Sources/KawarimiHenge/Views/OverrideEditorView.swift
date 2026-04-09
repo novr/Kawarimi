@@ -64,6 +64,18 @@ struct OverrideEditorView: View {
 
     private var specPathPrefix: String { meta?.apiPathPrefix ?? "" }
 
+    /// iOS: always inline under the server card. macOS compact: `.searchable` on the navigation stack.
+    /// macOS split: sidebar `.searchable` is unreliable without room; inline field stays visible in ``ExplorerTopInset``.
+    private var explorerShowsInlineSearch: Bool {
+        #if os(iOS)
+        true
+        #elseif os(macOS)
+        !useCompactNavigation
+        #else
+        false
+        #endif
+    }
+
     private var endpointItems: [SpecEndpointItem] {
         store.endpointItems(endpoints: endpoints)
     }
@@ -80,6 +92,12 @@ struct OverrideEditorView: View {
                     compactExplorerRoot
                         #if os(iOS)
                         .navigationBarTitleDisplayMode(.inline)
+                        #endif
+                        #if os(macOS)
+                        .searchable(
+                            text: $searchText,
+                            prompt: Text("Search endpoints, methods, or descriptions")
+                        )
                         #endif
                         .toolbar {
                             ToolbarItem(placement: .principal) {
@@ -102,7 +120,10 @@ struct OverrideEditorView: View {
                 }
             } else {
                 NavigationSplitView {
-                    splitSidebarContent
+                    NavigationStack {
+                        splitSidebarContent
+                    }
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
                 } detail: {
                     splitDetailContent
                 }
@@ -307,14 +328,14 @@ struct OverrideEditorView: View {
 
     // MARK: - Shared chrome
 
-    /// Stacked above the endpoint `List` (not `safeAreaInset`) so the search field receives clicks and keyboard focus on macOS, where `List` + `safeAreaInset` often blocks `TextField` input.
     private var explorerChromeHeader: some View {
         ExplorerTopInset(
             serverURL: serverURL,
             searchText: $searchText,
             explorerTightVertical: explorerTightVertical,
             horizontalMargin: Self.explorerHorizontalMargin,
-            onRequestResetAll: { confirmResetAll = true }
+            onRequestResetAll: { confirmResetAll = true },
+            showsInlineSearch: explorerShowsInlineSearch
         )
     }
 
