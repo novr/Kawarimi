@@ -64,9 +64,13 @@ struct OverrideEditorView: View {
 
     private var specPathPrefix: String { meta?.apiPathPrefix ?? "" }
 
+    /// iOS: always inline under the server card. macOS compact: `.searchable` on the navigation stack.
+    /// macOS split: sidebar `.searchable` is unreliable without room; inline field stays visible in ``ExplorerTopInset``.
     private var explorerShowsInlineSearch: Bool {
         #if os(iOS)
         true
+        #elseif os(macOS)
+        !useCompactNavigation
         #else
         false
         #endif
@@ -116,7 +120,10 @@ struct OverrideEditorView: View {
                 }
             } else {
                 NavigationSplitView {
-                    splitSidebarContent
+                    NavigationStack {
+                        splitSidebarContent
+                    }
+                    .navigationSplitViewColumnWidth(min: 280, ideal: 380, max: 560)
                 } detail: {
                     splitDetailContent
                 }
@@ -282,13 +289,6 @@ struct OverrideEditorView: View {
                 Button("Refresh", action: onRefresh)
             }
         }
-        #if os(macOS)
-        .searchable(
-            text: $searchText,
-            placement: .sidebar,
-            prompt: Text("Search endpoints, methods, or descriptions")
-        )
-        #endif
     }
 
     private var splitEndpointList: some View {
