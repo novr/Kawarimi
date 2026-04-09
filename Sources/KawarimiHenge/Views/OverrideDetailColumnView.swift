@@ -280,121 +280,160 @@ struct OverrideDetailColumnView: View {
         addCustomResponsePresented = false
     }
 
+    @ViewBuilder
+    private var detailTopChrome: some View {
+        if hasUnsavedChanges {
+            HStack {
+                Text("Not saved")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.orange.opacity(0.15), in: Capsule())
+                Spacer(minLength: 0)
+            }
+        }
+
+        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .leading, spacing: detailTightVertical ? 4 : 6) {
+                    Text("RESPONSE STATUS")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.6)
+                    Text("Pick Spec to clear the mock, or a response row from the OpenAPI spec (each status / example is its own chip). Add creates another row for any HTTP status (new example id). Long-press a chip to copy its example id for X-Kawarimi-Example-Id. Del turns off an active mock; if it is already off, Del removes that row from the server config.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(detailTightVertical ? 4 : nil)
+                }
+                Spacer(minLength: 0)
+                HStack(spacing: 10) {
+                    Button {
+                        presentAddCustomSheet()
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(Color.accentColor)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add response row")
+
+                    Button {
+                        onDisableCurrentMock()
+                    } label: {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(canRemoveCurrentMockRow ? Color.orange : Color.secondary.opacity(0.35))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canRemoveCurrentMockRow)
+                    .accessibilityLabel("Turn off mock, or delete row if already off")
+                }
+                .padding(.top, 2)
+            }
+            responseStatusChipStrip
+
+            Toggle(isOn: mockEnabledBinding) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Mock active")
+                        .font(.subheadline.weight(.medium))
+                    Text("Off: requests hit the real handler (same as Spec). On: the interceptor returns this row after Save.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .toggleStyle(.switch)
+            .padding(.top, detailTightVertical ? 8 : 10)
+            .accessibilityLabel("Mock response active")
+        }
+    }
+
+    @ViewBuilder
+    private var responseBodyHeading: some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("RESPONSE BODY")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                Text("JSON payload to be returned.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(detailTightVertical ? 2 : nil)
+            }
+            Spacer(minLength: 8)
+            HStack(spacing: 4) {
+                Image(systemName: "curlybraces")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(ExplorerPalette.linkAccent)
+                TextField("application/json", text: contentTypeBinding)
+                    .font(.caption.monospaced())
+                    .multilineTextAlignment(.trailing)
+                    .textFieldStyle(.plain)
+                    .frame(maxWidth: 140)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(ExplorerPalette.subtleAccentFill)
+            )
+        }
+    }
+
     private var detailScrollStack: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
-                if hasUnsavedChanges {
-                    HStack {
-                        Text("Not saved")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.orange)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(.orange.opacity(0.15), in: Capsule())
-                        Spacer(minLength: 0)
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-                    HStack(alignment: .top, spacing: 8) {
-                        VStack(alignment: .leading, spacing: detailTightVertical ? 4 : 6) {
-                            Text("RESPONSE STATUS")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.secondary)
-                                .tracking(0.6)
-                            Text("Pick Spec to clear the mock, or a response row from the OpenAPI spec (each status / example is its own chip). Add creates another row for any HTTP status (new example id). Long-press a chip to copy its example id for X-Kawarimi-Example-Id. Del turns off an active mock; if it is already off, Del removes that row from the server config.")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                                .lineLimit(detailTightVertical ? 4 : nil)
-                        }
-                        Spacer(minLength: 0)
-                        HStack(spacing: 10) {
-                            Button {
-                                presentAddCustomSheet()
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(Color.accentColor)
+        Group {
+            #if os(macOS)
+            VStack(alignment: .leading, spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+                        detailTopChrome
+                        if shouldShowResponseBodySection {
+                            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+                                responseBodyHeading
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Add response row")
-
-                            Button {
-                                onDisableCurrentMock()
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title3)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .foregroundStyle(canRemoveCurrentMockRow ? Color.orange : Color.secondary.opacity(0.35))
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!canRemoveCurrentMockRow)
-                            .accessibilityLabel("Turn off mock, or delete row if already off")
-                        }
-                        .padding(.top, 2)
-                    }
-                    responseStatusChipStrip
-
-                    Toggle(isOn: mockEnabledBinding) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Mock active")
-                                .font(.subheadline.weight(.medium))
-                            Text("Off: requests hit the real handler (same as Spec). On: the interceptor returns this row after Save.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
-                    .toggleStyle(.switch)
-                    .padding(.top, detailTightVertical ? 8 : 10)
-                    .accessibilityLabel("Mock response active")
+                    .padding(detailTightVertical ? 10 : 16)
+                    .padding(.bottom, 12)
                 }
-
                 if shouldShowResponseBodySection {
                     VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("RESPONSE BODY")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.secondary)
-                                    .tracking(0.6)
-                                Text("JSON payload to be returned.")
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                                    .lineLimit(detailTightVertical ? 2 : nil)
-                            }
-                            Spacer(minLength: 8)
-                            HStack(spacing: 4) {
-                                Image(systemName: "curlybraces")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(ExplorerPalette.linkAccent)
-                                TextField("application/json", text: contentTypeBinding)
-                                    .font(.caption.monospaced())
-                                    .multilineTextAlignment(.trailing)
-                                    .textFieldStyle(.plain)
-                                    .frame(maxWidth: 140)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(ExplorerPalette.subtleAccentFill)
-                            )
-                        }
-
                         darkJsonEditorChrome
-
                         if let msg = validationMessage {
                             Text(msg)
                                 .font(.caption)
                                 .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
                         }
                     }
+                    .padding(.horizontal, detailTightVertical ? 10 : 16)
+                    .padding(.bottom, 8)
                 }
             }
-            .padding(detailTightVertical ? 10 : 16)
-            .padding(.bottom, detailTightVertical ? 72 : 96)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            #else
+            ScrollView {
+                VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+                    detailTopChrome
+                    if shouldShowResponseBodySection {
+                        VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+                            responseBodyHeading
+                            darkJsonEditorChrome
+                            if let msg = validationMessage {
+                                Text(msg)
+                                    .font(.caption)
+                                    .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
+                            }
+                        }
+                    }
+                }
+                .padding(detailTightVertical ? 10 : 16)
+                .padding(.bottom, detailTightVertical ? 72 : 96)
+            }
+            #endif
         }
         .background(ExplorerPalette.surface)
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -420,7 +459,7 @@ struct OverrideDetailColumnView: View {
                                 .font(.subheadline.weight(selected ? .semibold : .regular))
                                 .foregroundStyle(
                                     selected
-                                        ? (opt.isSpec ? Color.primary : Color.accentColor)
+                                        ? ExplorerPalette.chipSelectedLabel
                                         : (opt.isInactive ? Color.secondary.opacity(0.75) : Color.secondary)
                                 )
                         }
