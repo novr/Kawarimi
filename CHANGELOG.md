@@ -6,7 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [1.0.5] - Unreleased
+## [Unreleased]
+
+## [1.0.5] - 2026-04-09
 
 ### Fixed
 
@@ -103,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
-[1.0.5]: https://github.com/novr/Kawarimi/compare/v1.0.4...main
+[1.0.5]: https://github.com/novr/Kawarimi/releases/tag/v1.0.5
 [1.0.4]: https://github.com/novr/Kawarimi/releases/tag/v1.0.4
 [1.0.3]: https://github.com/novr/Kawarimi/releases/tag/v1.0.3
 [1.0.2]: https://github.com/novr/Kawarimi/releases/tag/v1.0.2
