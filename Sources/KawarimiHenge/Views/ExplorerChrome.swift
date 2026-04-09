@@ -77,6 +77,7 @@ struct ExplorerTopInset: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
                     .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
             )
 
             Button {
@@ -107,6 +108,7 @@ struct ExplorerTopInset: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                .allowsHitTesting(false)
         )
     }
 }
