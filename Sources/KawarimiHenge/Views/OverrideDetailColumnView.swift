@@ -509,6 +509,7 @@ struct OverrideDetailColumnView: View {
                 TextEditor(text: bodyTextBinding)
                     .font(.system(size: 13, design: .monospaced))
                     .scrollContentBackground(.hidden)
+                    .background(editorFill)
                     .foregroundStyle(Color.white.opacity(0.92))
                     .frame(minHeight: editorMinHeight)
                     .padding(.vertical, 4)
