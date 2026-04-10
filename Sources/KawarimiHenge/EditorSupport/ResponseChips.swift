@@ -8,8 +8,26 @@ struct ResponseChip: Identifiable {
     let exampleId: String?
     let label: String
     let isInactive: Bool
+    /// Index into ``SpecEndpointProviding/responseList`` for chips built from the spec picker; disambiguates duplicate status + example rows.
+    let specResponseListIndex: Int?
 
     var isSpec: Bool { id == Self.specRowId }
+
+    init(
+        id: String,
+        statusCode: Int,
+        exampleId: String?,
+        label: String,
+        isInactive: Bool,
+        specResponseListIndex: Int? = nil
+    ) {
+        self.id = id
+        self.statusCode = statusCode
+        self.exampleId = exampleId
+        self.label = label
+        self.isInactive = isInactive
+        self.specResponseListIndex = specResponseListIndex
+    }
 }
 
 enum ResponseChips {
@@ -46,10 +64,11 @@ enum ResponseChips {
                 statusCode: -1,
                 exampleId: nil,
                 label: "Spec",
-                isInactive: false
+                isInactive: false,
+                specResponseListIndex: nil
             ),
         ]
-        for item in endpointItem.mockResponsePickerItems {
+        for (idx, item) in endpointItem.mockResponsePickerItems.enumerated() {
             let r = item.response
             let c = r.statusCode
             let exLabel = MockExamplePresentation.label(for: r)
@@ -59,8 +78,16 @@ enum ResponseChips {
             } else {
                 label = "\(c) \(HTTPStatusPhrase.text(for: c))"
             }
+            // Stable unique `id` per row — `SpecMockResponseProviding.id` can collide for multiple defaults on the same status.
             out.append(
-                ResponseChip(id: item.id, statusCode: c, exampleId: r.exampleId, label: label, isInactive: false)
+                ResponseChip(
+                    id: "spec:\(idx)",
+                    statusCode: c,
+                    exampleId: r.exampleId,
+                    label: label,
+                    isInactive: false,
+                    specResponseListIndex: idx
+                )
             )
         }
         let customs = OverrideListQueries.customOverrides(
@@ -80,7 +107,8 @@ enum ResponseChips {
                     statusCode: ov.statusCode,
                     exampleId: ov.exampleId,
                     label: label,
-                    isInactive: !ov.isEnabled
+                    isInactive: !ov.isEnabled,
+                    specResponseListIndex: nil
                 )
             )
         }
@@ -100,7 +128,8 @@ enum ResponseChips {
                         statusCode: mock.statusCode,
                         exampleId: mock.exampleId,
                         label: label,
-                        isInactive: false
+                        isInactive: false,
+                        specResponseListIndex: nil
                     )
                 )
             }

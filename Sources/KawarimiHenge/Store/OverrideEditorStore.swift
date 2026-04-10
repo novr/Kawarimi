@@ -2,10 +2,19 @@ import Foundation
 import KawarimiCore
 import Observation
 
+/// Explorer session state: **selected-endpoint draft** (``detail``), not a copy of the server overrides array.
+///
+/// - **Open-from-list policy** (fresh mock + one resync): ``OverrideExplorerDraftBootstrap/makeFreshDetail(rowKey:pathPrefix:endpoints:overrides:)``.
+/// - **Query-only rules** (primary, stored row, Save/chip shape): ``OverrideListQueries``.
+/// - List / captions for **server primary** use the parent's ``overrides`` (e.g. ``displayedListStatus(for:operationId:pathPrefix:in:)``).
+/// - After **Save** / **Reset** / **disable row**, ``applyWithBody``, ``clearOverride``, and ``disableCurrentMockRow`` call ``resyncDetailAfterOverridesRefresh`` with the ``[MockOverride]`` returned from ``configureOverride`` / ``removeOverride``.
 @MainActor
 @Observable
 final class OverrideEditorStore {
     var detail: OverrideDetailDraft?
+
+    /// Unsaved drafts stashed when switching endpoints (keyed by endpoint row).
+    private var pendingDraftsByRowKey: [EndpointRowKey: OverrideDetailDraft] = [:]
 
     var selectedRowKey: EndpointRowKey? { detail?.endpointRowKey }
 
@@ -14,28 +23,48 @@ final class OverrideEditorStore {
     }
 
     func clearSelection() {
+        stashCurrentDetailIfDirty()
         detail = nil
     }
 
+    /// Sidebar / list: always **server primary** status (Spec when none).
     func displayedListStatus(
         for rowKey: EndpointRowKey,
         operationId: String,
         pathPrefix: String,
         overrides: [MockOverride]
     ) -> Int {
-        let primaryCode = OverrideListQueries.enabledStatusCode(
+        OverrideListQueries.enabledStatusCode(
             for: rowKey,
             operationId: operationId,
             pathPrefix: pathPrefix,
             in: overrides
         ) ?? -1
-        guard let d = detail, d.endpointRowKey == rowKey else {
-            return primaryCode
+    }
+
+    /// Sidebar dot / “Not saved”: true when the draft’s persistable mock differs from the current `overrides` server snapshot (not merely ``OverrideDetailDraft/isDirty``).
+    func hasUnsavedDraft(
+        for rowKey: EndpointRowKey,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride]
+    ) -> Bool {
+        if let d = detail, d.endpointRowKey == rowKey {
+            return d.persistableMockDiffersFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
         }
-        if d.mock.isEnabled {
-            return d.mock.statusCode
+        if let p = pendingDraftsByRowKey[rowKey] {
+            return p.persistableMockDiffersFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
         }
-        return primaryCode
+        return false
+    }
+
+    private func stashCurrentDetailIfDirty() {
+        guard let d = detail, d.isDirty else { return }
+        pendingDraftsByRowKey[d.endpointRowKey] = d
+    }
+
+    private func clearPending(for rowKey: EndpointRowKey) {
+        pendingDraftsByRowKey[rowKey] = nil
     }
 
     func endpointItems(endpoints: [any SpecEndpointProviding]) -> [SpecEndpointItem] {
@@ -52,11 +81,12 @@ final class OverrideEditorStore {
         endpoints: [any SpecEndpointProviding],
         overrides: [MockOverride]
     ) -> OverrideDetailDraft? {
-        guard let endpoint = OverrideListQueries.endpoint(for: rowKey, in: endpoints) else { return nil }
-        let mock = MockDraftDefaults.specPlaceholder(for: endpoint)
-        var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
-        draft.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
-        return draft
+        OverrideExplorerDraftBootstrap.makeFreshDetail(
+            rowKey: rowKey,
+            pathPrefix: pathPrefix,
+            endpoints: endpoints,
+            overrides: overrides
+        )
     }
 
     func selectEndpoint(
@@ -65,10 +95,16 @@ final class OverrideEditorStore {
         endpoints: [any SpecEndpointProviding],
         overrides: [MockOverride]
     ) {
+        stashCurrentDetailIfDirty()
+        if var pending = pendingDraftsByRowKey.removeValue(forKey: rowKey) {
+            pending.validationMessage = nil
+            commitDetail(pending)
+            return
+        }
         if let built = buildDetail(rowKey: rowKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides) {
             commitDetail(built)
         } else {
-            clearSelection()
+            detail = nil
         }
     }
 
@@ -80,13 +116,15 @@ final class OverrideEditorStore {
     ) {
         if newKey == selectedRowKey { return }
         guard let newKey else {
-            clearSelection()
+            stashCurrentDetailIfDirty()
+            detail = nil
             return
         }
         selectEndpoint(rowKey: newKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides)
     }
 
     func resyncDetailAfterSpecReload(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
+        pendingDraftsByRowKey.removeAll()
         guard var d = detail else { return }
         d.isDirty = false
         d.validationMessage = nil
@@ -94,6 +132,7 @@ final class OverrideEditorStore {
         commitDetail(d)
     }
 
+    /// Align open detail draft with a server overrides snapshot. Call from mutation completions (save / reset / disable) with the **same** list the HTTP layer just fetched (returned from `configure` / `remove` wrappers).
     func resyncDetailAfterOverridesRefresh(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
         guard var d = detail, !d.isDirty else { return }
         d.validationMessage = nil
@@ -151,12 +190,14 @@ final class OverrideEditorStore {
 
     func markSavedClean() {
         guard var d = detail else { return }
+        clearPending(for: d.endpointRowKey)
         d.isDirty = false
         d.validationMessage = nil
         commitDetail(d)
     }
 
     func applyServerReset(mock: MockOverride, rowKey: EndpointRowKey) {
+        clearPending(for: rowKey)
         guard var d = detail, d.endpointRowKey == rowKey else { return }
         d.mock = mock
         d.pinnedNumberedResponseChip = false
@@ -182,17 +223,45 @@ final class OverrideEditorStore {
         commitDetail(d)
     }
 
+    /// **Save** — ``SavePayload.build``: Spec-only disable when on **Spec**, else **`mock.isEnabled`** or **numbered chip pin** (enabled → primary; disabled → row off with body preserved).
+    ///
+    /// `configureOverride` must return the overrides list **after** the server reflects the write (same array the UI would show), so ``resyncDetailAfterOverridesRefresh`` does not read a stale snapshot.
     func applyWithBody(
         endpointItem: SpecEndpointItem,
-        configureOverride: @escaping (MockOverride) async throws -> Void,
+        pathPrefix: String = "",
+        endpoints: [any SpecEndpointProviding] = [],
+        configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
-        let endpoint = endpointItem.endpoint
+        await applyWithPayloadBuilder(
+            endpointItem: endpointItem,
+            pathPrefix: pathPrefix,
+            endpoints: endpoints,
+            build: {
+                SavePayload.build(
+                    mock: $0.mock,
+                    endpoint: endpointItem.endpoint,
+                    pinnedNumberedResponseChip: $0.pinnedNumberedResponseChip
+                )
+            },
+            configureOverride: configureOverride,
+            setErrorMessage: setErrorMessage
+        )
+    }
+
+    private func applyWithPayloadBuilder(
+        endpointItem: SpecEndpointItem,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        build: (OverrideDetailDraft) -> MockOverride,
+        configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        setErrorMessage: @escaping (String?) -> Void
+    ) async {
         setErrorMessage(nil)
         guard var draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
-        let override = SavePayload.build(mock: draft.mock, endpoint: endpoint)
+        let override = build(draft)
         do {
-            try await configureOverride(override)
+            let refreshed = try await configureOverride(override)
             draft.mock.isEnabled = override.isEnabled
             draft.mock.statusCode = override.statusCode
             draft.mock.exampleId = override.exampleId
@@ -201,6 +270,7 @@ final class OverrideEditorStore {
             draft.pinnedNumberedResponseChip = false
             commitDetail(draft)
             markSavedClean()
+            resyncDetailAfterOverridesRefresh(pathPrefix: pathPrefix, endpoints: endpoints, overrides: refreshed)
         } catch {
             setErrorMessage(error.localizedDescription)
         }
@@ -208,7 +278,9 @@ final class OverrideEditorStore {
 
     func clearOverride(
         endpointItem: SpecEndpointItem,
-        configureOverride: @escaping (MockOverride) async throws -> Void,
+        pathPrefix: String = "",
+        endpoints: [any SpecEndpointProviding] = [],
+        configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         let endpoint = endpointItem.endpoint
@@ -224,8 +296,9 @@ final class OverrideEditorStore {
             contentType: nil
         )
         do {
-            try await configureOverride(reset)
+            let refreshed = try await configureOverride(reset)
             applyServerReset(mock: reset, rowKey: endpointItem.rowKey)
+            resyncDetailAfterOverridesRefresh(pathPrefix: pathPrefix, endpoints: endpoints, overrides: refreshed)
         } catch {
             setErrorMessage(error.localizedDescription)
         }
@@ -235,8 +308,9 @@ final class OverrideEditorStore {
         endpointItem: SpecEndpointItem,
         pathPrefix: String,
         overrides: [MockOverride],
-        configureOverride: @escaping (MockOverride) async throws -> Void,
-        removeOverride: @escaping (MockOverride) async throws -> Void,
+        endpoints: [any SpecEndpointProviding] = [],
+        configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         let endpoint = endpointItem.endpoint
@@ -254,12 +328,22 @@ final class OverrideEditorStore {
             case .none:
                 break
             case let .configureDisable(payload):
-                try await configureOverride(payload)
+                let refreshed = try await configureOverride(payload)
                 markSavedClean()
+                resyncDetailAfterOverridesRefresh(
+                    pathPrefix: pathPrefix,
+                    endpoints: endpoints,
+                    overrides: refreshed
+                )
             case let .removeThenReset(removeKey, cleared):
-                try await removeOverride(removeKey)
+                let refreshed = try await removeOverride(removeKey)
                 applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)
                 markSavedClean()
+                resyncDetailAfterOverridesRefresh(
+                    pathPrefix: pathPrefix,
+                    endpoints: endpoints,
+                    overrides: refreshed
+                )
             }
         } catch {
             setErrorMessage(error.localizedDescription)

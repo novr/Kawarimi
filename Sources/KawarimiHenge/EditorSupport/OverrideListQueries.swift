@@ -1,7 +1,12 @@
 import Foundation
 import KawarimiCore
 
+/// Stateless queries for **Henge explorer** behaviour: row matching, **primary** / **stored** rows, chip & Save “spec-shaped” rules, persistable equality for **server diff** UI, and peer-disable planning inputs.
+///
+/// Mutating alignment of an open draft lives on ``OverrideDetailDraft``; **fresh-detail** construction when opening a list row lives on ``OverrideExplorerDraftBootstrap``.
 enum OverrideListQueries {
+    // MARK: - Row matching & primary
+
     static func overrideMatchesRow(
         _ ov: MockOverride,
         rowKey: EndpointRowKey,
@@ -40,6 +45,59 @@ enum OverrideListQueries {
         primaryEnabledOverride(for: rowKey, operationId: operationId, pathPrefix: pathPrefix, in: overrides)?.statusCode
     }
 
+    /// For **P** on spec-backed chips: when several `responseList` rows share `statusCode` + `exampleId`, picks the index whose template best matches the enabled override (same rules as template merge / save).
+    static func specResponseListIndexForPrimaryBadge(
+        primary enabled: MockOverride,
+        endpoint: any SpecEndpointProviding
+    ) -> Int? {
+        let list = endpoint.responseList
+        let matching = list.indices.filter {
+            list[$0].statusCode == enabled.statusCode
+                && MockExamplePresentation.exampleIdsEqual(list[$0].exampleId, enabled.exampleId)
+        }
+        guard let first = matching.first else { return nil }
+        if matching.count == 1 { return first }
+
+        var winners: [Int] = []
+        for i in matching where bodiesAndContentTypesMatchSpec(mock: enabled, spec: list[i]) {
+            winners.append(i)
+        }
+        if winners.count == 1 { return winners[0] }
+
+        // Identical templates or still ambiguous: align with `mergeResponseTemplate` (`first(where:)` order).
+        return first
+    }
+
+    /// All **enabled** overrides for this OpenAPI operation (path/method or `operationId`), interceptor tie-break order.
+    static func enabledOverridesForOperation(
+        rowKey: EndpointRowKey,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> [MockOverride] {
+        let candidates = overrides.filter { ov in
+            ov.isEnabled && overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
+        }
+        return MockOverride.sortedForInterceptorTieBreak(candidates)
+    }
+
+    /// More than one enabled row for the same operation (e.g. hand-edited config); interceptor uses tie-break order.
+    static func hasMultipleEnabledOverridesForOperation(
+        rowKey: EndpointRowKey,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> Bool {
+        enabledOverridesForOperation(
+            rowKey: rowKey,
+            operationId: operationId,
+            pathPrefix: pathPrefix,
+            in: overrides
+        ).count >= 2
+    }
+
+    // MARK: - Spec endpoint lookup
+
     static func endpoint(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> (any SpecEndpointProviding)? {
         endpoints.first { EndpointRowKey($0) == rowKey }
     }
@@ -47,6 +105,8 @@ enum OverrideListQueries {
     static func defaultResponseStatusCode(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> Int {
         endpoint(for: rowKey, in: endpoints)?.responseList.first?.statusCode ?? 200
     }
+
+    // MARK: - Stored row lookup (status + example identity)
 
     static func enabledOverride(
         for rowKey: EndpointRowKey,
@@ -125,6 +185,8 @@ enum OverrideListQueries {
         }
     }
 
+    // MARK: - Custom responses (not in OpenAPI response list)
+
     /// Overrides for this operation whose status / example pair does not appear in the OpenAPI response list (enabled **and** disabled).
     static func customOverrides(
         for rowKey: EndpointRowKey,
@@ -152,6 +214,8 @@ enum OverrideListQueries {
             r.statusCode == statusCode && MockExamplePresentation.exampleIdsEqual(r.exampleId, exampleId)
         }
     }
+
+    // MARK: - Spec-shaped draft (chips & Save early exit)
 
     static func draftRepresentsSpecOnlyRowForSave(
         mock: MockOverride,
@@ -199,6 +263,32 @@ enum OverrideListQueries {
         guard saved.method == peer.method else { return false }
         guard sameOpenAPIOperation(saved, peer, pathPrefix: pathPrefix) else { return false }
         return !isSameOverrideRow(saved, peer, pathPrefix: pathPrefix)
+    }
+
+    // MARK: - Persistable mock equality (UI “server diff” vs. resync canonical)
+
+    /// Compares fields that align with a server override row after ``OverrideDetailDraft/resyncMockFromServer(overrides:endpoints:pathPrefix:)`` (JSON whitespace–tolerant; content types like ``contentTypesAligned``).
+    static func persistableMockConfigurationEqual(_ a: MockOverride, _ b: MockOverride) -> Bool {
+        guard a.method == b.method else { return false }
+        guard a.path == b.path else { return false }
+        guard a.isEnabled == b.isEnabled else { return false }
+        guard a.statusCode == b.statusCode else { return false }
+        guard MockExamplePresentation.exampleIdsEqual(a.exampleId, b.exampleId) else { return false }
+        let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard na == nb else { return false }
+        let ab = (a.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let bb = (b.body ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let bodyOK: Bool
+        if ab.isEmpty, bb.isEmpty {
+            bodyOK = true
+        } else {
+            bodyOK = bodiesLogicallyEqual(trimmedMock: ab, trimmedSpec: bb)
+        }
+        let ctOK =
+            contentTypesAligned(mockContentType: a.contentType, specContentType: b.contentType ?? "")
+            && contentTypesAligned(mockContentType: b.contentType, specContentType: a.contentType ?? "")
+        return bodyOK && ctOK
     }
 
     // MARK: - Spec template matching (Save payload only)

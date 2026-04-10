@@ -148,6 +148,39 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 モック用 SwiftUI は **KawarimiHenge** の **`OverrideEditorView`**（エンドポイント一覧＋詳細ペイン）です。
 
+<a id="henge-explorer-state"></a>
+
+### エクスプローラの状態モデル（3 つの役割）
+
+1. **サーバー側スナップショット（ほぼ読み取り）** — **`KawarimiConfigView`** が **`meta`**・**`endpoints`**・**`overridesSnapshot`**（**`GET …/__kawarimi/status`** のデコード結果）を **`@State`** で持ち、**`OverrideEditorView`** に `let` で渡す。エクスプローラの行・例キャプション・**`primaryOverride(for:)`**・保存済み行に基づくチップは、このスナップショットを読む。
+
+2. **エディタのドラフト（選択中）** — **`OverrideEditorStore`**（`@Observable`）が **`OverrideDetailDraft`**（**`mock`**・**`isDirty`**・**`pinnedNumberedResponseChip`** など）を保持。配列全体のコピーではなく、**開いている行の編集バッファ**。**退避** — 別エンドポイントへ移るとき **`isDirty`** なら **`pendingDraftsByRowKey`** に退避し、同じ行を再度選ぶと復元（**Spec 再取得**で退避は消える）。
+
+3. **ミューテーションの橋渡し** — 子へ渡す **`configureOverride`** / **`removeOverride`** は **`(MockOverride) async throws -> [MockOverride]`**。親ラッパー（**`KawarimiConfigView`**）が **`disableConflictingStatusMocks`** のあと **`KawarimiAPIClient`** の **`configure`** / **`remove`** を呼び、**`refreshOverridesOnly()`** で **`overridesSnapshot`** を更新し、**fetch で得た同じ `[MockOverride]` を `return`**（この戻り値用に **`@State` を二度読みしない**）。**`OverrideEditorStore`** は成功経路で **`markSavedClean()`** の直後にその配列で **`resyncDetailAfterOverridesRefresh`** を呼び、ドラフトをサーバー一覧と揃える。
+
+<a id="henge-dirty-vs-unsaved"></a>
+
+#### `isDirty` と「未保存」／一覧のドット
+
+| 信号 | 意味 | コード側 |
+| --- | --- | --- |
+| **`isDirty`** | 編集操作があったため、**自動の** **`resyncDetailAfterOverridesRefresh`** を止め、行を離れるときに**退避**するべき状態。 | 本文・モック編集、**Format**、**`applyMockEdit`** などで立つ。Save 成功経路・Spec 再同期・Reset などで下げる。 |
+| **「未保存」／ドット** | 現在の **`overridesSnapshot`** に対して、**`resyncMockFromServer` が作る正規形**とドラフトの **永続化フィールド**が違う（JSON の空白差は同一視）。**`isDirty` とは独立**（整形だけしてサーバーと同じでも `isDirty` は true のまま、など）。 | **`OverrideDetailDraft.persistableMockDiffersFromServer`**、等価は **`OverrideListQueries.persistableMockConfigurationEqual`**。 |
+
+<a id="henge-draft-bootstrap"></a>
+
+#### ドラフトの起動（一覧から行を開くとき）
+
+退避が無いとき、**`OverrideExplorerDraftBootstrap.makeFreshDetail`** が最初のドラフトを組み立てる:**`MockDraftDefaults.specPlaceholder`** → サーバーに **`OverrideListQueries.primaryEnabledOverride`** があれば **`statusCode`** / **`exampleId`** / **`isEnabled`** / **`name`** を上書き → **`resyncMockFromServer`**。これにより、**`kawarimi.json` 上で無効の既定行（例: 200）が、有効なカスタム行（例: 503）より前に並んでいても**、プレースホルダのデフォルト **(200, nil)** だけで **`storedOverride`** が先頭の無効行に吸われず、**一覧の P** と **チップの選択**がずれない。
+
+<a id="henge-ui-data-flow"></a>
+
+#### ライフサイクル／一覧の更新
+
+4. **Spec ＋ overrides の再読み込み** — **`loadSpecAndOverrides()`** が **`specLoadID`** を進めると、**`OverrideEditorView`** の **`.task(id: specLoadID)`** が **`resyncDetailAfterSpecReload`** を実行（退避ドラフト破棄・詳細をサーバー状態で置換）。
+
+5. **一覧の同一性** — overrides のみ再取得のたびに **`overridesRevision`** を進め、**`List`** に **`.id`** として付与して split ビューでの表示ずれを防ぐ。
+
 <a id="henge-editor-ux"></a>
 
 ### 利用の流れ（UX）
@@ -156,30 +189,34 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 | やりたいこと | 操作 |
 | --- | --- |
-| この操作は OpenAPI のみ（**既定の**レスポンス行をモックしない） | **Spec** をタップ（先頭の spec ステータス・名前付き例なし・本文欄クリア）。**Mock active** をオフにして **Save**。 |
+| この操作は OpenAPI のみ（実効は **Spec**） | **Spec** をタップ（先頭の spec ステータス・名前付き例なし・本文欄クリア）。ドラフトが **Spec 形**なら **Save** で Spec 専用の**無効化**ペイロードを送ります。サーバーに **enabled 行が無い** とき実効は **Spec** で、**Spec** チップを強調表示します。 |
 | まだ行を消さずに「テンプレだけ見る」状態に戻す | **Spec** タップで本文クリア、または **enabled なし**＋無効の既定行ならテンプレ JSON が入っていても **Spec** が光る。**200 OK** をタップすると番号チップのまま同じ本文を編集できる。 |
-| ドキュメント上のあるレスポンスをモックする | **ステータス／例**のチップを選び本文を編集、**Mock active** をオン、**Save**。**`KawarimiConfigView`** は同じ OpenAPI 操作の**他の** enabled 行を先に **`isEnabled: false`** で `configure` してから現在の行を保存する（操作あたりアクティブは1行）。 |
-| OpenAPI に無いステータス（や例）を足す | **+**（Add response）でステータスを選び、メイン画面で編集して **Save**。 |
-| モックを止めるが `kawarimi.json` の行は残す | **Mock active** をオフにして **Save**（またはオン中に **Del** → 無効化が保存される）。 |
-| **今選んでいるチップ**に対応する保存行だけ消す | **Mock active** がオフで保存行があるとき **Del**（**`remove`**）。 |
+| ドキュメント上のあるレスポンスをモックする（サーバー上の **プライマリ**にする） | **ステータス／例**のチップを選び（ドラフト **`isEnabled: true`**）、本文を編集して **Save**。**`KawarimiConfigView`** は同じ OpenAPI 操作の**他の** enabled 行を先に **`isEnabled: false`** で `configure` してから現在の行を **有効**で保存します（通常は操作あたりアクティブは1行）。 |
+| OpenAPI に無いステータス（や例）を足す | **+**（Add response）でステータスを選び、メイン画面で編集して **Save**（チップ／保存行のオンオフに従う）。 |
+| 本文は残すが **アクティブにしない** | **オフ**の行のチップを選び（保存済み無効行を読み込む、**Del** 後など）、本文を編集して **Save** — **`isEnabled: false`** のまま **body** / **contentType** も送ります。 |
+| モックを止めるが `kawarimi.json` の行は残す | オン中に **Del**、または無効のチップで **Save**。 |
+| **今選んでいるチップ**に対応する保存行だけ消す | モックがオフで保存行があるとき **Del**（**`remove`**）。 |
 | **既定行**（先頭の spec ステータス・無名例）をオフ＋本文クリアにし、エディタをそれに合わせる | 下部 **Reset** — そのキーへの **`configure` のみ**。同じ操作の**別チップ**の行は残るので、消すときはチップごとに **Del**。 |
 | 全オーバーライドを消す | エクスプローラの **Reset all overrides**（確認あり）。 |
 
-**Save** は **`SavePayload`** を組み立てて `configure` します。**Spec 形**のドラフト（下記と同じ判定）のときは、サーバー側にまだ **enabled** の行が残っていても、常に **`isEnabled: false`** と本文クリアを送ります（**Spec** に戻したのに保存でまた active にならないようにするため）。
+**Save** は **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`** を組み立てて `configure` します。**Spec 形**のドラフトでも、ユーザーが **Spec チップ**を選んでいるときだけ（**`pinnedNumberedResponseChip`** が false）**無効＋本文クリア**の先頭分岐に入ります。**200 OK** など番号チップ（pin true）で、保存行はまだオフでも本文がテンプレ一致のときは **有効**を送り、プライマリにします。それ以外は **`mock.isEnabled`** で **有効**／**無効**を切り替え、**無効**でもトリム済みの **body** / **contentType** を送ります。
+
+詳細の番号チップの **`P`** だけが**サーバー上のプライマリ**行を示します（未保存の選択とは一致しないことがあります）。**一覧**は **P なし**でプライマリの HTTP ステータス（と例キャプション）を出し、編集中のチップとは切り離されます。同一操作に **enabled 行が2件以上**あるときは一覧に**警告**が出ます。インターセプターはサーバー側の並び（`sortedForInterceptorTieBreak`）の先頭を使います。
 
 **Del**（−）: モック **オン** → 同一キーで **`configure` でオフ**。**オフ**で保存行が一致 → **`remove`**（設定から行削除）。
 
-**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Save** などのあとの **overrides の更新**では、**未保存がないとき**（`isDirty` が false）だけ詳細がサーバーに合わせて再同期されます。編集中は詳細はそのままなので、**Save** するか、別エンドポイントを選び直すなどで捨ててください。
+**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Save** / **configure** / **remove** 成功後は、親が **fetch した `[MockOverride]` を戻り値で渡し**、ストアが **`markSavedClean()`** のあと **`resyncDetailAfterOverridesRefresh`** で詳細を合わせます（成功経路では **`isDirty`** は false のため再同期が走る）。**別エンドポイントへ移ったとき、未保存（dirty）のドラフトは行キーごとに退避**され、同じ行を再度選ぶと復元されます（**Spec の再取得**で退避は消えます）。
 
 ---
 
 ### 実装者向け（コード対応）
 
-**編集ルール**は **`Sources/KawarimiHenge/EditorSupport/`**（`ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`、**`OverrideListQueries`** の **`draftRepresentsSpecOnlyRowForSave`** など）。**選択とドラフトメタ**（`validationMessage`、`isDirty`）は **`OverrideEditorStore`** / **`OverrideDetailDraft`**。
+**編集ルール**は **`Sources/KawarimiHenge/EditorSupport/`**（`ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`、**`OverrideListQueries`**、**`OverrideExplorerDraftBootstrap`**）。**選択とドラフトメタ**（`validationMessage`、`isDirty`）は **`OverrideEditorStore`** / **`OverrideDetailDraft`**。
 
 | UI / ドキュメント上の言い方 | コード側 | メモ |
 | --- | --- | --- |
 | リストの 1 行 | `EndpointRowKey` + `SpecEndpointItem` | 選択は `EndpointRowKey`。 |
+| 行を初めて開く（退避なし） | `OverrideExplorerDraftBootstrap.makeFreshDetail` | プレースホルダ → プライマリ上書き → `resyncMockFromServer`。 |
 | 詳細の編集対象 | `OverrideDetailDraft` 内の `MockOverride` 1 件 | 選択中の論理行のスナップショット。 |
 | サーバー / 設定の 1 行 | `kawarimi.json` の `MockOverride` | **`path` + `method` + `statusCode` + 正規化後 `exampleId`**。 |
 | デフォルト / 無名の例 | `exampleId` が nil（空白正規化後も） | ルックアップは **`__default`**。 |
@@ -190,7 +227,7 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 **アクティブは1行:** **`KawarimiConfigView`** の `configure` ラッパーが **`peerShouldBeDisabledWhenSavingEnabledRow`** で、**保存対象と同じ override 行でない**（別ステータスや別 `exampleId` も含む）同じ操作の enabled 行を、**先に** `configure` で **`isEnabled: false` のみ**送る（**`body` / `contentType` はそのまま**）。
 
-**Save**（**`SavePayload.build`**）: **`draftRepresentsSpecOnlyRowForSave`** なら先に **無効＋クリア**のペイロードで return。それ以外の **`isEnabled`** は **Mock active**（**`mock.isEnabled` のみ**）。オフ時は本文等をクリアし、**`mock.statusCode` / `mock.exampleId`** で行を特定。
+**Save** — UI は **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`**。**`draftRepresentsSpecOnlyRowForSave`** かつ **番号チップでない**ときだけ先に **無効＋クリア**で return。番号チップ（**`pinnedNumberedResponseChip`**）ならテンプレ一致のオフ行でも **有効**へ。それ以外は **`mock.isEnabled`** で **有効**／**無効**。**`buildApplyPrimary`** / **`buildSaveInactive`** はテストや強制経路用です。
 
 **Del** — **`DisableMockPlanner`**: アクティブ → `configure` でオフ。オフ＋保存行一致 → **`remove`** ＋ Spec 寄せのリセット。それ以外は no-op。
 

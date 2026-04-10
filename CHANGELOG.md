@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **KawarimiHenge**: Opening an endpoint from the list when a **disabled default** stored row (e.g. **200** off) appears **before** the **enabled primary** (e.g. **503** custom) no longer loads the draft as **Spec** while **P** still marks the custom chip — **`OverrideExplorerDraftBootstrap`** seeds from **`primaryEnabledOverride`** before **`resyncMockFromServer`** (via **`buildDetail`**).
+- **KawarimiHenge**: **Save** with a **numbered** spec chip (e.g. **200 OK**) while the stored row is **off** no longer used the **Spec-only disable** path when the draft matched the OpenAPI template — **`SavePayload.build`** now takes **`pinnedNumberedResponseChip`** so Save sends **`isEnabled: true`** in that case.
+
+### Added
+
+- **KawarimiHenge**: Explorer list **warning** when **two or more** enabled overrides exist for the same OpenAPI operation.
+
+### Changed
+
+- **KawarimiHenge**: **Override explorer** — **`OverrideExplorerDraftBootstrap`** centralizes **open-from-list** draft construction (placeholder → primary overlay → resync); **`OverrideListQueries`** gains enum doc + **MARK** sections; **`OverrideEditorStore`** / **`OverrideDetailDraft`** doc comments point to the split.
+- **Docs**: **henge.md** / **ja/henge.md** — **Explorer state model** (snapshot, draft + stash, mutation bridge), **`isDirty` vs “Not saved”**, **draft bootstrap**, lifecycle (**`henge-ui-data-flow`** kept); **integration.md** / **ja** — link **`#henge-explorer-state`** plus lifecycle anchor.
+- **KawarimiHenge**: Single **Save** uses **`SavePayload.build`** — **`mock.isEnabled`** (from chip / stored row) chooses **enabled** (primary; peers disabled first) vs **disabled**; **disabled** saves still send trimmed **body** / **contentType** so JSON persists on the server.
+- **KawarimiHenge**: **Primary** indicator is a **`P`** badge on **detail** response chips only (server primary); the sidebar shows status code without **P**. **Spec** chip is accented when it is the effective response (no enabled override).
+- **KawarimiHenge**: Sidebar **status / example caption** always reflects **server primary**, not the chip selected for editing; **“Not saved”** and the sidebar **draft dot** use a **server snapshot diff** (persistable mock vs. ``resyncMockFromServer`` canonical), not ``isDirty`` alone, and still consider **stashed** drafts when you switch endpoints.
+- **KawarimiHenge**: Switching endpoints **stashes dirty drafts per row** (`pendingDraftsByRowKey`) so returning restores them; spec reload clears stashes.
+
 ## [1.0.5] - 2026-04-09
 
 ### Fixed

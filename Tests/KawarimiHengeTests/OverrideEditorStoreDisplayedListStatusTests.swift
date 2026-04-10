@@ -21,7 +21,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 private let pathPrefix = "/api"
 
-// MARK: displayedListStatus (plan §1c A1–A3) — drive `@Observable` `detail` + explicit `pathPrefix`
+// MARK: displayedListStatus — server-primary list (ignores open detail for same-row edits)
 
 @MainActor
 @Test func displayedListStatusA1NoDetailUsesPrimaryEnabledStatusCode() {
@@ -64,7 +64,8 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusA2SelectedRowEnabledUsesDraftStatusCode() {
+/// List status is **always** the server primary enabled row; the open detail selection does not drive the sidebar.
+@Test func displayedListStatusA2IgnoresSelectedDraftUsesPrimaryEnabled() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -98,7 +99,7 @@ private let pathPrefix = "/api"
         contentType: "application/json"
     )
     let code = store.displayedListStatus(for: rowKey, operationId: endpoint.operationId, pathPrefix: pathPrefix, overrides: [otherRowEnabled])
-    #expect(code == 418)
+    #expect(code == 500)
 }
 
 @MainActor
@@ -203,4 +204,50 @@ private let pathPrefix = "/api"
     )
     let code = store.displayedListStatus(for: otherKey, operationId: other.operationId, pathPrefix: pathPrefix, overrides: [ov])
     #expect(code == 201)
+}
+
+// MARK: buildDetail — open row matches server primary (not first stored row)
+
+@MainActor
+@Test func buildDetailUsesPrimaryEnabledWhenDisabledSpecRowStoredFirst() {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"spec\":1}", exampleId: nil, summary: nil, description: nil),
+        ]
+    )
+    let rowKey = EndpointRowKey(endpoint)
+    let disabled200 = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let enabled503 = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 503,
+        exampleId: "ec151b09",
+        isEnabled: true,
+        body: "{\"custom\":true}",
+        contentType: "application/json"
+    )
+    let draft = store.buildDetail(
+        rowKey: rowKey,
+        pathPrefix: "",
+        endpoints: [endpoint],
+        overrides: [disabled200, enabled503]
+    )
+    #expect(draft?.mock.isEnabled == true)
+    #expect(draft?.mock.statusCode == 503)
+    #expect(draft?.mock.exampleId == "ec151b09")
+    #expect(draft?.mock.body == "{\"custom\":true}")
 }

@@ -1,6 +1,10 @@
 import KawarimiCore
 import SwiftUI
 
+/// Host view for Henge: owns **HTTP-backed** spec and overrides snapshots, and passes them into ``OverrideEditorView``.
+///
+/// **Snapshots** (`meta`, `endpoints`, `overridesSnapshot`, `overridesRevision`) update from ``loadSpecAndOverrides()`` and ``refreshOverridesOnly()``.
+/// **Mutation closures** passed to the child return the same ``[MockOverride]`` as ``refreshOverridesOnly()`` (never re-read ``overridesSnapshot`` for that return) so ``OverrideEditorStore`` can resync the open draft reliably (see *UI data flow* in the henge documentation).
 public struct KawarimiConfigView: View {
     private let serverURL: String
 
@@ -59,11 +63,11 @@ public struct KawarimiConfigView: View {
                     try await disableConflictingStatusMocks(saved: override)
                 }
                 try await configureOverride(override)
-                await refreshOverridesOnly()
+                return try await refreshOverridesOnly()
             },
             removeOverride: { override in
                 try await removeOverride(override)
-                await refreshOverridesOnly()
+                return try await refreshOverridesOnly()
             },
             errorMessage: $errorMessage
         )
@@ -93,14 +97,14 @@ public struct KawarimiConfigView: View {
         await loadSpecAndOverrides()
     }
 
-    private func refreshOverridesOnly() async {
+    /// Fetches overrides, updates ``overridesSnapshot`` / ``overridesRevision``, and returns the **same** array for callers that must resync without re-reading `@State`.
+    @discardableResult
+    private func refreshOverridesOnly() async throws -> [MockOverride] {
         errorMessage = nil
-        do {
-            overridesSnapshot = try await fetchOverrides()
-            overridesRevision += 1
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        let list = try await fetchOverrides()
+        overridesSnapshot = list
+        overridesRevision += 1
+        return list
     }
 
     /// When saving an enabled mock, turn off every **other** enabled override for the same OpenAPI operation
