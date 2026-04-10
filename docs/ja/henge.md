@@ -171,7 +171,7 @@ Vapor の `AsyncMiddleware` として次のように動きます。
 
 #### ドラフトの起動（一覧から行を開くとき）
 
-退避が無いとき、**`OverrideExplorerDraftBootstrap.makeFreshDetail`** が最初のドラフトを組み立てる:**`MockDraftDefaults.specPlaceholder`** → サーバーに **`OverrideListQueries.primaryEnabledOverride`** があれば **`statusCode`** / **`exampleId`** / **`isEnabled`** / **`name`** を上書き → **`resyncMockFromServer`**。これにより、**`kawarimi.json` 上で無効の既定行（例: 200）が、有効なカスタム行（例: 503）より前に並んでいても**、プレースホルダのデフォルト **(200, nil)** だけで **`storedOverride`** が先頭の無効行に吸われず、**一覧の P** と **チップの選択**がずれない。
+退避が無いとき、**`OverrideExplorerDraftBootstrap.makeFreshDetail`** が **`MockDraftDefaults.specPlaceholder`** を作り、**`OverrideListQueries.primaryEnabledOverride`** があれば **`statusCode`** / **`exampleId`** / **`isEnabled`** / **`name`** を上書きしてから **`resyncMockFromServer`** を実行します。無効の既定行が有効なプライマリより **JSON 上で前に出てくる**場合でも、プレースホルダ **(200, nil)** だけで **`storedOverride`** が誤った行に結びつくのを防ぎ、**一覧の P** と **Spec チップ**の表示を揃えます。
 
 <a id="henge-ui-data-flow"></a>
 

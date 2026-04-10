@@ -172,7 +172,7 @@ The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint e
 
 #### Draft bootstrap (open from list)
 
-When there is **no** stashed draft, **`OverrideExplorerDraftBootstrap.makeFreshDetail`** builds the first draft: **`MockDraftDefaults.specPlaceholder`**, then—if **`OverrideListQueries.primaryEnabledOverride`** exists—overlays **`statusCode`**, **`exampleId`**, **`isEnabled`**, **`name`** from that primary, then runs **`resyncMockFromServer`**. That avoids **`storedOverride`** matching the **first** JSON row with the placeholder’s default **(200, nil)** when your config lists a **disabled** default row **before** the **enabled** custom row (e.g. 503): without the overlay, the **Spec** chip could highlight while **P** still marks the real primary.
+With **no** stashed draft, **`OverrideExplorerDraftBootstrap.makeFreshDetail`** builds **`MockDraftDefaults.specPlaceholder`**, optionally overlays the server **primary** (`statusCode`, `exampleId`, `isEnabled`, `name`) when **`OverrideListQueries.primaryEnabledOverride`** exists, then **`resyncMockFromServer`**. That prevents **`storedOverride`** from binding the placeholder **(200, nil)** to the wrong JSON row when a **disabled** default line appears **before** the **enabled** primary (which would disagree list **P** vs **Spec** chip).
 
 <a id="henge-ui-data-flow"></a>
 

@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-10
+
+### Removed
+
+- **KawarimiCore**: **`OpenAPIPathPrefix`** (deprecated since **1.0.2**). Use **`KawarimiPath`** (`splitPathSegments`, `joinPathPrefix`, `aligned(path:pathPrefix:)`). Replace **`configStoredPath(path:pathPrefix:)`** with **`KawarimiPath.aligned`**. For **`normalizedPrefix`** / **`stubServerURL`**, build paths with **`KawarimiPath`** and **`URLComponents`** yourself (there is no implicit **`/api`** default on empty input).
+
 ### Fixed
 
 - **KawarimiHenge**: Opening an endpoint from the list when a **disabled default** stored row (e.g. **200** off) appears **before** the **enabled primary** (e.g. **503** custom) no longer loads the draft as **Spec** while **P** still marks the custom chip — **`OverrideExplorerDraftBootstrap`** seeds from **`primaryEnabledOverride`** before **`resyncMockFromServer`** (via **`buildDetail`**).
@@ -19,8 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **KawarimiHenge**: **Override explorer** — **`OverrideExplorerDraftBootstrap`** centralizes **open-from-list** draft construction (placeholder → primary overlay → resync); **`OverrideListQueries`** gains enum doc + **MARK** sections; **`OverrideEditorStore`** / **`OverrideDetailDraft`** doc comments point to the split.
-- **Docs**: **henge.md** / **ja/henge.md** — **Explorer state model** (snapshot, draft + stash, mutation bridge), **`isDirty` vs “Not saved”**, **draft bootstrap**, lifecycle (**`henge-ui-data-flow`** kept); **integration.md** / **ja** — link **`#henge-explorer-state`** plus lifecycle anchor.
+- **KawarimiHenge**: **Override explorer** — **`OverrideExplorerDraftBootstrap`** centralizes **open-from-list** draft construction (placeholder → primary overlay → resync); trimmed public doc comments on explorer-related types (behaviour unchanged).
+- **Docs**: **henge.md** / **ja/henge.md** — **Explorer state model** (snapshot, draft + stash, mutation bridge), **`isDirty` vs “Not saved”**, **draft bootstrap**, lifecycle (**`henge-ui-data-flow`** kept); **integration.md** / **ja** — link **`#henge-explorer-state`**, lifecycle anchor, **`from: "1.1.0"`** sample pin, **1.1.0** migration note for path helpers.
 - **KawarimiHenge**: Single **Save** uses **`SavePayload.build`** — **`mock.isEnabled`** (from chip / stored row) chooses **enabled** (primary; peers disabled first) vs **disabled**; **disabled** saves still send trimmed **body** / **contentType** so JSON persists on the server.
 - **KawarimiHenge**: **Primary** indicator is a **`P`** badge on **detail** response chips only (server primary); the sidebar shows status code without **P**. **Spec** chip is accented when it is the effective response (no enabled override).
 - **KawarimiHenge**: Sidebar **status / example caption** always reflects **server primary**, not the chip selected for editing; **“Not saved”** and the sidebar **draft dot** use a **server snapshot diff** (persistable mock vs. ``resyncMockFromServer`` canonical), not ``isDirty`` alone, and still consider **stashed** drafts when you switch endpoints.
@@ -123,6 +129,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.1.0]: https://github.com/novr/Kawarimi/releases/tag/v1.1.0
 [1.0.5]: https://github.com/novr/Kawarimi/releases/tag/v1.0.5
 [1.0.4]: https://github.com/novr/Kawarimi/releases/tag/v1.0.4
 [1.0.3]: https://github.com/novr/Kawarimi/releases/tag/v1.0.3
