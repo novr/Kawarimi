@@ -2,12 +2,7 @@ import Foundation
 import KawarimiCore
 import Observation
 
-/// Explorer session state: **selected-endpoint draft** (``detail``), not a copy of the server overrides array.
-///
-/// - **Open-from-list policy** (fresh mock + one resync): ``OverrideExplorerDraftBootstrap/makeFreshDetail(rowKey:pathPrefix:endpoints:overrides:)``.
-/// - **Query-only rules** (primary, stored row, Save/chip shape): ``OverrideListQueries``.
-/// - List / captions for **server primary** use the parent's ``overrides`` (e.g. ``displayedListStatus(for:operationId:pathPrefix:in:)``).
-/// - After **Save** / **Reset** / **disable row**, ``applyWithBody``, ``clearOverride``, and ``disableCurrentMockRow`` call ``resyncDetailAfterOverridesRefresh`` with the ``[MockOverride]`` returned from ``configureOverride`` / ``removeOverride``.
+/// Explorer state for the open row (``detail``). Open-from-list: ``OverrideExplorerDraftBootstrap``; queries: ``OverrideListQueries``; after Save/Reset/Del, resync with the ``[MockOverride]`` returned from the parent’s configure/remove.
 @MainActor
 @Observable
 final class OverrideEditorStore {

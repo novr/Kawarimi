@@ -1,9 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// Stateless queries for **Henge explorer** behaviour: row matching, **primary** / **stored** rows, chip & Save “spec-shaped” rules, persistable equality for **server diff** UI, and peer-disable planning inputs.
-///
-/// Mutating alignment of an open draft lives on ``OverrideDetailDraft``; **fresh-detail** construction when opening a list row lives on ``OverrideExplorerDraftBootstrap``.
+/// Stateless Henge explorer queries (row matching, primary/stored rows, Save/chip rules, persistable equality, peer-disable inputs).
 enum OverrideListQueries {
     // MARK: - Row matching & primary
 

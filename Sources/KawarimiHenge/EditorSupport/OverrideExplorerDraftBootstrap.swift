@@ -1,12 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// Builds a **fresh** ``OverrideDetailDraft`` when the user opens an endpoint and there is **no** stashed draft for that row.
-///
-/// Owns the only policy sequence **placeholder → optional primary overlay → ``OverrideDetailDraft/resyncMockFromServer``**.
-/// Without the primary overlay, a spec-shaped placeholder `(first spec status, nil example)` can match **`storedOverride`** to an unrelated **disabled** row that appears **earlier** in `kawarimi.json` than the **enabled primary**, so list **P**, chip selection, and body would disagree.
-///
-/// Documented in **docs/henge.md** (Override editor → Explorer state model → Draft bootstrap).
+/// Fresh ``OverrideDetailDraft`` when opening a list row with no stashed draft: placeholder → optional primary overlay → ``OverrideDetailDraft/resyncMockFromServer`` (see henge docs).
 enum OverrideExplorerDraftBootstrap {
     /// Resolves the endpoint, builds the initial mock, runs one resync, and returns a clean draft; `nil` if the row key does not match any loaded endpoint.
     static func makeFreshDetail(
