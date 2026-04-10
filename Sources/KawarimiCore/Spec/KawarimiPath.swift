@@ -1,5 +1,6 @@
 import Foundation
 
+/// OpenAPI-style path segments and alignment with a configurable API prefix (persisted `kawarimi.json` paths).
 public enum KawarimiPath {
     public static func splitPathSegments(_ raw: String) -> [String] {
         raw.trimmingCharacters(in: .whitespacesAndNewlines)
