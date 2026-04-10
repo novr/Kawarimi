@@ -1,10 +1,7 @@
 import KawarimiCore
 import SwiftUI
 
-/// Host view for Henge: owns **HTTP-backed** spec and overrides snapshots, and passes them into ``OverrideEditorView``.
-///
-/// **Snapshots** (`meta`, `endpoints`, `overridesSnapshot`, `overridesRevision`) update from ``loadSpecAndOverrides()`` and ``refreshOverridesOnly()``.
-/// **Mutation closures** passed to the child return the same ``[MockOverride]`` as ``refreshOverridesOnly()`` (never re-read ``overridesSnapshot`` for that return) so ``OverrideEditorStore`` can resync the open draft reliably (see *UI data flow* in the henge documentation).
+/// Henge root: loads spec and overrides, passes snapshots into ``OverrideEditorView``. Configure/remove callbacks must return the same ``[MockOverride]`` as the overrides refresh (see henge *UI data flow*).
 public struct KawarimiConfigView: View {
     private let serverURL: String
 

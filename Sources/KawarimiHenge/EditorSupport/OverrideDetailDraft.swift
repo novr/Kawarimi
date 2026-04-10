@@ -1,9 +1,7 @@
 import Foundation
 import KawarimiCore
 
-/// In-memory **detail** row for the selected endpoint: edited ``mock``, ``isDirty``, chip pin, validation.
-///
-/// **Align with server:** ``resyncMockFromServer(overrides:endpoints:pathPrefix:)``. **First open:** ``OverrideExplorerDraftBootstrap``.
+/// Per-endpoint editor draft (``mock``, ``isDirty``, ``pinnedNumberedResponseChip``). Sync via ``resyncMockFromServer``; first open via ``OverrideExplorerDraftBootstrap``.
 struct OverrideDetailDraft {
     var mock: MockOverride
     var validationMessage: String?

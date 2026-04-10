@@ -1,7 +1,7 @@
 import KawarimiCore
 import SwiftUI
 
-/// Endpoint explorer + detail editor. **Read-only** ``overrides`` / ``endpoints`` / ``meta`` come from ``KawarimiConfigView``; editing state lives in ``OverrideEditorStore``.
+/// Endpoint explorer and detail editor; list/spec inputs from the parent, draft state in ``OverrideEditorStore``.
 struct OverrideEditorView: View {
     private let serverURL: String
     private let onRefresh: () -> Void
