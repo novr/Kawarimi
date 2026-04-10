@@ -1,6 +1,7 @@
 import KawarimiCore
 import SwiftUI
 
+/// Endpoint explorer + detail editor. **Read-only** ``overrides`` / ``endpoints`` / ``meta`` come from ``KawarimiConfigView``; editing state lives in ``OverrideEditorStore``.
 struct OverrideEditorView: View {
     private let serverURL: String
     private let onRefresh: () -> Void
@@ -11,8 +12,8 @@ struct OverrideEditorView: View {
     private let isLoading: Bool
     private let specLoadID: Int
     private let overridesRevision: Int
-    private let configureOverride: (MockOverride) async throws -> Void
-    private let removeOverride: (MockOverride) async throws -> Void
+    private let configureOverride: (MockOverride) async throws -> [MockOverride]
+    private let removeOverride: (MockOverride) async throws -> [MockOverride]
     private let errorMessage: Binding<String?>
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -36,8 +37,8 @@ struct OverrideEditorView: View {
         isLoading: Bool,
         specLoadID: Int,
         overridesRevision: Int,
-        configureOverride: @escaping (MockOverride) async throws -> Void,
-        removeOverride: @escaping (MockOverride) async throws -> Void,
+        configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
         errorMessage: Binding<String?>
     ) {
         self.serverURL = serverURL
@@ -131,9 +132,6 @@ struct OverrideEditorView: View {
         }
         .task(id: specLoadID) {
             store.resyncDetailAfterSpecReload(pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
-        }
-        .task(id: overridesRevision) {
-            store.resyncDetailAfterOverridesRefresh(pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
         }
         .confirmationDialog(
             "Reset all overrides?",
@@ -251,7 +249,12 @@ struct OverrideEditorView: View {
                                     overrides: overrides
                                 ),
                                 exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
-                                hasUnsavedDraft: store.hasUnsavedDraft(for: item.rowKey),
+                                hasUnsavedDraft: store.hasUnsavedDraft(
+                                    for: item.rowKey,
+                                    pathPrefix: specPathPrefix,
+                                    endpoints: endpoints,
+                                    overrides: overrides
+                                ),
                                 showMultipleActiveMocksWarning: showsMultipleActiveMocksWarning(for: item),
                                 showChevron: true
                             )
@@ -272,6 +275,7 @@ struct OverrideEditorView: View {
         .scrollContentBackground(.hidden)
         .background(ExplorerPalette.surface)
         .listRowSeparator(.hidden)
+        .id(overridesRevision)
     }
 
     // MARK: - Split sidebar
@@ -319,7 +323,12 @@ struct OverrideEditorView: View {
                                 overrides: overrides
                             ),
                             exampleCaption: endpointListExampleCaption(rowKey: item.rowKey, item: item),
-                            hasUnsavedDraft: store.hasUnsavedDraft(for: item.rowKey),
+                            hasUnsavedDraft: store.hasUnsavedDraft(
+                                for: item.rowKey,
+                                pathPrefix: specPathPrefix,
+                                endpoints: endpoints,
+                                overrides: overrides
+                            ),
                             showMultipleActiveMocksWarning: showsMultipleActiveMocksWarning(for: item),
                             showChevron: false
                         )
@@ -339,6 +348,7 @@ struct OverrideEditorView: View {
         .scrollContentBackground(.hidden)
         .background(ExplorerPalette.surface)
         .listRowSeparator(.hidden)
+        .id(overridesRevision)
     }
 
     // MARK: - Shared chrome
@@ -378,14 +388,18 @@ struct OverrideEditorView: View {
                 primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
-                hasUnsavedChanges: d.isDirty,
+                hasUnsavedChanges: store.hasUnsavedDraft(
+                    for: d.endpointRowKey,
+                    pathPrefix: specPathPrefix,
+                    endpoints: endpoints,
+                    overrides: overrides
+                ),
                 embedNavigationStack: true,
                 showToolbarRefresh: true,
                 onRefresh: onRefresh,
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
-                onApplyPrimary: { Task { await applyWithBodyApplyPrimary(endpointItem: item) } },
-                onSaveInactive: { Task { await applyWithBodySaveInactive(endpointItem: item) } },
+                onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: d.endpointRowKey),
@@ -408,14 +422,18 @@ struct OverrideEditorView: View {
                 primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
                 validationMessage: validationMessageBinding,
-                hasUnsavedChanges: store.hasUnsavedDraft(for: key),
+                hasUnsavedChanges: store.hasUnsavedDraft(
+                    for: key,
+                    pathPrefix: specPathPrefix,
+                    endpoints: endpoints,
+                    overrides: overrides
+                ),
                 embedNavigationStack: false,
                 showToolbarRefresh: false,
                 onRefresh: onRefresh,
                 onValidate: { store.validateBody() },
                 onFormat: { store.formatBody() },
-                onApplyPrimary: { Task { await applyWithBodyApplyPrimary(endpointItem: item) } },
-                onSaveInactive: { Task { await applyWithBodySaveInactive(endpointItem: item) } },
+                onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: key),
@@ -460,7 +478,12 @@ struct OverrideEditorView: View {
             compactPop()
             return
         }
-        if d.isDirty {
+        if store.hasUnsavedDraft(
+            for: item.rowKey,
+            pathPrefix: specPathPrefix,
+            endpoints: endpoints,
+            overrides: overrides
+        ) {
             compactDoneUnsavedPresented = true
         } else {
             compactPop()
@@ -483,7 +506,7 @@ struct OverrideEditorView: View {
             compactPop()
             return
         }
-        await applyWithBodyApplyPrimary(endpointItem: item)
+        await applyWithBody(endpointItem: item)
         if errorMessage.wrappedValue == nil {
             compactPop()
         }
@@ -496,17 +519,11 @@ struct OverrideEditorView: View {
         )
     }
 
-    private func applyWithBodyApplyPrimary(endpointItem: SpecEndpointItem) async {
-        await store.applyWithBodyApplyPrimary(
+    private func applyWithBody(endpointItem: SpecEndpointItem) async {
+        await store.applyWithBody(
             endpointItem: endpointItem,
-            configureOverride: configureOverride,
-            setErrorMessage: { errorMessage.wrappedValue = $0 }
-        )
-    }
-
-    private func applyWithBodySaveInactive(endpointItem: SpecEndpointItem) async {
-        await store.applyWithBodySaveInactive(
-            endpointItem: endpointItem,
+            pathPrefix: specPathPrefix,
+            endpoints: endpoints,
             configureOverride: configureOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
@@ -515,6 +532,8 @@ struct OverrideEditorView: View {
     private func clearOverride(endpointItem: SpecEndpointItem) async {
         await store.clearOverride(
             endpointItem: endpointItem,
+            pathPrefix: specPathPrefix,
+            endpoints: endpoints,
             configureOverride: configureOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
@@ -525,6 +544,7 @@ struct OverrideEditorView: View {
             endpointItem: endpointItem,
             pathPrefix: specPathPrefix,
             overrides: overrides,
+            endpoints: endpoints,
             configureOverride: configureOverride,
             removeOverride: removeOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }

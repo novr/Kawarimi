@@ -24,7 +24,7 @@ SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
 - **KawarimiJutsu** — generator API (`KawarimiJutsu.loadOpenAPISpec`, YAML config loaders, …). Pulls OpenAPIKit; for CLI/tests/custom tooling, not typical app binaries.
-- **KawarimiHenge** — SwiftUI (`KawarimiConfigView`).
+- **KawarimiHenge** — SwiftUI (`KawarimiConfigView`). Henge **explorer state** (snapshot, draft, bootstrap, `isDirty` vs “Not saved”): [henge.md](henge.md#henge-explorer-state); lifecycle / list `.id`: [henge.md](henge.md#henge-ui-data-flow).
 
 The target that hosts **KawarimiSpec.swift** must declare **`KawarimiCore`** and the **`HTTPTypes`** product as direct dependencies (same [swift-http-types](https://github.com/apple/swift-http-types) package). SwiftPM will not pick that up transitively from **KawarimiCore** alone.
 

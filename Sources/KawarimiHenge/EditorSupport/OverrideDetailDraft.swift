@@ -1,6 +1,9 @@
 import Foundation
 import KawarimiCore
 
+/// In-memory **detail** row for the selected endpoint: edited ``mock``, ``isDirty``, chip pin, validation.
+///
+/// **Align with server:** ``resyncMockFromServer(overrides:endpoints:pathPrefix:)``. **First open:** ``OverrideExplorerDraftBootstrap``.
 struct OverrideDetailDraft {
     var mock: MockOverride
     var validationMessage: String?
@@ -100,5 +103,16 @@ struct OverrideDetailDraft {
         mock.body = nil
         mock.contentType = nil
         mock.name = endpoint.operationId
+    }
+
+    /// True when the draft’s mock differs from what ``resyncMockFromServer`` would produce for the same `overrides` snapshot (ignores ``pinnedNumberedResponseChip``, ``validationMessage``, and ``isDirty``).
+    func persistableMockDiffersFromServer(
+        overrides: [MockOverride],
+        endpoints: [any SpecEndpointProviding],
+        pathPrefix: String
+    ) -> Bool {
+        var probe = self
+        probe.resyncMockFromServer(overrides: overrides, endpoints: endpoints, pathPrefix: pathPrefix)
+        return !OverrideListQueries.persistableMockConfigurationEqual(mock, probe.mock)
     }
 }

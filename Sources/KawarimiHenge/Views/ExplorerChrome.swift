@@ -191,15 +191,10 @@ struct EndpointRowView: View {
                             .font(.caption.weight(.medium))
                             .foregroundStyle(rowSecondaryForeground)
                     } else {
-                        HStack(spacing: 5) {
-                            Text("P")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color.green)
-                                .accessibilityLabel("Primary mock on server")
-                            Text("\(statusCode)")
-                                .font(.caption.monospaced().weight(.semibold))
-                                .foregroundStyle(rowPathForeground)
-                        }
+                        Text("\(statusCode)")
+                            .font(.caption.monospaced().weight(.semibold))
+                            .foregroundStyle(rowPathForeground)
+                            .accessibilityLabel("Primary mock status \(statusCode)")
                     }
                 }
                 .frame(minWidth: 52, alignment: .trailing)

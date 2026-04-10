@@ -27,8 +27,7 @@ struct OverrideDetailColumnView: View {
     let onRefresh: () -> Void
     let onValidate: () -> Void
     let onFormat: () -> Void
-    let onApplyPrimary: () -> Void
-    let onSaveInactive: () -> Void
+    let onSave: () -> Void
     let onReset: () -> Void
     let onDisableCurrentMock: () -> Void
     let pinnedNumberedResponseChip: Bool
@@ -356,7 +355,7 @@ struct OverrideDetailColumnView: View {
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(.secondary)
                         .tracking(0.6)
-                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Apply saves and makes the selected row primary. Save inactive keeps the row disabled on the server. Add creates another row. Long-press a chip to copy example id. Del turns off an active mock or removes an inactive row.")
+                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Save sends the current chip: enabled rows become primary; disabled rows stay off and still persist JSON. Add creates another row. Long-press a chip to copy example id. Del turns off an active mock or removes an inactive row.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(detailTightVertical ? 4 : nil)
@@ -394,8 +393,16 @@ struct OverrideDetailColumnView: View {
 
     private func chipMatchesServerPrimary(_ opt: ResponseChip) -> Bool {
         guard !opt.isSpec, let p = primaryOverride else { return false }
-        return opt.statusCode == p.statusCode
-            && MockExamplePresentation.exampleIdsEqual(opt.exampleId, p.exampleId)
+        guard opt.statusCode == p.statusCode,
+              MockExamplePresentation.exampleIdsEqual(opt.exampleId, p.exampleId) else { return false }
+
+        // Several OpenAPI rows can share status + example id (e.g. two default `200`s). Match **P** to the row whose
+        // template matches the server primary body, not always the first chip.
+        if let chipIdx = opt.specResponseListIndex,
+           let wantIdx = OverrideListQueries.specResponseListIndexForPrimaryBadge(primary: p, endpoint: endpoint) {
+            return chipIdx == wantIdx
+        }
+        return true
     }
 
     private var specChipIsServerEffective: Bool {
@@ -629,8 +636,7 @@ struct OverrideDetailColumnView: View {
         HStack(spacing: 4) {
             toolbarPlainButton(title: "Validate", systemImage: "checkmark.circle", action: onValidate)
             toolbarPlainButton(title: "Format", systemImage: "text.alignleft", action: onFormat)
-            applyPrimaryCapsuleButton
-            saveInactiveToolbarButton
+            saveCapsuleButton
             toolbarPlainButton(title: "Reset", systemImage: "arrow.counterclockwise", foreground: .red) {
                 confirmResetEndpoint = true
             }
@@ -645,12 +651,12 @@ struct OverrideDetailColumnView: View {
         }
     }
 
-    private var applyPrimaryCapsuleButton: some View {
-        Button(action: onApplyPrimary) {
+    private var saveCapsuleButton: some View {
+        Button(action: onSave) {
             VStack(spacing: 4) {
                 Image(systemName: "square.and.arrow.down")
                     .font(.system(size: 20))
-                Text("Apply")
+                Text("Save")
                     .font(.caption2.weight(.semibold))
                     .lineLimit(1)
             }
@@ -662,30 +668,7 @@ struct OverrideDetailColumnView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
-        .accessibilityLabel("Apply mock — save and set as primary on server")
-    }
-
-    private var saveInactiveToolbarButton: some View {
-        Button(action: onSaveInactive) {
-            VStack(spacing: 4) {
-                Image(systemName: "tray.and.arrow.down")
-                    .font(.system(size: 18))
-                Text("Inactive")
-                    .font(.caption2.weight(.semibold))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(Color.secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, detailTightVertical ? 6 : 8)
-            .padding(.horizontal, 4)
-            .background(
-                Capsule(style: .continuous)
-                    .strokeBorder(Color.secondary.opacity(0.45), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel("Save without activating — keep row disabled on server")
+        .accessibilityLabel("Save mock — enabled row becomes primary; disabled row stays off and keeps JSON")
     }
 
     private func toolbarPlainButton(
