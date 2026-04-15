@@ -35,6 +35,9 @@ Closures are typed `@Sendable (Operations.….Input) async throws -> Operations.
 
 `on…` properties and forwarding methods use `accessModifier` from `openapi-generator-config.yaml` (`public` / `package` / `internal`, default `public`). If another target imports your API target, use `accessModifier: package` or `public`.
 
+Default stub bodies prefer a literal `.json(...)` expression; when that cannot be generated from the schema, Kawarimi falls back to **`JSONDecoder`** on the same synthesized JSON as the `Kawarimi` transport mock ([Mock JSON rules](docs/mock-json.md#kawarimihandler-default-stubs)).
+Configure **`handlerStubPolicy`** in `kawarimi-generator-config.yaml` ([Integration](docs/integration.md)).
+
 ## Example project
 
 **DemoPackage** (SwiftPM + Vapor **DemoServer**) and **DemoApp** (SwiftUI): [**Example/README.md**](Example/README.md) · [**Example/README_JA.md**](Example/README_JA.md) (layout, commands, screenshots, security notes).

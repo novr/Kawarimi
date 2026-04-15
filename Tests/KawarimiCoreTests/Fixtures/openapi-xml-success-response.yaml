@@ -1,0 +1,15 @@
+openapi: 3.0.3
+info:
+  title: Non-JSON success fixture
+  version: 1.0.0
+paths:
+  /report:
+    get:
+      operationId: getReport
+      responses:
+        '200':
+          description: OK
+          content:
+            application/xml:
+              schema:
+                type: string

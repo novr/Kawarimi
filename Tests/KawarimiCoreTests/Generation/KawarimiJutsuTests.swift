@@ -146,7 +146,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("return .ok(.init())"))
 }
 
-@Test func kawarimiHandlerUsesFatalErrorStubForStringEnumWhenPolicyIsFatalError() throws {
+@Test func kawarimiHandlerUsesJSONDecodeStubForStringEnumWhenPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
         return
@@ -157,17 +157,15 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
         namingStrategy: .defensive,
         handlerStubPolicy: .fatalError
     )
-    #expect(source.contains("fatalError("))
     #expect(source.contains("onCreateItem"))
-    #expect(source.contains("// Kawarimi: handlerStubPolicy fatalError"))
-    #expect(source.contains("//   [POST /items] createItem"))
-    #expect(!warnings.isEmpty)
-    #expect(warnings.joined().contains("createItem"))
-    #expect(warnings.joined().contains("Kawarimi warning:"))
-    #expect(warnings.joined().contains("Summary: 1 operation"))
+    #expect(source.contains("JSONDecoder"))
+    #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
+    #expect(!source.contains("fatalError("))
+    #expect(!source.contains("// Kawarimi: handlerStubPolicy fatalError"))
+    #expect(warnings.isEmpty)
 }
 
-@Test func kawarimiHandlerUsesFatalErrorStubWhenAccessInternalAndPolicyIsFatalError() throws {
+@Test func kawarimiHandlerUsesJSONDecodeStubWhenAccessInternalAndPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
         return
@@ -180,26 +178,42 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
         handlerStubPolicy: .fatalError
     )
     #expect(source.contains("internal var onCreateItem:"))
-    #expect(source.contains("fatalError("))
-    #expect(source.contains("// Kawarimi: handlerStubPolicy fatalError"))
-    #expect(!warnings.isEmpty)
-    #expect(warnings.joined().contains("createItem"))
-    #expect(warnings.joined().contains("Summary: 1 operation"))
+    #expect(source.contains("JSONDecoder"))
+    #expect(!source.contains("fatalError("))
+    #expect(warnings.isEmpty)
 }
 
-@Test func kawarimiHandlerThrowsForStringEnumWithDefaultFailFastPolicy() throws {
+@Test func kawarimiHandlerUsesJSONDecodeStubForStringEnumWithDefaultThrowPolicy() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    do {
-        _ = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
-        Issue.record("expected error but generation succeeded")
-    } catch let e as KawarimiJutsuError {
-        #expect(e.description.contains("createItem"))
-        #expect(e.description.contains("enum"))
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("JSONDecoder"))
+    #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
+}
+
+@Test func kawarimiHandlerUsesFatalErrorStubForNonJsonSuccessWhenPolicyIsFatalError() throws {
+    guard let url = fixtureURL(name: "openapi-xml-success-response", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
     }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+        document: document,
+        namingStrategy: .defensive,
+        handlerStubPolicy: .fatalError
+    )
+    #expect(source.contains("fatalError("))
+    #expect(source.contains("onGetReport"))
+    #expect(source.contains("// Kawarimi: handlerStubPolicy fatalError"))
+    #expect(source.contains("//   [GET /report] getReport"))
+    #expect(!warnings.isEmpty)
+    #expect(warnings.joined().contains("getReport"))
+    #expect(warnings.joined().contains("Kawarimi warning:"))
+    #expect(warnings.joined().contains("Summary: 1 operation"))
 }
 
 @Test func kawarimiNamingStrategyRejectsUnknownValue() throws {
