@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-04-15
+
+### Fixed
+
+- **KawarimiJutsu**: **`KawarimiHandler`** stubs for **`application/json`** responses fall back to **JSON decode** (the same payload as **`mockJSONBodyFromJSONMediaType`**) when **`swiftInitializerForSchema`** cannot synthesize a literal — shapes such as **`enum`**, **`allOf`**, and **`oneOf`** no longer yield **`fatalError`** stubs for JSON success bodies.
+- **`handlerStubPolicy`**: **`fatalError`** remains for responses that still cannot be stubbed (for example non-JSON success bodies); covered by the **XML** success OpenAPI fixture tests.
+
 ### Changed
 
 - **Docs**: **mock-json.md** / **ja**, **integration.md** / **ja**, **README** / **README_JA**, **docs/README.md** / **ja/README.md** — document **`KawarimiHandler`** default stubs: **JSON decode fallback** when a literal initializer cannot be generated; **`handlerStubPolicy`** only traps **`fatalError`** for operations that still cannot be stubbed.
@@ -133,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.1.1]: https://github.com/novr/Kawarimi/releases/tag/v1.1.1
 [1.1.0]: https://github.com/novr/Kawarimi/releases/tag/v1.1.0
 [1.0.5]: https://github.com/novr/Kawarimi/releases/tag/v1.0.5
 [1.0.4]: https://github.com/novr/Kawarimi/releases/tag/v1.0.4
