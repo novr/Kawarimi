@@ -37,6 +37,8 @@ handler.onGetGreeting = { input in
 
 `on…` と委譲メソッドの可視性は `openapi-generator-config.yaml` の `accessModifier`（`public` / `package` / `internal`、省略時 `public`）に合わせる。別ターゲットから API ターゲットを import する場合は `accessModifier: package` か `public` を使う。
 
+デフォルトのスタブ本文は、スキーマから **`.json(...)` のリテラル式**が書けるときはそれを優先し、難しい場合は **`Kawarimi` トランスポートモックと同じ合成 JSON を `JSONDecoder` でデコード**する（[モック JSON の決め方](docs/ja/mock-json.md) の「KawarimiHandler のデフォルトスタブ」）。**`handlerStubPolicy`** は `kawarimi-generator-config.yaml` で指定（[導入・統合](docs/ja/integration.md)）。
+
 ## サンプルプロジェクト
 
 **DemoPackage**（SwiftPM + Vapor **DemoServer**）と **DemoApp**（SwiftUI）: [**Example/README_JA.md**](Example/README_JA.md) · [**Example/README.md**](Example/README.md)（構成、コマンド、スクリーンショット、セキュリティ注意）。

@@ -82,5 +82,5 @@ let response = try await client.getGreeting(...)
 
 - Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。
 - **`Example/`** 配下の SwiftPM サンプルは **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
-- `handlerStubPolicy: throw` はスタブ生成不能な operation で生成を失敗させます。
-- `handlerStubPolicy: fatalError` は生成を継続し、該当 operation は実行時 `fatalError` になります。
+- `handlerStubPolicy: throw` は、**いずれかの** operation で `KawarimiHandler` のデフォルトスタブが組めないときに生成を失敗させます（例: ドキュメント上の成功が **HTTP 200 / 201** の `application/json` または本文なし、**HTTP 204** のパターンに合わない、ヘッダのみで本文のスタブを自動生成できない等）。
+- `handlerStubPolicy: fatalError` は生成を継続し、**なお**スタブを組めない operation だけ実行時 `fatalError()` のクロージャになります（該当 `operationId` を stderr に警告）。`application/json` の成功レスポンスは、式スタブが書けるときはそのまま、無理なときは [mock-json.md](mock-json.md)（「KawarimiHandler のデフォルトスタブ」）の **JSON デコードフォールバック**を使います。

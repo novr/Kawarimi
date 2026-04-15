@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs**: **mock-json.md** / **ja**, **integration.md** / **ja**, **README** / **README_JA**, **docs/README.md** / **ja/README.md** — document **`KawarimiHandler`** default stubs: **JSON decode fallback** when a literal initializer cannot be generated; **`handlerStubPolicy`** only traps **`fatalError`** for operations that still cannot be stubbed.
+
 ## [1.1.0] - 2026-04-10
 
 ### Removed

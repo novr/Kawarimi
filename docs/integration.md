@@ -82,5 +82,5 @@ let response = try await client.getGreeting(...)
 
 - Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); SwiftPM on **6.1** may **reject** that graph when depending on the plugin — use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**.
 - The SwiftPM sample under **`Example/`** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
-- `handlerStubPolicy: throw` fails generation when a stub cannot be produced.
-- `handlerStubPolicy: fatalError` keeps generation successful and traps at runtime for unsupported operations.
+- `handlerStubPolicy: throw` fails generation when **any** operation cannot get a default `KawarimiHandler` stub (for example documented success is not stubbable **HTTP 200 / 201** with `application/json` or an empty body, nor **HTTP 204**, or the generator cannot synthesize headers-only responses).
+- `handlerStubPolicy: fatalError` keeps generation successful; operations that **still** cannot be stubbed emit a `fatalError()` closure body at runtime (stderr warns with their `operationId`s). JSON success responses use a literal initializer when possible, otherwise the **JSON decode fallback** described in [mock-json.md](mock-json.md#kawarimihandler-default-stubs).
