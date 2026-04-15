@@ -29,11 +29,13 @@
 
 ## KawarimiHandler のデフォルトスタブ
 
-`KawarimiHandler` は、**`application/json` 本文用のリテラル式**（手書きの `.init(...)` に相当）が生成できないとき、上記と**同じ合成 JSON 文字列**（`mockJSONBodyFromJSONMediaType` とトランスポートモックと同じルール）を **`JSONDecoder`** で **swift-openapi-generator が出した型**にデコードして返すスタブを出します。レスポンスが **`$ref`** なら `Components.Schemas.*`、インラインなら `Operations.<操作>.Output.(Ok|Created).Body.jsonPayload` をデコード先にします。
+`KawarimiHandler` は、**`application/json` 本文用のリテラル式**（手書きの `.init(...)` に相当）が生成できないとき、上記と**同じ合成 JSON 文字列**（`mockJSONBodyFromJSONMediaType` とトランスポートモックと同じルール）を **`JSONDecoder`** で **swift-openapi-generator が出した型**にデコードして返すスタブを出します。
+レスポンスが **`$ref`** なら `Components.Schemas.*`、インラインなら `Operations.<操作>.Output.(Ok|Created).Body.jsonPayload` をデコード先にします。
 
 **リテラル式が書ける場合はそちらを優先**し、実行時デコードは使いません。
 
-ドキュメント上の成功レスポンスが **stub 可能な HTTP 200 / 201**（`application/json` または本文なし）または **204** でない場合は、`handlerStubPolicy: throw` で生成が失敗するか、`handlerStubPolicy: fatalError` ではスタブ本体が `fatalError` になります（[integration.md](integration.md)）。別の挙動が必要なときや、スキーマ名と生成型が一致しない稀なケースでは **`on…` を手で上書き**してください。
+ドキュメント上の成功レスポンスが **stub 可能な HTTP 200 / 201**（`application/json` または本文なし）または **204** でない場合は、`handlerStubPolicy: throw` で生成が失敗するか、`handlerStubPolicy: fatalError` ではスタブ本体が `fatalError` になります（[integration.md](integration.md)）。
+別の挙動が必要なときや、スキーマ名と生成型が一致しない稀なケースでは **`on…` を手で上書き**してください。
 
 ## 名前付き例と `responseMap`
 

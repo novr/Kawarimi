@@ -29,11 +29,13 @@ The string is chosen in this order:
 
 ## KawarimiHandler default stubs
 
-`KawarimiHandler` reuses the **same JSON synthesis** as the transport mock when a **literal Swift initializer** for the `application/json` body cannot be generated (for example string `enum` / `allowedValues`, or `allOf` / `oneOf` / `anyOf` shapes the initializer path rejects). In that case the emitted stub decodes the synthesized string with **`JSONDecoder`** into the type **swift-openapi-generator** produced: `Components.Schemas.*` when the response schema is a **`$ref`**, otherwise `Operations.<Operation>.Output.(Ok|Created).Body.jsonPayload`.
+`KawarimiHandler` reuses the **same JSON synthesis** as the transport mock when a **literal Swift initializer** for the `application/json` body cannot be generated (for example string `enum` / `allowedValues`, or `allOf` / `oneOf` / `anyOf` shapes the initializer path rejects).
+In that case the emitted stub decodes the synthesized string with **`JSONDecoder`** into the type **swift-openapi-generator** produced: `Components.Schemas.*` when the response schema is a **`$ref`**, otherwise `Operations.<Operation>.Output.(Ok|Created).Body.jsonPayload`.
 
 When a **literal initializer can be emitted**, that path is preferred (no decode at runtime).
 
-If the documented success response is **not** a stubbable **HTTP 200 / 201** (`application/json` or empty body) or **204**, generation fails with `handlerStubPolicy: throw`, or the stub body is `fatalError` with `handlerStubPolicy: fatalError` (see [integration.md](integration.md)). Use a custom `on…` closure when you need different behavior or when the decode type does not match your document (rare naming edge cases).
+If the documented success response is **not** a stubbable **HTTP 200 / 201** (`application/json` or empty body) or **204**, generation fails with `handlerStubPolicy: throw`, or the stub body is `fatalError` with `handlerStubPolicy: fatalError` (see [integration.md](integration.md)).
+Use a custom `on…` closure when you need different behavior or when the decode type does not match your document (rare naming edge cases).
 
 ## Named examples and `responseMap`
 

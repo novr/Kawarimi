@@ -57,7 +57,9 @@ targets: [
 
 ## 2. OpenAPI の置き場所
 
-`openapi.yaml` は **Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に 1 つ置く。**KawarimiPlugin** はそのルートから `openapi.yaml` を解決し、任意のソースファイルの親ディレクトリには依存しません。ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
+`openapi.yaml` は **Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に 1 つ置く。
+**KawarimiPlugin** はそのルートから `openapi.yaml` を解決し、任意のソースファイルの親ディレクトリには依存しません。
+ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
 ## 3. オプション: ジェネレータ設定
 
@@ -82,5 +84,7 @@ let response = try await client.getGreeting(...)
 
 - Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。
 - **`Example/`** 配下の SwiftPM サンプルは **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
-- `handlerStubPolicy: throw` は、**いずれかの** operation で `KawarimiHandler` のデフォルトスタブが組めないときに生成を失敗させます（例: ドキュメント上の成功が **HTTP 200 / 201** の `application/json` または本文なし、**HTTP 204** のパターンに合わない、ヘッダのみで本文のスタブを自動生成できない等）。
-- `handlerStubPolicy: fatalError` は生成を継続し、**なお**スタブを組めない operation だけ実行時 `fatalError()` のクロージャになります（該当 `operationId` を stderr に警告）。`application/json` の成功レスポンスは、式スタブが書けるときはそのまま、無理なときは [mock-json.md](mock-json.md)（「KawarimiHandler のデフォルトスタブ」）の **JSON デコードフォールバック**を使います。
+- `handlerStubPolicy: throw` は、**いずれかの** operation で `KawarimiHandler` のデフォルトスタブが組めないときに生成を失敗させます。
+  例: ドキュメント上の成功が **HTTP 200 / 201** の `application/json` または本文なし、**HTTP 204** のパターンに合わない、ヘッダのみで本文のスタブを自動生成できない、など。
+- `handlerStubPolicy: fatalError` は生成を継続し、**なお**スタブを組めない operation だけ実行時 `fatalError()` のクロージャになります（該当 `operationId` を stderr に警告）。
+  `application/json` の成功レスポンスは、式スタブが書けるときはそのまま、無理なときは [mock-json.md](mock-json.md)（「KawarimiHandler のデフォルトスタブ」）の **JSON デコードフォールバック**を使います。

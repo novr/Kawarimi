@@ -57,7 +57,9 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ## 2. OpenAPI spec location
 
-Place one `openapi.yaml` in the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects). **KawarimiPlugin** resolves `openapi.yaml` from that root, not from an arbitrary source file’s folder. The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
+Place one `openapi.yaml` in the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects).
+**KawarimiPlugin** resolves `openapi.yaml` from that root, not from an arbitrary source file’s folder.
+The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
 
 ## 3. Optional generator config
 
@@ -82,5 +84,7 @@ let response = try await client.getGreeting(...)
 
 - Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); SwiftPM on **6.1** may **reject** that graph when depending on the plugin — use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**.
 - The SwiftPM sample under **`Example/`** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
-- `handlerStubPolicy: throw` fails generation when **any** operation cannot get a default `KawarimiHandler` stub (for example documented success is not stubbable **HTTP 200 / 201** with `application/json` or an empty body, nor **HTTP 204**, or the generator cannot synthesize headers-only responses).
-- `handlerStubPolicy: fatalError` keeps generation successful; operations that **still** cannot be stubbed emit a `fatalError()` closure body at runtime (stderr warns with their `operationId`s). JSON success responses use a literal initializer when possible, otherwise the **JSON decode fallback** described in [mock-json.md](mock-json.md#kawarimihandler-default-stubs).
+- `handlerStubPolicy: throw` fails generation when **any** operation cannot get a default `KawarimiHandler` stub.
+  For example: documented success is not stubbable **HTTP 200 / 201** with `application/json` or an empty body, nor **HTTP 204**, or the generator cannot synthesize headers-only responses.
+- `handlerStubPolicy: fatalError` keeps generation successful; operations that **still** cannot be stubbed emit a `fatalError()` closure body at runtime (stderr warns with their `operationId`s).
+  JSON success responses use a literal initializer when possible, otherwise the **JSON decode fallback** described in [mock-json.md](mock-json.md#kawarimihandler-default-stubs).
