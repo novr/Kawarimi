@@ -229,10 +229,22 @@ public enum KawarimiJutsu {
         switch stub {
         case .okJSON(let expr):
             return ["        return .ok(.init(body: .json(\(expr))))"]
+        case .okJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
+            return [
+                "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
+                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        return .ok(.init(body: .json(_kawarimiDecodedBody)))",
+            ]
         case .okEmpty:
             return ["        return .ok(.init())"]
         case .createdJSON(let expr):
             return ["        return .created(.init(body: .json(\(expr))))"]
+        case .createdJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
+            return [
+                "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
+                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        return .created(.init(body: .json(_kawarimiDecodedBody)))",
+            ]
         case .createdEmpty:
             return ["        return .created(.init())"]
         case .noContent:
@@ -308,7 +320,8 @@ public enum KawarimiJutsu {
                         operation: operation,
                         components: components,
                         operationId: operationId,
-                        operationContext: opContext
+                        operationContext: opContext,
+                        operationSwiftTypeName: typeName
                     )
                 case .fatalError:
                     do {
@@ -316,7 +329,8 @@ public enum KawarimiJutsu {
                             operation: operation,
                             components: components,
                             operationId: operationId,
-                            operationContext: opContext
+                            operationContext: opContext,
+                            operationSwiftTypeName: typeName
                         )
                     } catch let error as KawarimiJutsuError {
                         guard case .handlerGenerationUnsupported(_, let detail) = error else { throw error }
@@ -341,8 +355,10 @@ public enum KawarimiJutsu {
 
     private enum HandlerOutputStub {
         case okJSON(String)
+        case okJSONDecoded(payloadTypeName: String, jsonLiteralEscaped: String)
         case okEmpty
         case createdJSON(String)
+        case createdJSONDecoded(payloadTypeName: String, jsonLiteralEscaped: String)
         case createdEmpty
         case noContent
         case unsupportedFatalError(operationId: String, detail: String)
@@ -352,28 +368,40 @@ public enum KawarimiJutsu {
         operation: OpenAPI.Operation,
         components: OpenAPI.Components,
         operationId: String,
-        operationContext: String
+        operationContext: String,
+        operationSwiftTypeName: String
     ) throws -> HandlerOutputStub {
         for code in [200, 201] {
             let statusCode = OpenAPI.Response.StatusCode.status(code: code)
             guard let responseEither = operation.responses[status: statusCode],
                   let response = components[responseEither] else { continue }
 
-            if response.content[.json] != nil {
-                guard let expr = try bodyExprForResponse(
-                    response: response,
-                    components: components,
-                    operationId: operationId,
-                    operationContext: operationContext,
-                    httpStatus: code
-                ) else {
-                    throw KawarimiJutsuError.handlerGenerationUnsupported(
+            if let content = response.content[.json] {
+                let initializerExpr: String?
+                do {
+                    initializerExpr = try bodyExprForResponse(
+                        response: response,
+                        components: components,
                         operationId: operationId,
-                        detail:
-                            "\(operationContext)HTTP \(code) has application/json but the schema could not be resolved. Cannot generate a stub. Check OpenAPI `components.schemas` and `$ref`, or omit `content` for a success response without a body."
+                        operationContext: operationContext,
+                        httpStatus: code
                     )
+                } catch {
+                    initializerExpr = nil
                 }
-                return code == 200 ? .okJSON(expr) : .createdJSON(expr)
+                if let expr = initializerExpr {
+                    return code == 200 ? .okJSON(expr) : .createdJSON(expr)
+                }
+                let json = mockJSONBodyFromJSONMediaType(content: content, components: components)
+                let escaped = escapeForSwiftStringLiteral(json)
+                let payloadType = handlerStubJSONPayloadSwiftType(
+                    operationSwiftTypeName: operationSwiftTypeName,
+                    httpStatus: code,
+                    content: content
+                )
+                return code == 200
+                    ? .okJSONDecoded(payloadTypeName: payloadType, jsonLiteralEscaped: escaped)
+                    : .createdJSONDecoded(payloadTypeName: payloadType, jsonLiteralEscaped: escaped)
             }
 
             if response.content.isEmpty {
@@ -440,6 +468,26 @@ public enum KawarimiJutsu {
             return components[ref]
         case .b(let schema):
             return schema
+        }
+    }
+
+    /// Swift type passed to `JSONDecoder` for `application/json` bodies, aligned with swift-openapi-generator.
+    private static func handlerStubJSONPayloadSwiftType(
+        operationSwiftTypeName: String,
+        httpStatus: Int,
+        content: OpenAPI.Content
+    ) -> String {
+        let outputCase = httpStatus == 201 ? "Created" : "Ok"
+        let jsonPayload = "Operations.\(operationSwiftTypeName).Output.\(outputCase).Body.jsonPayload"
+        guard let schemaEither = content.schema else { return jsonPayload }
+        switch schemaEither {
+        case .a(let ref):
+            if let name = ref.name {
+                return "Components.Schemas.\(name)"
+            }
+            return jsonPayload
+        case .b:
+            return jsonPayload
         }
     }
 
