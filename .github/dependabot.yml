@@ -15,7 +15,7 @@ updates:
         patterns:
           - "*"
         update-types:
-          - version-update:semver-patch
+          - patch
 
   - package-ecosystem: swift
     directory: /Example/DemoPackage
@@ -31,7 +31,7 @@ updates:
         patterns:
           - "*"
         update-types:
-          - version-update:semver-patch
+          - patch
 
   - package-ecosystem: github-actions
     directory: /
