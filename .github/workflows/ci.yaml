@@ -6,17 +6,31 @@ on:
       - main
 
 jobs:
-  test:
-    name: Swift Test
-    runs-on: macos-latest
+  kawarimi:
+    name: Swift Test (Kawarimi)
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Swift
-        uses: swift-actions/setup-swift@v2.4.0
-        with:
-          swift-version: "6.2"
-
       - name: Run tests
         run: swift test
+
+  demo-package:
+    name: Swift Test (Example/DemoPackage)
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        working-directory: Example/DemoPackage
+        run: swift test
+
+  swift-test:
+    name: Swift Test
+    runs-on: ubuntu-latest
+    needs: [kawarimi, demo-package]
+    steps:
+      - name: All checks passed
+        run: echo "OK"
