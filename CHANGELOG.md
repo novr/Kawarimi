@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Example** / **Git**: **`Example/**/swiftpm/Package.resolved`** (Xcode workspace and embedded **`project.xcworkspace`** SwiftPM locks) is no longer tracked — **`.gitignore`** ignores those paths so Xcode can regenerate them per clone. The root **`Package.resolved`** for the Swift package remains versioned.
+
 ## [1.1.1] - 2026-04-15
 
 ### Fixed
