@@ -8,7 +8,7 @@ on:
 jobs:
   kawarimi:
     name: Swift Test (Kawarimi)
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
 
   demo-package:
     name: Swift Test (Example/DemoPackage)
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - name: Checkout
         uses: actions/checkout@v4
