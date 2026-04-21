@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Repo**: **Dependabot** (`.github/dependabot.yml`) — **Swift** **`/`** and **`Example/DemoPackage`**, **GitHub Actions**; **weekly**, limit **5**, **`groups`** (Swift **patch**; Actions **all**), PR **`labels`** (**`dependencies`**, **`swift`**, **`dependencies:package`**, **`dependencies:demo`**, **`github_actions`**).
 - **CI**: **GitHub Actions** — parallel **`swift test`** on **`macos-26`** (**`kawarimi`**, **`demo-package`**) with the image **default Xcode**; **`swift-test`** (**Swift Test**, **`needs`** both).
 - **Example** / **Git**: **`Example/**/swiftpm/Package.resolved`** (Xcode workspace and embedded **`project.xcworkspace`** SwiftPM locks) is no longer tracked — **`.gitignore`** ignores those paths so Xcode can regenerate them per clone. The root **`Package.resolved`** for the Swift package remains versioned.
 

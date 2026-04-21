@@ -1,0 +1,47 @@
+version: 2
+
+updates:
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - swift
+      - dependencies:package
+    groups:
+      patch:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+
+  - package-ecosystem: swift
+    directory: /Example/DemoPackage
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - swift
+      - dependencies:demo
+    groups:
+      patch:
+        patterns:
+          - "*"
+        update-types:
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github_actions
+    groups:
+      actions:
+        patterns:
+          - "*"
