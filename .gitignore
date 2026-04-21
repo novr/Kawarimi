@@ -12,3 +12,4 @@ Example/DemoPackage/kawarimi.json
 Example/DemoPackage/.swiftpm
 Example/DemoPackage/Package.resolved
 Example/DemoPackage/.build
+Example/**/swiftpm/Package.resolved
