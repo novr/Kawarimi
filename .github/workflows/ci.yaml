@@ -37,7 +37,6 @@ jobs:
         working-directory: Example/DemoPackage
         run: swift test
 
-  # Single gate for branch protection: add new parallel jobs to `needs` only.
   swift-test:
     name: Swift Test
     runs-on: ubuntu-latest
