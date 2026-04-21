@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  test:
-    name: Swift Test
+  kawarimi:
+    name: Swift Test (Kawarimi)
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -19,4 +19,20 @@ jobs:
           swift-version: "6.2"
 
       - name: Run tests
+        run: swift test
+
+  demo-package:
+    name: Swift Test (Example/DemoPackage)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Swift
+        uses: swift-actions/setup-swift@v2.4.0
+        with:
+          swift-version: "6.2"
+
+      - name: Run tests
+        working-directory: Example/DemoPackage
         run: swift test
