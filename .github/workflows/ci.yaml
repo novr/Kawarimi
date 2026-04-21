@@ -36,3 +36,12 @@ jobs:
       - name: Run tests
         working-directory: Example/DemoPackage
         run: swift test
+
+  # Single gate for branch protection: add new parallel jobs to `needs` only.
+  swift-test:
+    name: Swift Test
+    runs-on: ubuntu-latest
+    needs: [kawarimi, demo-package]
+    steps:
+      - name: All checks passed
+        run: echo "OK"

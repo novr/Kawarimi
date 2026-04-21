@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **CI**: **GitHub Actions** runs **`swift test`** in parallel for the root package (**`kawarimi`**) and **`Example/DemoPackage`** (**`demo-package`**) on **macOS** with **Swift 6.2**.
+- **CI**: **GitHub Actions** runs **`swift test`** in parallel for the root package (**`kawarimi`**) and **`Example/DemoPackage`** (**`demo-package`**) on **macOS** with **Swift 6.2**; a **`swift-test`** job named **Swift Test** aggregates **`needs`** so branch protection can require a **single** status check.
 - **Example** / **Git**: **`Example/**/swiftpm/Package.resolved`** (Xcode workspace and embedded **`project.xcworkspace`** SwiftPM locks) is no longer tracked — **`.gitignore`** ignores those paths so Xcode can regenerate them per clone. The root **`Package.resolved`** for the Swift package remains versioned.
 
 ## [1.1.1] - 2026-04-15
