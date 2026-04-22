@@ -8,11 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-04-22
+
+### Fixed
+
+- **SwiftPM**: **`swift test --package-path Example/DemoPackage/`** resolves with the root package again — **OpenAPIKit** remains **3.9.x** (compatible with **swift-openapi-generator**); **Yams** **6.2.1**.
+
 ### Changed
 
-- **Repo**: **Dependabot** (`.github/dependabot.yml`) — **Swift** **`/`** and **`Example/DemoPackage`**, **GitHub Actions**; **weekly**, limit **5**, **`groups`** (Swift **patch**; Actions **all**), PR **`labels`** (**`dependencies`**, **`swift`**, **`dependencies:package`**, **`dependencies:demo`**, **`github_actions`**).
+- **Repo**: **Dependabot** (`.github/dependabot.yml`) — **Swift** **`/`** and **`Example/DemoPackage`**, **GitHub Actions**; **weekly**, limit **5**, **`groups`** (Swift **patch**; Actions **all**), PR **`labels`** (**`dependencies`**, **`swift`**, **`dependencies:package`**, **`dependencies:demo`**, **`github_actions`**); root Swift adds **`ignore`** for **openapikit** **semver-major** updates (they cannot resolve with **swift-openapi-generator** in the same graph as **Example/DemoPackage**).
 - **CI**: **GitHub Actions** — parallel **`swift test`** on **`macos-26`** (**`kawarimi`**, **`demo-package`**) with the image **default Xcode**; **`swift-test`** (**Swift Test**, **`needs`** both).
 - **Example** / **Git**: **`Example/**/swiftpm/Package.resolved`** (Xcode workspace and embedded **`project.xcworkspace`** SwiftPM locks) is no longer tracked — **`.gitignore`** ignores those paths so Xcode can regenerate them per clone. The root **`Package.resolved`** for the Swift package remains versioned.
+- **Dependencies** (root): **Yams** **6.2.1**.
+- **GitHub Actions**: **actions/checkout** v6 (Dependabot **actions** group).
 
 ## [1.1.1] - 2026-04-15
 
@@ -146,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[1.1.2]: https://github.com/novr/Kawarimi/releases/tag/v1.1.2
 [1.1.1]: https://github.com/novr/Kawarimi/releases/tag/v1.1.1
 [1.1.0]: https://github.com/novr/Kawarimi/releases/tag/v1.1.0
 [1.0.5]: https://github.com/novr/Kawarimi/releases/tag/v1.0.5
