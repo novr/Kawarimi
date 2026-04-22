@@ -10,6 +10,10 @@ updates:
       - dependencies
       - swift
       - dependencies:package
+    # swift-openapi-generator（Example/DemoPackage）が OpenAPIKit 3.9…<4 のみ許容するため、メジャー上げは同一グラフで解決不能
+    ignore:
+      - dependency-name: "openapikit"
+        update-types: ["version-update:semver-major"]
     groups:
       patch:
         patterns:
