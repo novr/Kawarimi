@@ -107,12 +107,23 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     let notFound = KawarimiJutsuError.specFileNotFound(path: "/foo")
     #expect(notFound.description.contains("not found"))
     #expect(notFound.description.contains("/foo"))
-    let missing = KawarimiJutsuError.openAPISpecDocumentMissing(allowedBasenames: "openapi.yaml, openapi.yml")
-    #expect(missing.description.contains("No OpenAPI document found"))
-    #expect(missing.description.contains("openapi.yaml"))
-    let amb = KawarimiJutsuError.openAPISpecDocumentAmbiguous(paths: ["/a/openapi.yaml", "/b/openapi.json"])
-    #expect(amb.description.contains("Multiple"))
-    #expect(amb.description.contains("/a/openapi.yaml"))
+    let line = KawarimiJutsuError.openapiGeneratorPluginFileLine(
+        OpenAPIGeneratorFileErrorMessages.noOpenAPIDocument(targetName: "MyTarget")
+    )
+    #expect(line.description == OpenAPIGeneratorFileErrorMessages.noOpenAPIDocument(targetName: "MyTarget"))
+    let kawarimiLine = KawarimiJutsuError.kawarimiGeneratorConfigDiscovery(
+        KawarimiGeneratorConfigSourceMessages.multipleKawarimiGeneratorConfigs(
+            targetName: "T",
+            files: [URL(fileURLWithPath: "/a.yaml"), URL(fileURLWithPath: "/b.yml")]
+        )
+    )
+    #expect(
+        kawarimiLine.description
+            == KawarimiGeneratorConfigSourceMessages.multipleKawarimiGeneratorConfigs(
+                targetName: "T",
+                files: [URL(fileURLWithPath: "/a.yaml"), URL(fileURLWithPath: "/b.yml")]
+            )
+    )
 }
 
 @Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
@@ -421,7 +432,10 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     try Data("{}".utf8).write(to: docURL)
     let other = tmp.appendingPathComponent("Other.swift")
     try Data("//x".utf8).write(to: other)
-    let resolved = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [other, docURL])
+    let resolved = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(
+        inKnownFileURLs: [other, docURL],
+        targetName: "TmpTarget"
+    )
     #expect(resolved == docURL)
 }
 
@@ -434,7 +448,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     try Data("openapi: 3.0.3\ninfo:\n  title: T\n  version: '1'\npaths: {}\n".utf8).write(to: a)
     try Data(#"{"openapi":"3.0.3","info":{"title":"T","version":"1"},"paths":{}}"#.utf8).write(to: b)
     #expect(throws: KawarimiJutsuError.self) {
-        _ = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [a, b])
+        _ = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [a, b], targetName: "TmpTarget")
     }
 }
 
@@ -445,6 +459,60 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     let other = tmp.appendingPathComponent("Other.swift")
     try Data("//x".utf8).write(to: other)
     #expect(throws: KawarimiJutsuError.self) {
-        _ = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [other])
+        _ = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [other], targetName: "TmpTarget")
     }
+}
+
+@Test func handlerStubPolicyBesideOpenAPIThrowsWhenMultipleKawarimiConfigs() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-multi-kaw-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
+    try "openapi: 3.0.3\ninfo: { title: T, version: '1' }\npaths: {}\n".write(toFile: openAPIPath, atomically: true, encoding: .utf8)
+    try "handlerStubPolicy: throw\n".write(
+        toFile: tmp.appendingPathComponent("kawarimi-generator-config.yaml").path,
+        atomically: true,
+        encoding: .utf8
+    )
+    try "handlerStubPolicy: fatalError\n".write(
+        toFile: tmp.appendingPathComponent("kawarimi-generator-config.yml").path,
+        atomically: true,
+        encoding: .utf8
+    )
+    var caught: String?
+    do {
+        _ = try KawarimiGeneratorConfigFileYAML.handlerStubPolicyBesideOpenAPIYAML(
+            atPath: openAPIPath,
+            targetNameForErrorMessages: "DemoAPI"
+        )
+    } catch let e as KawarimiJutsuError {
+        caught = e.description
+    }
+    let expected = KawarimiGeneratorConfigSourceMessages.multipleKawarimiGeneratorConfigs(
+        targetName: "DemoAPI",
+        files: [
+            tmp.appendingPathComponent("kawarimi-generator-config.yaml"),
+            tmp.appendingPathComponent("kawarimi-generator-config.yml"),
+        ]
+    )
+    #expect(caught == expected)
+}
+
+@Test func loadBesideOpenAPIGeneratorConfigMissingMatchesUpstreamMessage() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-no-gen-cfg-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
+    try "openapi: 3.0.3\ninfo: { title: T, version: '1' }\npaths: {}\n".write(toFile: openAPIPath, atomically: true, encoding: .utf8)
+    var caught: String?
+    do {
+        _ = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(
+            atPath: openAPIPath,
+            targetNameForErrorMessages: "DemoAPI"
+        )
+    } catch let e as KawarimiJutsuError {
+        caught = e.description
+    }
+    let expected = OpenAPIGeneratorFileErrorMessages.noConfigFileFound(targetName: "DemoAPI")
+    #expect(caught == expected)
 }

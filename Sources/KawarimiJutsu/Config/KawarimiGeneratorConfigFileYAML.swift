@@ -1,18 +1,31 @@
 import Foundation
 import Yams
 
-/// Optional `kawarimi-generator-config.yaml` / `kawarimi-generator-config.yml` beside `openapi.yaml` (Kawarimi generation-only keys).
 public enum KawarimiGeneratorConfigFileYAML {
-    /// Returns the config file path and trimmed `handlerStubPolicy` when present and non-empty.
-    /// YAML decode failures return `nil` (treat as absent).
-    public static func handlerStubPolicyBesideOpenAPIYAML(atPath openAPIYAMLPath: String) -> (path: String, value: String)? {
+    public static func handlerStubPolicyBesideOpenAPIYAML(
+        atPath openAPIYAMLPath: String,
+        targetNameForErrorMessages: String? = nil
+    ) throws -> (path: String, value: String)? {
         let dir = URL(fileURLWithPath: openAPIYAMLPath).deletingLastPathComponent()
-        let candidates = [
-            dir.appendingPathComponent("kawarimi-generator-config.yaml"),
-            dir.appendingPathComponent("kawarimi-generator-config.yml"),
-        ]
-        guard let url = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }),
-              let data = FileManager.default.contents(atPath: url.path),
+        let targetName = targetNameForErrorMessages ?? dir.lastPathComponent
+        let yamlURL = dir.appendingPathComponent("kawarimi-generator-config.yaml")
+        let ymlURL = dir.appendingPathComponent("kawarimi-generator-config.yml")
+        let existing = [yamlURL, ymlURL].filter { FileManager.default.fileExists(atPath: $0.path) }
+        switch existing.count {
+        case 0:
+            return nil
+        case 1:
+            break
+        default:
+            throw KawarimiJutsuError.kawarimiGeneratorConfigDiscovery(
+                KawarimiGeneratorConfigSourceMessages.multipleKawarimiGeneratorConfigs(
+                    targetName: targetName,
+                    files: existing
+                )
+            )
+        }
+        let url = existing[0]
+        guard let data = FileManager.default.contents(atPath: url.path),
               let text = String(data: data, encoding: .utf8)
         else {
             return nil
