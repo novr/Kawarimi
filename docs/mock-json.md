@@ -34,6 +34,8 @@ In that case the emitted stub decodes the synthesized string with **`JSONDecoder
 
 When a **literal initializer can be emitted**, that path is preferred (no decode at runtime).
 
+For **`type: string`** with **`format: date-time`** or **`format: date`**, that literal path emits **`Date(timeIntervalSince1970:…)`** (parsed from the schema **`example`** at codegen time) so it matches **`Foundation.Date`** fields from **swift-openapi-generator**.
+
 If the documented success response is **not** a stubbable **HTTP 200 / 201** (`application/json` or empty body) or **204**, generation fails with `handlerStubPolicy: throw`, or the stub body is `fatalError` with `handlerStubPolicy: fatalError` (see [integration.md](integration.md)).
 Use a custom `on…` closure when you need different behavior or when the decode type does not match your document (rare naming edge cases).
 

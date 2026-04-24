@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-04-24
+
+### Fixed
+
+- **KawarimiJutsu**: **`KawarimiHandler`** literal-init stubs for JSON fields with **`format: date-time`** or **`format: date`** now emit **`Foundation.Date`** (`Date(timeIntervalSince1970:…)`) instead of Swift string literals, matching **swift-openapi-generator** output ([#35](https://github.com/novr/Kawarimi/issues/35)).
+- When the OpenAPI **`example`** is missing or cannot be parsed at codegen time, the stub uses **`Date(timeIntervalSince1970: 0)`** and appends a **Kawarimi warning** (includes **operationId** and schema path).
+
 ## [2.0.0] - 2026-04-24
 
 ### Breaking
@@ -170,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.1]: https://github.com/novr/Kawarimi/releases/tag/v2.0.1
 [2.0.0]: https://github.com/novr/Kawarimi/releases/tag/v2.0.0
 [1.1.2]: https://github.com/novr/Kawarimi/releases/tag/v1.1.2
 [1.1.1]: https://github.com/novr/Kawarimi/releases/tag/v1.1.1

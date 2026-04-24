@@ -34,6 +34,8 @@
 
 **リテラル式が書ける場合はそちらを優先**し、実行時デコードは使いません。
 
+**`type: string`** かつ **`format: date-time`** / **`format: date`** のフィールドは、リテラル経路で **`Date(timeIntervalSince1970:…)`**（codegen 時にスキーマの **`example`** をパース）を出し、**swift-openapi-generator** の **`Foundation.Date`** プロパティと整合させます。
+
 ドキュメント上の成功レスポンスが **stub 可能な HTTP 200 / 201**（`application/json` または本文なし）または **204** でない場合は、`handlerStubPolicy: throw` で生成が失敗するか、`handlerStubPolicy: fatalError` ではスタブ本体が `fatalError` になります（[integration.md](integration.md)）。
 別の挙動が必要なときや、スキーマ名と生成型が一致しない稀なケースでは **`on…` を手で上書き**してください。
 
