@@ -8,11 +8,8 @@ public enum KawarimiJutsu {
         guard let data = FileManager.default.contents(atPath: path) else {
             throw KawarimiJutsuError.specFileNotFound(path: path)
         }
-        guard let content = String(data: data, encoding: .utf8) else {
-            throw KawarimiJutsuError.specFileInvalidEncoding
-        }
         do {
-            return try YAMLDecoder().decode(OpenAPI.Document.self, from: content)
+            return try YAMLDecoder().decode(OpenAPI.Document.self, from: data)
         } catch {
             throw KawarimiJutsuError.specParseError(String(describing: error))
         }
