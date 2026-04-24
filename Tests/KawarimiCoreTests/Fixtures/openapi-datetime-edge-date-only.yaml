@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: DateTimeEdgeDateOnly
+  version: "1"
+paths:
+  /d:
+    get:
+      operationId: getDateOnlyField
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  day:
+                    type: string
+                    format: date
+                    example: "2025-11-30"

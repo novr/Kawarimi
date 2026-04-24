@@ -1,0 +1,24 @@
+openapi: 3.0.3
+info:
+  title: DateTimeEdgeNested
+  version: "1"
+paths:
+  /nested:
+    get:
+      operationId: getDateTimeNested
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  createdAt:
+                    type: string
+                    format: date-time
+                    example: "2020-01-02T03:04:05Z"
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: "2025-02-14T00:30:00+09:00"

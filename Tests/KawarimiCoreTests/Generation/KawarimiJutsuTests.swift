@@ -190,6 +190,101 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("Date(timeIntervalSince1970: 0)"))
 }
 
+@Test func kawarimiHandlerDateTimeEdgeZuluExampleUsesEpochLiteralNotString() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-zulu", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetDateTimeZulu"))
+    #expect(source.contains("Date(timeIntervalSince1970:"))
+    #expect(!source.contains("t: \"2025"))
+}
+
+@Test func kawarimiHandlerDateTimeEdgeFractionalSecondsUsesEpochLiteral() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-fractional", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetDateTimeFractional"))
+    #expect(source.contains("Date(timeIntervalSince1970:"))
+    #expect(!source.contains("t: \"2025"))
+}
+
+@Test func kawarimiHandlerDateOnlyFormatUsesEpochLiteralNotString() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-date-only", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetDateOnlyField"))
+    #expect(source.contains("Date(timeIntervalSince1970:"))
+    #expect(!source.contains("day: \"2025"))
+}
+
+@Test func kawarimiHandlerDateTimeUnparseableExampleEmitsWarningAndEpochZero() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-unparseable", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(!warnings.isEmpty)
+    #expect(warnings.joined().contains("parse failed"))
+    #expect(warnings.joined().contains("getDateTimeUnparseable"))
+    #expect(source.contains("onGetDateTimeUnparseable"))
+    #expect(source.contains("Date(timeIntervalSince1970: 0)"))
+}
+
+@Test func kawarimiHandlerDateTimeNestedPropertiesEachEmitDateLiteral() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-nested", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetDateTimeNested"))
+    #expect(source.contains("createdAt: Date(timeIntervalSince1970:"))
+    #expect(source.contains("updatedAt: Date(timeIntervalSince1970:"))
+    #expect(!source.contains("createdAt: \"2020"))
+    #expect(!source.contains("updatedAt: \"2025"))
+}
+
+@Test func kawarimiHandlerDateTime201CreatedBodyUsesDateLiteral() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-created", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onPostDateTimeCreated"))
+    #expect(source.contains(".created("))
+    #expect(source.contains("Date(timeIntervalSince1970:"))
+    #expect(!source.contains("at: \"2030"))
+}
+
+@Test func kawarimiHandlerDateTimeArrayItemsUseDateLiteral() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-array", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetDateTimeArray"))
+    #expect(source.contains("[Date(timeIntervalSince1970:"))
+    #expect(!source.contains("\"2024-01-01"))
+}
+
 @Test func kawarimiHandlerUsesJSONDecodeStubForStringEnumWhenPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
