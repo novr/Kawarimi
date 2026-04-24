@@ -25,7 +25,7 @@
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
-- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec`、`OpenAPISpecDocumentURL`、YAML 設定ローダーなど）。OpenAPIKit 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
+- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec` は **OpenAPIKit** の **`OpenAPI.Document`**、OpenAPI **3.0.x / 3.1.x / 3.2.0** を **swift-openapi-generator** の **YamsParser** と同様に読み込み、`OpenAPISpecDocumentURL`、YAML 設定ローダーなど）。**OpenAPIKit** / **OpenAPIKit30** / **OpenAPIKitCompat** 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
 - **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。**エクスプローラの状態**（スナップショット・ドラフト・起動・`isDirty` と未保存）: [henge.md](henge.md#henge-explorer-state)。ライフサイクル／一覧 `.id`: [henge.md](henge.md#henge-ui-data-flow)。
 
 **KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
@@ -61,15 +61,15 @@ targets: [
 **KawarimiPlugin** は **`SwiftSourceModuleTarget.sourceFiles`** に載るファイルから上記ファイル名だけを拾い、ディレクトリを独自に走査しません。
 ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
-## 3. オプション: ジェネレータ設定
+## 3. ジェネレータ設定（必須）
 
-ターゲットルートで **OpenAPI 仕様と同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)で指定する。
+**OpenAPI 仕様と同じディレクトリ**（ターゲットルート）に **`openapi-generator-config.yaml`** または **`openapi-generator-config.yml` をちょうど 1 つ**置く（[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ。0 個または複数はエラー）。[設定の内容](https://github.com/apple/swift-openapi-generator#configuration)は公式どおり。
 
 Kawarimi が読むキーは **`namingStrategy`** と **`accessModifier`** です。
 
-**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）はそのディレクトリの **`kawarimi-generator-config.yaml`**（または `.yml`）で指定する。
+**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）は **`kawarimi-generator-config.yaml`**（または `.yml`）に書きます（`openapi-generator-config` とは別。Kawarimi 専用キー）。**`kawarimi-generator-config` は高々 1 本**（CLI では仕様と同じディレクトリ、プラグインでは **`sourceFiles`** 上。2 本以上はエラー）。
 
-`Kawarimi` CLI / `KawarimiPlugin` は、解決した仕様ファイルと同じディレクトリで `openapi-generator-config.yaml` を優先し、無ければ `openapi-generator-config.yml` を探す。
+**KawarimiPlugin** は OpenAPI 仕様、**`openapi-generator-config`**、任意の **`kawarimi-generator-config`** を **`sourceFiles`** から解決します。**`Kawarimi`** CLI は仕様パスと同じディレクトリから **`openapi-generator-config`** と任意の **`kawarimi-generator-config`** を読みます（`openapi-generator-config` 系のエラー文面は swift-openapi-generator の **`FileError`** と同一。文言は **`Plugins/KawarimiPlugin/`** の **シンボリックリンク**で **KawarimiJutsu** と共有）。
 
 ## 4. テストでモックを使う
 

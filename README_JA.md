@@ -8,7 +8,7 @@ Types / Client / Server は [swift-openapi-generator](https://github.com/apple/s
 
 同じターゲットで **OpenAPIGenerator** と **KawarimiPlugin** を併用する。対応: `swift-openapi-generator 1.0.0+`。
 
-API ターゲットには **`openapi.yaml` / `openapi.yml` / `openapi.json` のいずれか 1 本だけ**置く（OpenAPIGenerator と同じ。複数不可）。
+API ターゲットには **`openapi.yaml` / `openapi.yml` / `openapi.json` のいずれか 1 本**と、**`openapi-generator-config.yaml` / `openapi-generator-config.yml` のいずれか 1 本**を置く（OpenAPIGenerator と同じ。それぞれ複数不可）。
 
 Kawarimi（モック）は `Client` に transport として渡す。生成コードは `Client.swift` に依存しない。
 
