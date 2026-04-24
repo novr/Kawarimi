@@ -42,7 +42,6 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
     public var accessModifier: KawarimiAccessModifier
     public var handlerStubPolicy: KawarimiHandlerStubPolicy
 
-    /// Used when `openapi-generator-config` is missing or when a key is omitted (matches swift-openapi-generator defaults for naming / access).
     public static let defaults = KawarimiGeneratorConfigYAML(
         namingStrategy: .defensive,
         accessModifier: .public,
@@ -59,14 +58,27 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
         self.handlerStubPolicy = handlerStubPolicy
     }
 
-    public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiGeneratorConfigYAML {
+    public static func loadBesideOpenAPIYAML(
+        atPath openAPIYAMLPath: String,
+        targetNameForErrorMessages: String? = nil
+    ) throws -> KawarimiGeneratorConfigYAML {
         let dir = URL(fileURLWithPath: openAPIYAMLPath).deletingLastPathComponent()
-        let candidates = [
-            dir.appendingPathComponent("openapi-generator-config.yaml"),
-            dir.appendingPathComponent("openapi-generator-config.yml"),
-        ]
-        guard let configURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
-            return defaults
+        let targetName = targetNameForErrorMessages ?? dir.lastPathComponent
+        let yamlURL = dir.appendingPathComponent("openapi-generator-config.yaml")
+        let ymlURL = dir.appendingPathComponent("openapi-generator-config.yml")
+        let existing = [yamlURL, ymlURL].filter { FileManager.default.fileExists(atPath: $0.path) }
+        let configURL: URL
+        switch existing.count {
+        case 0:
+            throw KawarimiJutsuError.openapiGeneratorPluginFileLine(
+                OpenAPIGeneratorFileErrorMessages.noConfigFileFound(targetName: targetName)
+            )
+        case 1:
+            configURL = existing[0]
+        default:
+            throw KawarimiJutsuError.openapiGeneratorPluginFileLine(
+                OpenAPIGeneratorFileErrorMessages.multipleConfigFiles(targetName: targetName, files: existing)
+            )
         }
         guard let data = FileManager.default.contents(atPath: configURL.path),
               let text = String(data: data, encoding: .utf8)
@@ -136,8 +148,14 @@ extension KawarimiNamingStrategy {
         }
     }
 
-    public static func loadBesideOpenAPIYAML(atPath openAPIYAMLPath: String) throws -> KawarimiNamingStrategy {
-        try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: openAPIYAMLPath).namingStrategy
+    public static func loadBesideOpenAPIYAML(
+        atPath openAPIYAMLPath: String,
+        targetNameForErrorMessages: String? = nil
+    ) throws -> KawarimiNamingStrategy {
+        try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(
+            atPath: openAPIYAMLPath,
+            targetNameForErrorMessages: targetNameForErrorMessages
+        ).namingStrategy
     }
 }
 

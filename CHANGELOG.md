@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **KawarimiPlugin**: Resolves the OpenAPI document like **swift-openapi-generator** — among files SwiftPM lists for the target, **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`** must be present (zero or multiple is an error). Basename sets stay aligned with **`OpenAPISpecDocumentURL`** in **KawarimiJutsu** (separate copy in the plugin target).
+- **KawarimiJutsu**: **`loadOpenAPISpec`** decodes with **Yams `YAMLDecoder`** from **`Data`** (including **`openapi.json`**, same approach as upstream’s **YamsParser**). **`KawarimiJutsuError.specFileInvalidEncoding`** removed.
+- **OpenAPI versions**: **`loadOpenAPISpec`** now supports **OpenAPI 3.0.x** (via **OpenAPIKit30** + **OpenAPIKitCompat** conversion), **3.1.x**, and **3.2.0** (same version branching as **swift-openapi-generator** **YamsParser**). Internal model is **`OpenAPIKit.OpenAPI.Document`** (not **OpenAPIKit30** alone).
+- **openapi-generator-config**: **`openapi-generator-config.yaml`** or **`.yml`** is **required** next to the OpenAPI document (same as **OpenAPIGenerator**). **`KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML`** throws with the same **`FileError`** wording as upstream when missing or duplicated. **`KawarimiPlugin`** validates config + document from **`sourceFiles`** and emits **`PluginError.fileErrors`**-style messages for those; verbatim **`FileError`** lines come from **`OpenAPIGeneratorFileErrorMessages.swift`** via **symlinks** in **`Plugins/KawarimiPlugin/`** (same file as **KawarimiJutsu**). **`KawarimiPluginError.incompatibleTarget`** refers to the **Kawarimi** plugin (non–Swift targets).
+- **`kawarimi-generator-config`**: **`KawarimiPlugin`** resolves **optional** **`kawarimi-generator-config.yaml`** / **`.yml`** from **`sourceFiles`** (at most one; duplicates are an error). The **`Kawarimi`** CLI enforces the same **at most one** rule beside the OpenAPI path. Duplicate messages are defined in **`KawarimiGeneratorConfigSourceMessages.swift`**, also **symlinked** into **`Plugins/KawarimiPlugin/`** for the plugin build.
+
 ## [1.1.2] - 2026-04-22
 
 ### Fixed

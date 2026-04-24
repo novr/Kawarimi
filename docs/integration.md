@@ -6,14 +6,14 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 ### Simple
 
-- One library target (e.g. `MyAPI`) with `openapi.yaml`, **OpenAPIGenerator**, and **KawarimiPlugin**. Build emits Types, Client, Server, and Kawarimi artifacts in that module.
+- One library target (e.g. `MyAPI`) with a single **`openapi.yaml` / `openapi.yml` / `openapi.json`**, **OpenAPIGenerator**, and **KawarimiPlugin**. Build emits Types, Client, Server, and Kawarimi artifacts in that module.
 - Client apps depend on `MyAPI` only; servers (e.g. Vapor) add Vapor and, for Henge, **KawarimiCore** and route wiring ([Example README](../Example/README.md)).
 - **Pros:** smallest `Package.swift`, single config location. **Cons:** generated Server sources stay in the same module the app imports until you split targets.
 
 ### Recommended
 
-- Keep **`openapi.yaml` as the single source of truth**, then use **separate generator setups** (targets and/or per-target `openapi-generator-config.yaml`) so the **client** builds **Types + Client** (and Kawarimi where needed) **without** shipping **Server** into the app, while the **server** builds **Types + Server**. Follow [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration) so you do **not** duplicate Types in two modules.
-- Attach **KawarimiPlugin** to the target that owns the canonical `openapi.yaml`.
+- Keep **one OpenAPI document per target** (`openapi.yaml`, `openapi.yml`, or `openapi.json`) as the single source of truth, then use **separate generator setups** (targets and/or per-target `openapi-generator-config.yaml`) so the **client** builds **Types + Client** (and Kawarimi where needed) **without** shipping **Server** into the app, while the **server** builds **Types + Server**. Follow [swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration) so you do **not** duplicate Types in two modules.
+- Attach **KawarimiPlugin** to the target that owns that document.
 - **Pros:** clearer boundaries. **Cons:** more moving parts; **CI should build both** client and server targets.
 
 ## 1. Dependencies and plugins
@@ -25,7 +25,7 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
-- **KawarimiJutsu** — generator API (`KawarimiJutsu.loadOpenAPISpec`, YAML config loaders, …). Pulls OpenAPIKit; for CLI/tests/custom tooling, not typical app binaries.
+- **KawarimiJutsu** — generator API (`KawarimiJutsu.loadOpenAPISpec` → **`OpenAPIKit.OpenAPI.Document`**, OpenAPI **3.0.x / 3.1.x / 3.2.0** like **swift-openapi-generator** **YamsParser**, `OpenAPISpecDocumentURL`, YAML config loaders, …). Depends on **OpenAPIKit** (+ **OpenAPIKit30** / **OpenAPIKitCompat** internally). For CLI/tests/custom tooling, not typical app binaries.
 - **KawarimiHenge** — SwiftUI (`KawarimiConfigView`). Henge **explorer state** (snapshot, draft, bootstrap, `isDirty` vs “Not saved”): [henge.md](henge.md#henge-explorer-state); lifecycle / list `.id`: [henge.md](henge.md#henge-ui-data-flow).
 
 The target that hosts **KawarimiSpec.swift** must declare **`KawarimiCore`** and the **`HTTPTypes`** product as direct dependencies (same [swift-http-types](https://github.com/apple/swift-http-types) package). SwiftPM will not pick that up transitively from **KawarimiCore** alone.
@@ -57,19 +57,19 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ## 2. OpenAPI spec location
 
-Place one `openapi.yaml` in the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects).
-**KawarimiPlugin** resolves `openapi.yaml` from that root, not from an arbitrary source file’s folder.
+In the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects), add **exactly one** OpenAPI document named **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`**. Do not place more than one of these in the same target (the build fails if SwiftPM’s file list contains zero or several matches — same rule as OpenAPIGenerator’s `PluginUtils`).
+**KawarimiPlugin** picks the document from **SwiftPM’s source file list** for that target (`SwiftSourceModuleTarget.sourceFiles`), not by scanning the directory independently.
 The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
 
-## 3. Optional generator config
+## 3. Generator config (required)
 
-Add `openapi-generator-config.yaml` (or `.yml`) **next to `openapi.yaml`** for [swift-openapi-generator options](https://github.com/apple/swift-openapi-generator#configuration).
+Add **exactly one** of **`openapi-generator-config.yaml`** or **`openapi-generator-config.yml`** in the **target root next to your OpenAPI document** (same rule as [swift-openapi-generator](https://github.com/apple/swift-openapi-generator): zero or multiple config files is an error). It controls [swift-openapi-generator options](https://github.com/apple/swift-openapi-generator#configuration).
 
 Kawarimi reads **`namingStrategy`** and **`accessModifier`** from that file.
 
-Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) in **`kawarimi-generator-config.yaml`** (or `.yml`) beside `openapi.yaml`.
+Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) in **`kawarimi-generator-config.yaml`** (or `.yml`). **At most one** of these files may exist next to the OpenAPI document (CLI) or among the target’s **`sourceFiles`** (plugin); two or more is an error.
 
-The `Kawarimi` CLI and `KawarimiPlugin` look for `openapi-generator-config.yaml` then `openapi-generator-config.yml` next to `openapi.yaml`.
+**KawarimiPlugin** resolves the OpenAPI document, **`openapi-generator-config`**, and optional **`kawarimi-generator-config`** from **SwiftPM’s `sourceFiles`** list. The **`Kawarimi`** CLI loads **`openapi-generator-config`** and optional **`kawarimi-generator-config`** from the same directory as the OpenAPI path you pass (labels in **swift-openapi-generator**–style messages use the parent directory name unless overridden).
 
 ## 4. Use the mock in tests
 

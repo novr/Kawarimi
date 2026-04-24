@@ -14,8 +14,15 @@ struct Kawarimi {
         let outputDirPath = args[2]
 
         do {
-            let generatorConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(atPath: inputPath)
-            let stubPolicy = try resolveHandlerStubPolicy(openAPIPath: inputPath)
+            let specDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent()
+            let generatorConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(
+                atPath: inputPath,
+                targetNameForErrorMessages: specDir.lastPathComponent
+            )
+            let stubPolicy = try resolveHandlerStubPolicy(
+                openAPIPath: inputPath,
+                targetLabel: specDir.lastPathComponent
+            )
             let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
             let outputDir = URL(fileURLWithPath: outputDirPath)
             try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
@@ -40,8 +47,11 @@ struct Kawarimi {
         }
     }
 
-    private static func resolveHandlerStubPolicy(openAPIPath: String) throws -> KawarimiHandlerStubPolicy {
-        if let yaml = KawarimiGeneratorConfigFileYAML.handlerStubPolicyBesideOpenAPIYAML(atPath: openAPIPath) {
+    private static func resolveHandlerStubPolicy(openAPIPath: String, targetLabel: String) throws -> KawarimiHandlerStubPolicy {
+        if let yaml = try KawarimiGeneratorConfigFileYAML.handlerStubPolicyBesideOpenAPIYAML(
+            atPath: openAPIPath,
+            targetNameForErrorMessages: targetLabel
+        ) {
             return try parseHandlerStubPolicy(raw: yaml.value, configPath: yaml.path)
         }
         return KawarimiGeneratorConfigYAML.defaults.handlerStubPolicy

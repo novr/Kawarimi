@@ -1,5 +1,5 @@
-import PackagePlugin
 import Foundation
+import PackagePlugin
 
 @main
 struct KawarimiPlugin: BuildToolPlugin {
@@ -7,35 +7,21 @@ struct KawarimiPlugin: BuildToolPlugin {
         guard let swiftTarget = target as? SwiftSourceModuleTarget else {
             throw KawarimiPluginError.incompatibleTarget(name: target.name)
         }
-        // Same convention as swift-openapi-generator: `openapi.yaml` at the Swift target root.
-        let targetDirURL = swiftTarget.directoryURL
-        let inputURL = targetDirURL.appendingPathComponent("openapi.yaml")
         let outputDirURL = context.pluginWorkDirectoryURL
 
-        guard FileManager.default.fileExists(atPath: inputURL.path) else {
-            throw KawarimiPluginError.openAPINotFound(target: target.name, path: inputURL.path)
-        }
+        let sourceFileURLs = swiftTarget.sourceFiles.map(\.url)
+        let (openAPIURL, generatorConfigURL, kawarimiConfigURL) = try OpenAPIGeneratorStyleTargetFiles.resolve(
+            sourceFileURLs: sourceFileURLs,
+            targetName: swiftTarget.name
+        )
 
         let outputNames = ["Kawarimi.swift", "KawarimiHandler.swift", "KawarimiSpec.swift"]
         let outputFiles = outputNames.map { outputDirURL.appendingPathComponent($0) }
-        let arguments = [inputURL.path, outputDirURL.path]
+        let arguments = [openAPIURL.path, outputDirURL.path]
 
-        var inputFiles: [URL] = [inputURL]
-        let configYAML = targetDirURL.appendingPathComponent("openapi-generator-config.yaml")
-        let configYML = targetDirURL.appendingPathComponent("openapi-generator-config.yml")
-        if FileManager.default.fileExists(atPath: configYAML.path) {
-            inputFiles.append(configYAML)
-        }
-        if FileManager.default.fileExists(atPath: configYML.path) {
-            inputFiles.append(configYML)
-        }
-        let kawarimiGenYAML = targetDirURL.appendingPathComponent("kawarimi-generator-config.yaml")
-        let kawarimiGenYML = targetDirURL.appendingPathComponent("kawarimi-generator-config.yml")
-        if FileManager.default.fileExists(atPath: kawarimiGenYAML.path) {
-            inputFiles.append(kawarimiGenYAML)
-        }
-        if FileManager.default.fileExists(atPath: kawarimiGenYML.path) {
-            inputFiles.append(kawarimiGenYML)
+        var inputFiles: [URL] = [openAPIURL, generatorConfigURL]
+        if let kawarimiConfigURL {
+            inputFiles.append(kawarimiConfigURL)
         }
 
         let tool = try context.tool(named: "Kawarimi")
@@ -51,16 +37,73 @@ struct KawarimiPlugin: BuildToolPlugin {
     }
 }
 
+private enum OpenAPIGeneratorStyleTargetFiles {
+    private static let supportedDocBasenames: Set<String> = ["openapi.yaml", "openapi.yml", "openapi.json"]
+    private static let supportedConfigBasenames: Set<String> = [
+        "openapi-generator-config.yaml", "openapi-generator-config.yml",
+    ]
+    private static let supportedKawarimiConfigBasenames: Set<String> = [
+        "kawarimi-generator-config.yaml", "kawarimi-generator-config.yml",
+    ]
+
+    static func resolve(sourceFileURLs: [URL], targetName: String) throws -> (
+        openAPI: URL,
+        generatorConfig: URL,
+        kawarimiConfig: URL?
+    ) {
+        let docs = sourceFileURLs.filter { supportedDocBasenames.contains($0.standardizedFileURL.lastPathComponent) }
+        let configs = sourceFileURLs.filter { supportedConfigBasenames.contains($0.standardizedFileURL.lastPathComponent) }
+        let kawarimiConfigs = sourceFileURLs.filter {
+            supportedKawarimiConfigBasenames.contains($0.standardizedFileURL.lastPathComponent)
+        }
+
+        var lines: [String] = []
+        switch configs.count {
+        case 0:
+            lines.append(OpenAPIGeneratorFileErrorMessages.noConfigFileFound(targetName: targetName))
+        case 1:
+            break
+        default:
+            lines.append(OpenAPIGeneratorFileErrorMessages.multipleConfigFiles(targetName: targetName, files: configs))
+        }
+        switch docs.count {
+        case 0:
+            lines.append(OpenAPIGeneratorFileErrorMessages.noOpenAPIDocument(targetName: targetName))
+        case 1:
+            break
+        default:
+            lines.append(OpenAPIGeneratorFileErrorMessages.multipleOpenAPIDocuments(targetName: targetName, files: docs))
+        }
+        switch kawarimiConfigs.count {
+        case 0, 1:
+            break
+        default:
+            lines.append(
+                KawarimiGeneratorConfigSourceMessages.multipleKawarimiGeneratorConfigs(
+                    targetName: targetName,
+                    files: kawarimiConfigs
+                )
+            )
+        }
+        if !lines.isEmpty {
+            throw KawarimiPluginError.fileErrors(lines)
+        }
+        let kawarimiConfig: URL? = kawarimiConfigs.count == 1 ? kawarimiConfigs[0] : nil
+        return (docs[0], configs[0], kawarimiConfig)
+    }
+}
+
 enum KawarimiPluginError: Error, CustomStringConvertible {
     case incompatibleTarget(name: String)
-    case openAPINotFound(target: String, path: String)
+    case fileErrors([String])
 
     var description: String {
         switch self {
         case .incompatibleTarget(let name):
-            return "Kawarimi plugin applies only to Swift source modules: \(name)"
-        case .openAPINotFound(let target, let path):
-            return "Target \(target): openapi.yaml not found: \(path)"
+            return
+                "Incompatible target called '\(name)'. Only Swift source targets can be used with the Kawarimi plugin."
+        case .fileErrors(let lines):
+            return "Issues with required files:\n\(lines.map { "- \($0)" }.joined(separator: "\n"))."
         }
     }
 }

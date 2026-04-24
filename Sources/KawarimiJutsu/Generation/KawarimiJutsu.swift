@@ -1,21 +1,11 @@
 import Foundation
 import KawarimiCore
-import OpenAPIKit30
+import OpenAPIKit
 import Yams
 
 public enum KawarimiJutsu {
     public static func loadOpenAPISpec(path: String) throws -> OpenAPI.Document {
-        guard let data = FileManager.default.contents(atPath: path) else {
-            throw KawarimiJutsuError.specFileNotFound(path: path)
-        }
-        guard let content = String(data: data, encoding: .utf8) else {
-            throw KawarimiJutsuError.specFileInvalidEncoding
-        }
-        do {
-            return try YAMLDecoder().decode(OpenAPI.Document.self, from: content)
-        } catch {
-            throw KawarimiJutsuError.specParseError(String(describing: error))
-        }
+        try OpenAPIDocumentLoader.load(path: path)
     }
 
     public static func generateSwiftSource(document: OpenAPI.Document) -> String {
@@ -104,10 +94,14 @@ public enum KawarimiJutsu {
         return components.schemas[key]
     }
 
+    private static func schemaPrimaryExample(_ schema: JSONSchema) -> AnyCodable? {
+        schema.examples.first
+    }
+
     private static func defaultJSONForSchema(_ schema: JSONSchema, components: OpenAPI.Components) -> String {
         let resolved = resolveSchema(schema, components: components) ?? schema
 
-        if let exampleJSON = exampleToJSONString(resolved.example) {
+        if let exampleJSON = exampleToJSONString(schemaPrimaryExample(resolved)) {
             return exampleJSON
         }
         if let defaultJSON = exampleToJSONString(resolved.defaultValue) {
@@ -768,7 +762,7 @@ public enum KawarimiJutsu {
                 detail:
                     "Cannot generate stub initializers for allOf / oneOf / anyOf / not JSON Schema (\(diagnosticPath)). Simplify the schema or implement the `on…` closure manually."
             )
-        case .reference, .boolean, .number, .integer, .string, .object, .array, .fragment:
+        case .reference, .boolean, .number, .integer, .string, .object, .array, .fragment, .null:
             break
         }
 
@@ -806,7 +800,7 @@ public enum KawarimiJutsu {
             return "[\(itemExpr)]"
         }
 
-        if let swiftLiteral = exampleToSwiftLiteral(resolved.example, jsonType: resolved.jsonType) {
+        if let swiftLiteral = exampleToSwiftLiteral(schemaPrimaryExample(resolved), jsonType: resolved.jsonType) {
             return swiftLiteral
         }
         switch resolved.jsonType {
