@@ -315,7 +315,8 @@ public enum KawarimiJutsu {
                         components: components,
                         operationId: operationId,
                         operationContext: opContext,
-                        operationSwiftTypeName: typeName
+                        operationSwiftTypeName: typeName,
+                        handlerStubWarnings: &warnings
                     )
                 case .fatalError:
                     do {
@@ -324,7 +325,8 @@ public enum KawarimiJutsu {
                             components: components,
                             operationId: operationId,
                             operationContext: opContext,
-                            operationSwiftTypeName: typeName
+                            operationSwiftTypeName: typeName,
+                            handlerStubWarnings: &warnings
                         )
                     } catch let error as KawarimiJutsuError {
                         guard case .handlerGenerationUnsupported(_, let detail) = error else { throw error }
@@ -363,7 +365,8 @@ public enum KawarimiJutsu {
         components: OpenAPI.Components,
         operationId: String,
         operationContext: String,
-        operationSwiftTypeName: String
+        operationSwiftTypeName: String,
+        handlerStubWarnings: inout [String]
     ) throws -> HandlerOutputStub {
         for code in [200, 201] {
             let statusCode = OpenAPI.Response.StatusCode.status(code: code)
@@ -378,7 +381,8 @@ public enum KawarimiJutsu {
                         components: components,
                         operationId: operationId,
                         operationContext: operationContext,
-                        httpStatus: code
+                        httpStatus: code,
+                        handlerStubWarnings: &handlerStubWarnings
                     )
                 } catch {
                     initializerExpr = nil
@@ -430,7 +434,8 @@ public enum KawarimiJutsu {
         components: OpenAPI.Components,
         operationId: String,
         operationContext: String,
-        httpStatus: Int
+        httpStatus: Int,
+        handlerStubWarnings: inout [String]
     ) throws -> String? {
         guard let content = response.content[.json] else { return nil }
         guard let schema = resolveSchemaFromContent(content: content, components: components) else { return nil }
@@ -441,7 +446,8 @@ public enum KawarimiJutsu {
             schema,
             components: components,
             operationId: operationId,
-            diagnosticPath: path
+            diagnosticPath: path,
+            handlerStubWarnings: &handlerStubWarnings
         )
     }
 
@@ -751,7 +757,8 @@ public enum KawarimiJutsu {
         _ schema: JSONSchema,
         components: OpenAPI.Components,
         operationId: String,
-        diagnosticPath: String
+        diagnosticPath: String,
+        handlerStubWarnings: inout [String]
     ) throws -> String {
         let resolved = resolveSchema(schema, components: components) ?? schema
 
@@ -781,7 +788,8 @@ public enum KawarimiJutsu {
                     propSchema,
                     components: components,
                     operationId: operationId,
-                    diagnosticPath: childPath
+                    diagnosticPath: childPath,
+                    handlerStubWarnings: &handlerStubWarnings
                 )
                 return "\(name): \(valueExpr)"
             }
@@ -795,9 +803,19 @@ public enum KawarimiJutsu {
                 resolveSchema(itemsSchema, components: components) ?? itemsSchema,
                 components: components,
                 operationId: operationId,
-                diagnosticPath: itemPath
+                diagnosticPath: itemPath,
+                handlerStubWarnings: &handlerStubWarnings
             )
             return "[\(itemExpr)]"
+        }
+
+        if isOpenAPIAbsoluteDateStringSchema(resolved) {
+            return swiftDateLiteralForOpenAPIDateStringSchema(
+                resolved: resolved,
+                operationId: operationId,
+                diagnosticPath: diagnosticPath,
+                handlerStubWarnings: &handlerStubWarnings
+            )
         }
 
         if let swiftLiteral = exampleToSwiftLiteral(schemaPrimaryExample(resolved), jsonType: resolved.jsonType) {
@@ -810,6 +828,117 @@ public enum KawarimiJutsu {
         case .some(.boolean): return "false"
         default: return "\"\""
         }
+    }
+
+    // MARK: - OpenAPI date-time / date stub literals (Issue #35)
+
+    private static func isOpenAPIAbsoluteDateStringSchema(_ schema: JSONSchema) -> Bool {
+        guard let tf = schema.jsonTypeFormat else { return false }
+        guard case .string(let fmt) = tf else { return false }
+        switch fmt {
+        case .dateTime, .date: return true
+        default: return false
+        }
+    }
+
+    private static func openAPIAbsoluteDateStringIsDateOnly(_ schema: JSONSchema) -> Bool {
+        guard let tf = schema.jsonTypeFormat else { return false }
+        guard case .string(let fmt) = tf else { return false }
+        return fmt == .date
+    }
+
+    private static func primaryExampleStringValue(_ example: AnyCodable?) -> String? {
+        guard let example else { return nil }
+        guard let data = try? JSONEncoder().encode(example) else { return nil }
+        return try? JSONDecoder().decode(String.self, from: data)
+    }
+
+    private static func stderrWarningForDateTimeStubFallback(
+        operationId: String,
+        diagnosticPath: String,
+        reason: String
+    ) -> String {
+        let op = sanitizeForSourceCommentLine(operationId)
+        let path = sanitizeForSourceCommentLine(diagnosticPath)
+        let r = sanitizeForSourceCommentLine(reason)
+        return "Kawarimi warning: KawarimiHandler stub: date-time (or date) field uses epoch 0 (\(r)); operationId \(op); \(path)"
+    }
+
+    private struct _KawarimiJSONDateField: Decodable {
+        let d: Date
+    }
+
+    private static func parseOpenAPIDateExampleAtCodegen(_ string: String, dateOnly: Bool) -> Date? {
+        if !dateOnly {
+            if let data = try? JSONSerialization.data(withJSONObject: ["d": string], options: []) {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                if let wrapped = try? decoder.decode(_KawarimiJSONDateField.self, from: data) {
+                    return wrapped.d
+                }
+            }
+        }
+
+        let isoBasic = ISO8601DateFormatter()
+        isoBasic.formatOptions = [.withInternetDateTime, .withTimeZone]
+        if let d = isoBasic.date(from: string) { return d }
+
+        let isoFrac = ISO8601DateFormatter()
+        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
+        if let d = isoFrac.date(from: string) { return d }
+
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = TimeZone(secondsFromGMT: 0)
+        if dateOnly {
+            df.calendar = Calendar(identifier: .gregorian)
+            df.dateFormat = "yyyy-MM-dd"
+            if let d = df.date(from: string) { return d }
+            return nil
+        }
+        let patterns = [
+            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        ]
+        for pattern in patterns {
+            df.dateFormat = pattern
+            if let d = df.date(from: string) { return d }
+        }
+        return nil
+    }
+
+    private static func swiftDateLiteralForOpenAPIDateStringSchema(
+        resolved: JSONSchema,
+        operationId: String,
+        diagnosticPath: String,
+        handlerStubWarnings: inout [String]
+    ) -> String {
+        let dateOnly = openAPIAbsoluteDateStringIsDateOnly(resolved)
+        let exampleStr = primaryExampleStringValue(schemaPrimaryExample(resolved))
+        guard let s = exampleStr?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else {
+            handlerStubWarnings.append(
+                stderrWarningForDateTimeStubFallback(
+                    operationId: operationId,
+                    diagnosticPath: diagnosticPath,
+                    reason: "no example string"
+                )
+            )
+            return "Date(timeIntervalSince1970: 0)"
+        }
+        guard let date = parseOpenAPIDateExampleAtCodegen(s, dateOnly: dateOnly) else {
+            handlerStubWarnings.append(
+                stderrWarningForDateTimeStubFallback(
+                    operationId: operationId,
+                    diagnosticPath: diagnosticPath,
+                    reason: "parse failed for example"
+                )
+            )
+            return "Date(timeIntervalSince1970: 0)"
+        }
+        let interval = date.timeIntervalSince1970
+        return "Date(timeIntervalSince1970: \(interval))"
     }
 
     private static func exampleToSwiftLiteral(_ example: AnyCodable?, jsonType: JSONType?) -> String? {

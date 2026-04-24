@@ -1,0 +1,21 @@
+openapi: 3.0.3
+info:
+  title: DateTimeStubNoExample
+  version: "1"
+paths:
+  /snapshot:
+    get:
+      operationId: getSnapshotNoExample
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updatedAt
+                properties:
+                  updatedAt:
+                    type: string
+                    format: date-time

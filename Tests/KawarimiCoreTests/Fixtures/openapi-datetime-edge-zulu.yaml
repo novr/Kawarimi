@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: DateTimeEdgeZulu
+  version: "1"
+paths:
+  /z:
+    get:
+      operationId: getDateTimeZulu
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  t:
+                    type: string
+                    format: date-time
+                    example: "2025-06-01T12:00:00Z"

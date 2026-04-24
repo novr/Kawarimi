@@ -1,0 +1,20 @@
+openapi: 3.0.3
+info:
+  title: DateTimeEdgeCreated
+  version: "1"
+paths:
+  /item:
+    post:
+      operationId: postDateTimeCreated
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  at:
+                    type: string
+                    format: date-time
+                    example: "2030-01-01T00:00:00Z"

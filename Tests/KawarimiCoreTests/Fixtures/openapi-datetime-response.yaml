@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: DateTimeStub
+  version: "1"
+paths:
+  /snapshot:
+    get:
+      operationId: getSnapshot
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updatedAt
+                properties:
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    example: "2025-02-14T00:30:00+09:00"
