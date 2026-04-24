@@ -1,0 +1,1 @@
+../../Sources/KawarimiJutsu/Config/KawarimiGeneratorConfigSourceMessages.swift
