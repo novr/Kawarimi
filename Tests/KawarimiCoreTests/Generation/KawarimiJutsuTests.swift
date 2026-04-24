@@ -163,6 +163,33 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("return .ok(.init())"))
 }
 
+@Test func kawarimiHandlerDateTimeStubUsesTimeIntervalLiteralNotString() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-response", extension: "yaml") else {
+        Issue.record("openapi-datetime-response.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("onGetSnapshot"))
+    #expect(source.contains("Date(timeIntervalSince1970:"))
+    #expect(!source.contains("updatedAt: \"2025"))
+}
+
+@Test func kawarimiHandlerDateTimeWithoutExampleEmitsWarningAndEpochZero() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-no-example", extension: "yaml") else {
+        Issue.record("openapi-datetime-no-example.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(!warnings.isEmpty)
+    #expect(warnings.joined().contains("epoch 0"))
+    #expect(warnings.joined().contains("getSnapshotNoExample"))
+    #expect(source.contains("onGetSnapshotNoExample"))
+    #expect(source.contains("Date(timeIntervalSince1970: 0)"))
+}
+
 @Test func kawarimiHandlerUsesJSONDecodeStubForStringEnumWhenPolicyIsFatalError() throws {
     guard let url = fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
