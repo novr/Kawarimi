@@ -22,6 +22,8 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 **1.0.x → 1.1.0:** **`OpenAPIPathPrefix`** was removed; use **`KawarimiPath`** (`splitPathSegments`, `joinPathPrefix`, `aligned(path:pathPrefix:)`) — see **[CHANGELOG.md](../CHANGELOG.md)** under **1.1.0**.
 
+**1.1.x → 2.0.0:** Add **`openapi-generator-config.yaml`** or **`.yml`** next to the spec; ensure **exactly one** OpenAPI basename and **at most one** **`kawarimi-generator-config`** appear in the target’s **`sourceFiles`**. **`KawarimiJutsu.loadOpenAPISpec`** returns **`OpenAPIKit.OpenAPI.Document`**; remove **`KawarimiJutsuError.specFileInvalidEncoding`** handling; use **`try`** for **`handlerStubPolicyBesideOpenAPIYAML`**. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.0**.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -35,7 +37,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "1.1.2"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.0"),
 ],
 targets: [
     .target(

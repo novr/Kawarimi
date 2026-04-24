@@ -8,13 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-24
+
+### Breaking
+
+- **KawarimiJutsu**: **`loadOpenAPISpec`** returns **`OpenAPIKit.OpenAPI.Document`** (not **`OpenAPIKit30.OpenAPI.Document`** alone). Call sites that fixed the result to **`OpenAPIKit30`** types must **`import OpenAPIKit`** and update annotations.
+- **KawarimiJutsuError**: **`specFileInvalidEncoding`** removed.
+- **KawarimiGeneratorConfigFileYAML**: **`handlerStubPolicyBesideOpenAPIYAML`** is now **`throws`** and takes optional **`targetNameForErrorMessages`**; callers must use **`try`**.
+- **`openapi-generator-config.yaml`** or **`.yml`** is **required** beside the OpenAPI document (zero or multiple files are errors for **`KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML`** and for **KawarimiPlugin**).
+- **KawarimiPlugin**: among the target’s **`sourceFiles`**, **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`** is required (zero or multiple is an error). **Optional** **`kawarimi-generator-config`**: **at most one** among **`sourceFiles`**; two or more is an error. Layouts that relied only on a root **`openapi.yaml`** without listing files, or without **`openapi-generator-config`**, must be updated.
+
 ### Changed
 
-- **KawarimiPlugin**: Resolves the OpenAPI document like **swift-openapi-generator** — among files SwiftPM lists for the target, **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`** must be present (zero or multiple is an error). Basename sets stay aligned with **`OpenAPISpecDocumentURL`** in **KawarimiJutsu** (separate copy in the plugin target).
-- **KawarimiJutsu**: **`loadOpenAPISpec`** decodes with **Yams `YAMLDecoder`** from **`Data`** (including **`openapi.json`**, same approach as upstream’s **YamsParser**). **`KawarimiJutsuError.specFileInvalidEncoding`** removed.
-- **OpenAPI versions**: **`loadOpenAPISpec`** now supports **OpenAPI 3.0.x** (via **OpenAPIKit30** + **OpenAPIKitCompat** conversion), **3.1.x**, and **3.2.0** (same version branching as **swift-openapi-generator** **YamsParser**). Internal model is **`OpenAPIKit.OpenAPI.Document`** (not **OpenAPIKit30** alone).
-- **openapi-generator-config**: **`openapi-generator-config.yaml`** or **`.yml`** is **required** next to the OpenAPI document (same as **OpenAPIGenerator**). **`KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML`** throws with the same **`FileError`** wording as upstream when missing or duplicated. **`KawarimiPlugin`** validates config + document from **`sourceFiles`** and emits **`PluginError.fileErrors`**-style messages for those; verbatim **`FileError`** lines come from **`OpenAPIGeneratorFileErrorMessages.swift`** via **symlinks** in **`Plugins/KawarimiPlugin/`** (same file as **KawarimiJutsu**). **`KawarimiPluginError.incompatibleTarget`** refers to the **Kawarimi** plugin (non–Swift targets).
-- **`kawarimi-generator-config`**: **`KawarimiPlugin`** resolves **optional** **`kawarimi-generator-config.yaml`** / **`.yml`** from **`sourceFiles`** (at most one; duplicates are an error). The **`Kawarimi`** CLI enforces the same **at most one** rule beside the OpenAPI path. Duplicate messages are defined in **`KawarimiGeneratorConfigSourceMessages.swift`**, also **symlinked** into **`Plugins/KawarimiPlugin/`** for the plugin build.
+- **KawarimiJutsu**: **`loadOpenAPISpec`** decodes with **Yams `YAMLDecoder`** from **`Data`** (YAML and JSON). Supports **OpenAPI 3.0.x** (via **OpenAPIKit30** + **OpenAPIKitCompat**), **3.1.x**, and **3.2.0** with version branching aligned to **swift-openapi-generator** **YamsParser**.
+- **KawarimiPlugin** / **KawarimiJutsu**: **`FileError`**-style lines for OpenAPI document and **`openapi-generator-config`** discovery match upstream wording; strings live in **`OpenAPIGeneratorFileErrorMessages.swift`**, **symlinked** from **`Plugins/KawarimiPlugin/`** into the same source file as **KawarimiJutsu**. **`KawarimiPluginError.incompatibleTarget`** names the **Kawarimi** plugin (non–Swift targets).
+- **`kawarimi-generator-config`**: duplicate messages are defined in **`KawarimiGeneratorConfigSourceMessages.swift`**, also **symlinked** into **`Plugins/KawarimiPlugin/`**. The **Kawarimi** CLI enforces **at most one** file beside the OpenAPI path.
 
 ## [1.1.2] - 2026-04-22
 
@@ -162,6 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.0]: https://github.com/novr/Kawarimi/releases/tag/v2.0.0
 [1.1.2]: https://github.com/novr/Kawarimi/releases/tag/v1.1.2
 [1.1.1]: https://github.com/novr/Kawarimi/releases/tag/v1.1.1
 [1.1.0]: https://github.com/novr/Kawarimi/releases/tag/v1.1.0
