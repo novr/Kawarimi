@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **KawarimiPlugin**: Resolves the OpenAPI document like **swift-openapi-generator** — among files SwiftPM lists for the target, **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`** must be present (zero or multiple is an error). The plugin cannot depend on a library target in SwiftPM, so it embeds the same basename rules as **`OpenAPISpecDocumentURL`** in **KawarimiJutsu** (keep them in sync when changing).
+- **KawarimiJutsu**: **`loadOpenAPISpec`** decodes with **Yams `YAMLDecoder`** from **`Data`** (including **`openapi.json`**, same approach as upstream’s **YamsParser**). **`KawarimiJutsuError.specFileInvalidEncoding`** removed.
+
 ## [1.1.2] - 2026-04-22
 
 ### Fixed

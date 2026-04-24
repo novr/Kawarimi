@@ -6,14 +6,14 @@
 
 ### 簡易
 
-- **`openapi.yaml` を置いたライブラリターゲット（例: `MyAPI`）1 つ**に **OpenAPIGenerator** と **KawarimiPlugin** を付ける。ビルドで Types / Client / Server / Kawarimi 系が**同一モジュール**に生成される。
+- **`openapi.yaml` / `openapi.yml` / `openapi.json` のいずれか 1 本**を置いたライブラリターゲット（例: `MyAPI`）に **OpenAPIGenerator** と **KawarimiPlugin** を付ける。ビルドで Types / Client / Server / Kawarimi 系が**同一モジュール**に生成される。
 - **クライアントアプリ**は `MyAPI` のみ依存。**サーバ**（例: Vapor）は `MyAPI` に加え **Vapor**、Henge 用なら **KawarimiCore** とルート配線（[Example README_JA.md](../../Example/README_JA.md)）。
 - **利点:** `Package.swift` が最小で、設定も一箇所。**注意:** アプリが Server を呼ばなくても、**生成された Server ソースは同じモジュールに含まれる**。バイナリ肥大やレイヤ境界は、分割するまで緩い。
 
 ### 推奨
 
-- **`openapi.yaml` は 1 本に固定**し、**クライアント用とサーバ用でジェネレータの切り方を分ける**（ターゲットを分け、`openapi-generator-config.yaml` を用途別にするなど）。**アプリ向け**は Types + Client（必要なら Kawarimi／モック）、**サーバ向け**は Types + Server。**同じ Types を 2 モジュールに二重生成しない**よう、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)に沿って構成する。
-- **KawarimiPlugin** は、正とする **`openapi.yaml` を持つターゲット**に付ける。
+- **ターゲットあたり OpenAPI 仕様は 1 本**（`openapi.yaml` / `openapi.yml` / `openapi.json` のいずれか）にし、**クライアント用とサーバ用でジェネレータの切り方を分ける**（ターゲットを分け、`openapi-generator-config.yaml` を用途別にするなど）。**アプリ向け**は Types + Client（必要なら Kawarimi／モック）、**サーバ向け**は Types + Server。**同じ Types を 2 モジュールに二重生成しない**よう、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)に沿って構成する。
+- **KawarimiPlugin** は、その仕様を持つターゲットに付ける。
 - **利点:** 依存関係と成果物の境界が明確。**注意:** ターゲットや設定が増える。**CI でクライアント側・サーバ側の両方をビルド**する。
 
 ## 1. 依存とプラグイン
@@ -25,7 +25,7 @@
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
-- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec`、YAML 設定ローダーなど）。OpenAPIKit 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
+- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec`、`OpenAPISpecDocumentURL`、YAML 設定ローダーなど）。OpenAPIKit 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
 - **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。**エクスプローラの状態**（スナップショット・ドラフト・起動・`isDirty` と未保存）: [henge.md](henge.md#henge-explorer-state)。ライフサイクル／一覧 `.id`: [henge.md](henge.md#henge-ui-data-flow)。
 
 **KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
@@ -57,19 +57,19 @@ targets: [
 
 ## 2. OpenAPI の置き場所
 
-`openapi.yaml` は **Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に 1 つ置く。
-**KawarimiPlugin** はそのルートから `openapi.yaml` を解決し、任意のソースファイルの親ディレクトリには依存しません。
+**Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に、**次のいずれか 1 本だけ**置く: **`openapi.yaml`**、**`openapi.yml`**、**`openapi.json`**。同じターゲットに複数置かない（SwiftPM が渡すファイル一覧上で 0 件または複数件ならエラー。OpenAPIGenerator の **`PluginUtils`** と同じルール）。
+**KawarimiPlugin** は **`SwiftSourceModuleTarget.sourceFiles`** に載るファイルから上記ファイル名だけを拾い、ディレクトリを独自に走査しません。
 ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
 
 ## 3. オプション: ジェネレータ設定
 
-`openapi.yaml` と**同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)で指定する。
+ターゲットルートで **OpenAPI 仕様と同じディレクトリ**に `openapi-generator-config.yaml`（または `.yml`）を置き、[swift-openapi-generator の設定](https://github.com/apple/swift-openapi-generator#configuration)で指定する。
 
 Kawarimi が読むキーは **`namingStrategy`** と **`accessModifier`** です。
 
-**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）は `openapi.yaml` と同じディレクトリの **`kawarimi-generator-config.yaml`**（または `.yml`）で指定します。
+**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）はそのディレクトリの **`kawarimi-generator-config.yaml`**（または `.yml`）で指定する。
 
-`Kawarimi` CLI / `KawarimiPlugin` は `openapi-generator-config.yaml` を優先し、無ければ `openapi-generator-config.yml` を探します。
+`Kawarimi` CLI / `KawarimiPlugin` は、解決した仕様ファイルと同じディレクトリで `openapi-generator-config.yaml` を優先し、無ければ `openapi-generator-config.yml` を探す。
 
 ## 4. テストでモックを使う
 
