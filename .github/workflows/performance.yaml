@@ -1,0 +1,23 @@
+name: Performance
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kawarimi-cli-perf-lines:
+    name: Kawarimi perf (small fixture)
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Generate fixture and run Kawarimi
+        run: |
+          set -euo pipefail
+          FIXTURE="${RUNNER_TEMP}/kawarimi-perf-spec"
+          OUT="${RUNNER_TEMP}/kawarimi-perf-out"
+          mkdir -p "$FIXTURE" "$OUT"
+          python3 Scripts/performance/generate_openapi_fixture.py --preset small --format yaml "$FIXTURE"
+          swift run --quiet Kawarimi "$FIXTURE/openapi.yaml" "$OUT" 2>&1 | tee "${RUNNER_TEMP}/kawarimi-run.log"
+          grep '\[kawarimi-perf\]' "${RUNNER_TEMP}/kawarimi-run.log" | tee "${RUNNER_TEMP}/kawarimi-perf-only.log"
+          test -s "${RUNNER_TEMP}/kawarimi-perf-only.log"
