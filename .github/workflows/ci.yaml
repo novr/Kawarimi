@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   kawarimi:
     name: Swift Test (Kawarimi)
@@ -27,10 +31,48 @@ jobs:
         working-directory: Example/DemoPackage
         run: swift test
 
+  kawarimi-perf:
+    name: Kawarimi perf
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: kawarimi-perf-out
+        run: |
+          set -euo pipefail
+          FIXTURE="${RUNNER_TEMP}/kawarimi-perf-spec"
+          OUT="${RUNNER_TEMP}/kawarimi-perf-out"
+          mkdir -p "$FIXTURE" "$OUT"
+          python3 Scripts/performance/generate_openapi_fixture.py --preset small --format yaml "$FIXTURE" >/dev/null
+          swift run --quiet Kawarimi "$FIXTURE/openapi.yaml" "$OUT" 2>&1 | tee "${RUNNER_TEMP}/kawarimi-run.log"
+          grep '\[kawarimi-perf\]' "${RUNNER_TEMP}/kawarimi-run.log" | tee kawarimi-perf-lines.txt
+          test -s kawarimi-perf-lines.txt
+
+      - name: Compose PR comment body (markdown)
+        run: |
+          set -euo pipefail
+          sha_short="${GITHUB_SHA:0:7}"
+          {
+            echo '### Kawarimi `[kawarimi-perf]` — small fixture'
+            echo ''
+            echo "Commit \`${sha_short}\` · Kawarimi writes under basename \`kawarimi-perf-out\` (see workflow \`RUNNER_TEMP\`)."
+            echo ''
+            echo '```'
+            cat kawarimi-perf-lines.txt
+            echo '```'
+          } > kawarimi-perf-comment.md
+
+      - name: Comment PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: kawarimi-perf
+          path: kawarimi-perf-comment.md
+
   swift-test:
     name: Swift Test
     runs-on: ubuntu-latest
-    needs: [kawarimi, demo-package]
+    needs: [kawarimi, demo-package, kawarimi-perf]
     steps:
       - name: All checks passed
         run: echo "OK"
