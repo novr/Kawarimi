@@ -51,7 +51,10 @@ struct Kawarimi {
             lapStart = clock.now
 
             let outputDir = URL(fileURLWithPath: outputDirPath)
-            try KawarimiJutsu.generateSwiftSource(document: document).write(to: outputDir.appendingPathComponent("Kawarimi.swift"), atomically: true, encoding: .utf8)
+            try GeneratedFileWriter.writeIfChanged(
+                KawarimiJutsu.generateSwiftSource(document: document),
+                to: outputDir.appendingPathComponent("Kawarimi.swift")
+            )
             let kawarimiElapsed = lapStart.duration(to: clock.now)
             KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: kawarimiElapsed)
             lapStart = clock.now
@@ -65,16 +68,18 @@ struct Kawarimi {
             for line in handlerWarnings {
                 fputs("\(line)\n", stderr)
             }
-            try handlerSource.write(
-                to: outputDir.appendingPathComponent("KawarimiHandler.swift"),
-                atomically: true,
-                encoding: .utf8
+            try GeneratedFileWriter.writeIfChanged(
+                handlerSource,
+                to: outputDir.appendingPathComponent("KawarimiHandler.swift")
             )
             let handlerElapsed = lapStart.duration(to: clock.now)
             KawarimiPerfLog.emit(phase: "generate_handler", duration: handlerElapsed)
             lapStart = clock.now
 
-            try KawarimiJutsu.generateKawarimiSpecSource(document: document).write(to: outputDir.appendingPathComponent("KawarimiSpec.swift"), atomically: true, encoding: .utf8)
+            try GeneratedFileWriter.writeIfChanged(
+                KawarimiJutsu.generateKawarimiSpecSource(document: document),
+                to: outputDir.appendingPathComponent("KawarimiSpec.swift")
+            )
             let specElapsed = lapStart.duration(to: clock.now)
             KawarimiPerfLog.emit(phase: "generate_spec", duration: specElapsed)
 
