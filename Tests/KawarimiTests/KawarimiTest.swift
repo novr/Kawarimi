@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+@testable import Kawarimi
 
 @Test func cliGeneratesSwiftFromOpenAPI() throws {
     let openapiURL = URL(fileURLWithPath: #filePath)
@@ -112,6 +113,41 @@ import Testing
     let handlerGenerated = try String(contentsOf: handlerURL, encoding: .utf8)
     #expect(handlerGenerated.contains("public var onGetGreeting:"))
     #expect(handlerGenerated.contains("deleteItem"))
+}
+
+@Test func writeIfChangedSkipsWriteWhenContentIsSame() throws {
+    let outputDirURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("KawarimiTests-writer-same-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: outputDirURL, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: outputDirURL) }
+
+    let targetURL = outputDirURL.appendingPathComponent("Kawarimi.swift")
+    let content = "public struct Kawarimi {}\n"
+    try content.write(to: targetURL, atomically: true, encoding: .utf8)
+
+    let didWrite = try GeneratedFileWriter.writeIfChanged(content, to: targetURL)
+    let written = try String(contentsOf: targetURL, encoding: .utf8)
+
+    #expect(didWrite == false, "writeIfChanged should skip writing when content is unchanged")
+    #expect(written == content, "file content should remain unchanged")
+}
+
+@Test func writeIfChangedOverwritesWhenContentDiffers() throws {
+    let outputDirURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("KawarimiTests-writer-diff-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: outputDirURL, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: outputDirURL) }
+
+    let targetURL = outputDirURL.appendingPathComponent("Kawarimi.swift")
+    let before = "before\n"
+    let after = "after\n"
+    try before.write(to: targetURL, atomically: true, encoding: .utf8)
+
+    let didWrite = try GeneratedFileWriter.writeIfChanged(after, to: targetURL)
+    let written = try String(contentsOf: targetURL, encoding: .utf8)
+
+    #expect(didWrite == true, "writeIfChanged should write when content differs")
+    #expect(written == after, "file should be overwritten with new content")
 }
 
 private func resolvePackageRoot() -> URL {
