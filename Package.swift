@@ -71,7 +71,7 @@ let package = Package(
         ),
         .testTarget(
             name: "KawarimiTests",
-            dependencies: []
+            dependencies: ["Kawarimi"]
         ),
     ]
 )
