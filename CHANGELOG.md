@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kawarimi CLI**: phased timings on **stderr** as **`[kawarimi-perf]`** (**`setup`**, **`load`**, generation phases, **`total`**).
+- **Scripts/performance**: **`generate_openapi_fixture.py`**, **`run_kawarimi_fixture.sh`**, **`incremental-build.sh`** (DemoPackage), and **`Scripts/performance/README.md`** for local measurement.
+- **CI**: **`workflow_dispatch`** workflow **`Performance`** (small OpenAPI fixture, **`swift run --quiet Kawarimi`**, asserts **`[kawarimi-perf]`** lines; **`.github/workflows/performance.yaml`**).
+
 ## [2.0.1] - 2026-04-24
 
 ### Fixed
