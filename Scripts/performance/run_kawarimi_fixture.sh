@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export KAWARIMI_PERF="${KAWARIMI_PERF:-1}"
 PRESET="${PRESET:-small}"
 FORMAT="${FORMAT:-yaml}"
 FIXTURE_DIR="${FIXTURE_DIR:-$(mktemp -d -t kawarimi-perf-fixture)}"
