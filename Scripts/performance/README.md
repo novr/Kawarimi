@@ -2,6 +2,8 @@
 
 ## 1. CLI（stderr）
 
+環境変数 **`KAWARIMI_PERF=1`** が設定されている場合のみ出力される。
+
 成功時:
 
 ```text
@@ -39,8 +41,8 @@
 ```bash
 mkdir -p /tmp/kw-out /tmp/kw-spec
 python3 Scripts/performance/generate_openapi_fixture.py --preset large --format both /tmp/kw-spec >/dev/null
-swift run --quiet Kawarimi /tmp/kw-spec/openapi.yaml /tmp/kw-out 2>&1 | grep -F '[kawarimi-perf]'
-swift run --quiet Kawarimi /tmp/kw-spec/openapi.json /tmp/kw-out 2>&1 | grep -F '[kawarimi-perf]'
+KAWARIMI_PERF=1 swift run --quiet Kawarimi /tmp/kw-spec/openapi.yaml /tmp/kw-out 2>&1 | grep -F '[kawarimi-perf]'
+KAWARIMI_PERF=1 swift run --quiet Kawarimi /tmp/kw-spec/openapi.json /tmp/kw-out 2>&1 | grep -F '[kawarimi-perf]'
 ```
 
 `Wrote` を見たいときは `>/dev/null` を外す。`grep '[kawarimi-perf]'` は `[]` が文字クラスになるため **`grep -F '[kawarimi-perf]'`** か **`grep '\[kawarimi-perf\]'`** を使う。

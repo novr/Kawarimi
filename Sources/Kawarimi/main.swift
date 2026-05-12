@@ -3,6 +3,7 @@ import KawarimiCore
 import KawarimiJutsu
 
 private enum KawarimiPerfLog {
+    static let isEnabled = ProcessInfo.processInfo.environment["KAWARIMI_PERF"] == "1"
     static let prefix = "[kawarimi-perf]"
 
     static func seconds(_ duration: Duration) -> String {
@@ -12,6 +13,7 @@ private enum KawarimiPerfLog {
     }
 
     static func emit(phase: String, duration: Duration, skipped: Bool = false) {
+        guard isEnabled else { return }
         let suffix = skipped ? " skipped" : ""
         fputs("\(prefix) phase=\(phase) seconds=\(seconds(duration))\(suffix)\n", stderr)
     }

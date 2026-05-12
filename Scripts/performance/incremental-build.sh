@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export KAWARIMI_PERF="${KAWARIMI_PERF:-1}"
 DEMO="$ROOT/Example/DemoPackage"
 API_SWIFT="$DEMO/Sources/DemoAPI/DemoAPI.swift"
 WORKDIR="$(mktemp -d -t kawarimi-incr-logs)"
