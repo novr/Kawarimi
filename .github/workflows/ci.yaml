@@ -64,7 +64,7 @@ jobs:
           } > kawarimi-perf-comment.md
 
       - name: Comment PR
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: kawarimi-perf
           path: kawarimi-perf-comment.md
