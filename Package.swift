@@ -42,7 +42,7 @@ let package = Package(
         ),
         .executableTarget(
             name: "Kawarimi",
-            dependencies: ["KawarimiJutsu"],
+            dependencies: ["KawarimiCore", "KawarimiJutsu"],
             swiftSettings: [.unsafeFlags(["-parse-as-library"])]
         ),
         .plugin(

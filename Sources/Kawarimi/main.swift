@@ -1,4 +1,5 @@
 import Foundation
+import KawarimiCore
 import KawarimiJutsu
 
 private enum KawarimiPerfLog {
