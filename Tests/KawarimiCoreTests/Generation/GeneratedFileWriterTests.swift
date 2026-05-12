@@ -63,6 +63,16 @@ import Testing
     #expect(mtimeBefore == mtimeAfter)
 }
 
+@Test func writeIfChangedThrowsWhenDirectoryMissing() throws {
+    let missing = FileManager.default.temporaryDirectory
+        .appendingPathComponent("GeneratedFileWriterTests-no-such-dir-\(UUID().uuidString)")
+    let target = missing.appendingPathComponent("Out.swift")
+
+    #expect(throws: GeneratedFileWriter.OutputDirectoryMissing.self) {
+        try GeneratedFileWriter.writeIfChanged("content\n", to: target)
+    }
+}
+
 @Test func writeIfChangedCreatesNewFile() throws {
     let dir = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-new-\(UUID().uuidString)")

@@ -13,7 +13,7 @@ package enum GeneratedFileWriter {
             throw OutputDirectoryMissing(path: parent.path)
         }
         let newData = Data(content.utf8)
-        if let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int,
+        if let size = (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? UInt64).flatMap({ Int(exactly: $0) }),
            size == newData.count,
            let existing = try? Data(contentsOf: url),
            existing == newData {
