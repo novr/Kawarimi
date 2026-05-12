@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-05-12
+
 ### Added
 
-- **Kawarimi CLI**: phased timings on **stderr** as **`[kawarimi-perf]`** (**`setup`**, **`load`**, generation phases, **`total`**).
+- **Kawarimi CLI**: phased timings on **stderr** as **`[kawarimi-perf]`** (**`setup`**, **`load`**, generation phases, **`total`**). Each generation phase logs **`skipped`** when the output file was unchanged ([#45](https://github.com/novr/Kawarimi/pull/45)).
+- **KawarimiCore**: **`GeneratedFileWriter.writeIfChanged`** — compare-before-write helper that preserves output file **mtime** when content is unchanged, reducing unnecessary recompilation in incremental builds ([#42](https://github.com/novr/Kawarimi/issues/42), [#45](https://github.com/novr/Kawarimi/pull/45)). Uses file-size early exit and **`Data`** comparison; throws **`OutputDirectoryMissing`** (works in Release builds).
 - **Scripts/performance**: **`generate_openapi_fixture.py`**, **`run_kawarimi_fixture.sh`**, **`incremental-build.sh`** (DemoPackage), and **`Scripts/performance/README.md`** for local measurement.
 - **CI**: **`ci.yaml`** — **`kawarimi-perf-report`** on **pull_request** writes small-fixture output under **`kawarimi-perf-out`** and posts or updates **`[kawarimi-perf]`** as a PR comment; **`performance.yaml`** (**`workflow_dispatch`** only) runs the same fixture by default or **`incremental_demo`** runs **`incremental-build.sh --clean`** only (heavy).
 
@@ -183,6 +186,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.2]: https://github.com/novr/Kawarimi/releases/tag/v2.0.2
 [2.0.1]: https://github.com/novr/Kawarimi/releases/tag/v2.0.1
 [2.0.0]: https://github.com/novr/Kawarimi/releases/tag/v2.0.0
 [1.1.2]: https://github.com/novr/Kawarimi/releases/tag/v1.1.2
