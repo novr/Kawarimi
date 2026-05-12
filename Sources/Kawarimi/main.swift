@@ -11,8 +11,9 @@ private enum KawarimiPerfLog {
         return String(format: "%.6f", s)
     }
 
-    static func emit(phase: String, duration: Duration) {
-        fputs("\(prefix) phase=\(phase) seconds=\(seconds(duration))\n", stderr)
+    static func emit(phase: String, duration: Duration, skipped: Bool = false) {
+        let suffix = skipped ? " skipped" : ""
+        fputs("\(prefix) phase=\(phase) seconds=\(seconds(duration))\(suffix)\n", stderr)
     }
 }
 
@@ -52,12 +53,12 @@ struct Kawarimi {
             lapStart = clock.now
 
             let outputDir = URL(fileURLWithPath: outputDirPath)
-            try GeneratedFileWriter.writeIfChanged(
+            let kawarimiWritten = try GeneratedFileWriter.writeIfChanged(
                 KawarimiJutsu.generateSwiftSource(document: document),
                 to: outputDir.appendingPathComponent("Kawarimi.swift")
             )
             let kawarimiElapsed = lapStart.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: kawarimiElapsed)
+            KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: kawarimiElapsed, skipped: !kawarimiWritten)
             lapStart = clock.now
 
             let (handlerSource, handlerWarnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
@@ -69,20 +70,20 @@ struct Kawarimi {
             for line in handlerWarnings {
                 fputs("\(line)\n", stderr)
             }
-            try GeneratedFileWriter.writeIfChanged(
+            let handlerWritten = try GeneratedFileWriter.writeIfChanged(
                 handlerSource,
                 to: outputDir.appendingPathComponent("KawarimiHandler.swift")
             )
             let handlerElapsed = lapStart.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "generate_handler", duration: handlerElapsed)
+            KawarimiPerfLog.emit(phase: "generate_handler", duration: handlerElapsed, skipped: !handlerWritten)
             lapStart = clock.now
 
-            try GeneratedFileWriter.writeIfChanged(
+            let specWritten = try GeneratedFileWriter.writeIfChanged(
                 KawarimiJutsu.generateKawarimiSpecSource(document: document),
                 to: outputDir.appendingPathComponent("KawarimiSpec.swift")
             )
             let specElapsed = lapStart.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "generate_spec", duration: specElapsed)
+            KawarimiPerfLog.emit(phase: "generate_spec", duration: specElapsed, skipped: !specWritten)
 
             let totalElapsed = runStarted.duration(to: clock.now)
             KawarimiPerfLog.emit(phase: "total", duration: totalElapsed)
