@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-05-14
+
 ### Added
 
-- **Kawarimi CLI** / **KawarimiJutsu**: **`generateKawarimiHandlerSource` `warnings`** — one **`[kawarimi] warning:`** line per operation omitted from generated transport, handler, and spec (missing or empty **`operationId`**), emitted from the same **`generateHandlerMethods`** pass as handler stub warnings; CLI **`stderr`** unchanged ([#55](https://github.com/novr/Kawarimi/issues/55)).
+- **Kawarimi CLI** / **KawarimiJutsu**: **`generateKawarimiHandlerSource` `warnings`** — one **`[kawarimi] warning:`** line per operation omitted from generated transport, handler, and spec (missing or empty **`operationId`**), emitted from the same **`generateHandlerMethods`** pass as handler stub warnings; CLI **`stderr`** unchanged ([#55](https://github.com/novr/Kawarimi/issues/55), [#62](https://github.com/novr/Kawarimi/pull/62)).
 
 ## [2.0.3] - 2026-05-14
 
@@ -207,6 +209,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.4]: https://github.com/novr/Kawarimi/releases/tag/v2.0.4
 [2.0.3]: https://github.com/novr/Kawarimi/releases/tag/v2.0.3
 [2.0.2]: https://github.com/novr/Kawarimi/releases/tag/v2.0.2
 [2.0.1]: https://github.com/novr/Kawarimi/releases/tag/v2.0.1
