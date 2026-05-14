@@ -33,11 +33,16 @@ public enum KawarimiGeneratorConfigFileYAML {
         struct Slice: Decodable {
             var handlerStubPolicy: String?
         }
-        guard let slice = try? YAMLDecoder().decode(Slice.self, from: text) else {
+        do {
+            let slice = try YAMLDecoder().decode(Slice.self, from: text)
+            let raw = slice.handlerStubPolicy?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if raw.isEmpty { return nil }
+            return (url.path, raw)
+        } catch {
+            let path = url.path
+            let msg = String(describing: error).replacingOccurrences(of: "\n", with: " ")
+            fputs("Kawarimi warning: invalid kawarimi-generator-config YAML at \(path): \(msg)\n", stderr)
             return nil
         }
-        let raw = slice.handlerStubPolicy?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if raw.isEmpty { return nil }
-        return (url.path, raw)
     }
 }

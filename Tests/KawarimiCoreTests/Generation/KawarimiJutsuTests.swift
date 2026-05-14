@@ -23,6 +23,11 @@ private struct AnyJSON: Decodable {
     }
 }
 
+private struct AllOfMergePayload: Codable {
+    let a: String
+    let b: Int
+}
+
 /// Extracts `body: "..."` from the first `MockResponse` after the matching `operationId` in generated source.
 private func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
     let needle = "operationId: \"\(operationId)\""
@@ -52,6 +57,39 @@ private func mockResponseBodyJSONString(operationId: String, in source: String) 
             result.append(ch)
         }
         i = after.index(after: i)
+    }
+    return result.isEmpty ? nil : result
+}
+
+/// Extracts the JSON string inside `HTTPBody("...")` for the `case "<operationId>":` branch in generated `Kawarimi` transport source.
+private func transportMockBodyJSONString(operationId: String, in source: String) -> String? {
+    let caseLabel = "case \"\(operationId)\":"
+    guard let caseRange = source.range(of: caseLabel) else { return nil }
+    let afterCase = source[caseRange.upperBound...]
+    guard let bodyOpen = afterCase.range(of: "HTTPBody(\"") else { return nil }
+    var i = bodyOpen.upperBound
+    var result = ""
+    var escaped = false
+    while i < afterCase.endIndex {
+        let ch = afterCase[i]
+        if escaped {
+            switch ch {
+            case "\"": result.append("\"")
+            case "\\": result.append("\\")
+            case "n": result.append("\n")
+            case "r": result.append("\r")
+            case "t": result.append("\t")
+            default: result.append(ch)
+            }
+            escaped = false
+        } else if ch == "\\" {
+            escaped = true
+        } else if ch == "\"" {
+            break
+        } else {
+            result.append(ch)
+        }
+        i = afterCase.index(after: i)
     }
     return result.isEmpty ? nil : result
 }
@@ -637,4 +675,39 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     }
     let expected = OpenAPIGeneratorFileErrorMessages.noConfigFileFound(targetName: "DemoAPI")
     #expect(caught == expected)
+}
+
+@Test func mockJSONStopsOnComponentsSchemaRefCycle() throws {
+    guard let url = fixtureURL(name: "openapi-ref-cycle", extension: "yaml") else {
+        Issue.record("openapi-ref-cycle.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let transportJSON = try #require(transportMockBodyJSONString(operationId: "getNode", in: transport))
+    try assertJSONDecoderAcceptsMockBody(transportJSON)
+    let rootObj = try #require(JSONSerialization.jsonObject(with: Data(transportJSON.utf8)) as? [String: Any])
+    let level1 = try #require(rootObj["self"] as? [String: Any])
+    let level2 = try #require(level1["self"] as? [String: Any])
+    #expect(level2.isEmpty)
+    #expect(level2["self"] == nil)
+
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "getNode", in: spec))
+    #expect(specJSON == transportJSON)
+    try assertJSONDecoderAcceptsMockBody(specJSON)
+}
+
+@Test func mockJSONMergesAllOfObjectProperties() throws {
+    guard let url = fixtureURL(name: "openapi-allof-merge", extension: "yaml") else {
+        Issue.record("openapi-allof-merge.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let json = try #require(transportMockBodyJSONString(operationId: "getMerged", in: transport))
+    try assertJSONDecoderAcceptsMockBody(json)
+    let decoded = try JSONDecoder().decode(AllOfMergePayload.self, from: Data(json.utf8))
+    #expect(decoded.a == "")
+    #expect(decoded.b == 0)
 }

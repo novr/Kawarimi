@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: allOf merge fixture
+  version: '1'
+paths:
+  /merged:
+    get:
+      operationId: getMerged
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    properties:
+                      a:
+                        type: string
+                  - type: object
+                    properties:
+                      b:
+                        type: integer
