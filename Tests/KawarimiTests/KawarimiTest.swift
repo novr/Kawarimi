@@ -114,6 +114,64 @@ import Testing
     #expect(handlerGenerated.contains("deleteItem"))
 }
 
+@Test func cliWarnsWhenKawarimiGeneratorConfigYamlIsInvalid() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-invalid-kw-cfg-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let openAPIPath = tmp.appendingPathComponent("openapi.yaml").path
+    try """
+    openapi: 3.0.3
+    info:
+      title: T
+      version: '1'
+    paths:
+      /x:
+        get:
+          operationId: getX
+          responses:
+            '200':
+              description: ok
+              content:
+                application/json:
+                  schema:
+                    type: object
+    """.write(toFile: openAPIPath, atomically: true, encoding: .utf8)
+    try """
+    generate:
+      - types
+      - client
+    namingStrategy: defensive
+    accessModifier: public
+    """.write(toFile: tmp.appendingPathComponent("openapi-generator-config.yaml").path, atomically: true, encoding: .utf8)
+    try "{ not: [ valid yaml".write(toFile: tmp.appendingPathComponent("kawarimi-generator-config.yaml").path, atomically: true, encoding: .utf8)
+
+    let packageRoot = resolvePackageRoot()
+    let outputDirURL = tmp.appendingPathComponent("out")
+    try FileManager.default.createDirectory(at: outputDirURL, withIntermediateDirectories: true)
+    let outputDirPath = outputDirURL.path
+
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    let process = Process()
+    process.executableURL = kawarimiURL
+    process.arguments = [openAPIPath, outputDirPath]
+    process.currentDirectoryURL = packageRoot
+    let stderrPipe = Pipe()
+    process.standardError = stderrPipe
+    try process.run()
+    process.waitUntilExit()
+    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
+
+    #expect(process.terminationStatus == 0, "stderr: \(stderrStr)")
+    #expect(stderrStr.contains("Kawarimi warning: invalid kawarimi-generator-config YAML"))
+    #expect(stderrStr.contains("kawarimi-generator-config.yaml"))
+    #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
+}
+
 private func resolvePackageRoot() -> URL {
     var root = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
