@@ -10,8 +10,33 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'Sources/**'
+              - 'Tests/**'
+              - 'Package.swift'
+              - 'Package.resolved'
+              - 'Example/**'
+              - 'Scripts/**'
+              - '.github/**'
+
   kawarimi:
     name: Swift Test (Kawarimi)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -22,6 +47,8 @@ jobs:
 
   demo-package:
     name: Swift Test (Example/DemoPackage)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-26
     steps:
       - name: Checkout
@@ -33,6 +60,8 @@ jobs:
 
   kawarimi-perf:
     name: Kawarimi perf
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-26
     env:
       KAWARIMI_PERF: "1"
@@ -74,7 +103,28 @@ jobs:
   swift-test:
     name: Swift Test
     runs-on: ubuntu-latest
-    needs: [kawarimi, demo-package, kawarimi-perf]
+    needs: [changes, kawarimi, demo-package, kawarimi-perf]
+    if: always()
     steps:
-      - name: All checks passed
-        run: echo "OK"
+      - name: Gate
+        env:
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
+          KAWARIMI: ${{ needs.kawarimi.result }}
+          DEMO: ${{ needs.demo-package.result }}
+          PERF: ${{ needs.kawarimi-perf.result }}
+        run: |
+          set -euo pipefail
+          if [ "$CHANGES_RESULT" != "success" ]; then
+            echo "changes job failed; refusing to green-light (CHANGES_RESULT=$CHANGES_RESULT)"
+            exit 1
+          fi
+          if [ "$CODE" != "true" ]; then
+            echo "No code-related paths in this PR; skipping Swift test jobs. Required check still passes."
+            exit 0
+          fi
+          if [ "$KAWARIMI" != "success" ] || [ "$DEMO" != "success" ] || [ "$PERF" != "success" ]; then
+            echo "Expected macOS jobs to succeed; got KAWARIMI=$KAWARIMI DEMO=$DEMO PERF=$PERF"
+            exit 1
+          fi
+          echo "OK"
