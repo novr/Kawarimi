@@ -72,6 +72,7 @@ public enum KawarimiJutsu {
             return exampleJSON
         }
         guard let schemaEither = content.schema else { return "{}" }
+        var refChain = Set<OpenAPI.ComponentKey>()
         switch schemaEither {
         case .a(let ref):
             guard let name = ref.name,
@@ -79,27 +80,42 @@ public enum KawarimiJutsu {
                   let schema = components.schemas[key] else {
                 return "{}"
             }
-            return defaultJSONForSchema(schema, components: components)
+            return defaultJSONForSchema(schema, components: components, refChain: &refChain)
         case .b(let schema):
-            return defaultJSONForSchema(schema, components: components)
+            return defaultJSONForSchema(schema, components: components, refChain: &refChain)
         }
-    }
-
-    private static func resolveSchema(_ schema: JSONSchema, components: OpenAPI.Components) -> JSONSchema? {
-        guard case .reference(let ref, _) = schema.value,
-              let name = ref.name,
-              let key = OpenAPI.ComponentKey(rawValue: name) else {
-            return schema
-        }
-        return components.schemas[key]
     }
 
     private static func schemaPrimaryExample(_ schema: JSONSchema) -> AnyCodable? {
         schema.examples.first
     }
 
-    private static func defaultJSONForSchema(_ schema: JSONSchema, components: OpenAPI.Components) -> String {
-        let resolved = resolveSchema(schema, components: components) ?? schema
+    private static func defaultJSONForSchema(
+        _ schema: JSONSchema,
+        components: OpenAPI.Components,
+        refChain: inout Set<OpenAPI.ComponentKey>
+    ) -> String {
+        if case .reference(let ref, _) = schema.value,
+           let name = ref.name,
+           let key = OpenAPI.ComponentKey(rawValue: name)
+        {
+            if refChain.contains(key) { return "{}" }
+            guard let inner = components.schemas[key] else {
+                return defaultJSONForSchemaCore(schema, components: components, refChain: &refChain)
+            }
+            refChain.insert(key)
+            defer { refChain.remove(key) }
+            return defaultJSONForSchema(inner, components: components, refChain: &refChain)
+        }
+        return defaultJSONForSchemaCore(schema, components: components, refChain: &refChain)
+    }
+
+    private static func defaultJSONForSchemaCore(
+        _ schema: JSONSchema,
+        components: OpenAPI.Components,
+        refChain: inout Set<OpenAPI.ComponentKey>
+    ) -> String {
+        let resolved = schema
 
         if let exampleJSON = exampleToJSONString(schemaPrimaryExample(resolved)) {
             return exampleJSON
@@ -110,7 +126,7 @@ public enum KawarimiJutsu {
 
         if let objectContext = resolved.objectContext {
             let pairs = objectContext.properties.map { name, propSchema -> String in
-                let value = defaultJSONForSchema(propSchema, components: components)
+                let value = defaultJSONForSchema(propSchema, components: components, refChain: &refChain)
                 return "\"\(name)\": \(value)"
             }
             return "{\(pairs.joined(separator: ", "))}"
@@ -120,24 +136,23 @@ public enum KawarimiJutsu {
             guard let itemsSchema = arrayContext.items else {
                 return "[]"
             }
-            let resolvedItem = resolveSchema(itemsSchema, components: components) ?? itemsSchema
-            let itemJSON = defaultJSONForSchema(resolvedItem, components: components)
+            let itemJSON = defaultJSONForSchema(itemsSchema, components: components, refChain: &refChain)
             return "[\(itemJSON)]"
         }
 
         switch resolved.value {
         case .one(of: let schemas, core: _), .any(of: let schemas, core: _):
             for sub in schemas {
-                let j = defaultJSONForSchema(sub, components: components)
+                let j = defaultJSONForSchema(sub, components: components, refChain: &refChain)
                 if !isVacuousJSONMock(j) { return j }
             }
             if let first = schemas.first {
-                return defaultJSONForSchema(first, components: components)
+                return defaultJSONForSchema(first, components: components, refChain: &refChain)
             }
             return "{}"
         case .all(of: let schemas, core: _):
             if let first = schemas.first {
-                return defaultJSONForSchema(first, components: components)
+                return defaultJSONForSchema(first, components: components, refChain: &refChain)
             }
             return "{}"
         case .not:
@@ -442,12 +457,14 @@ public enum KawarimiJutsu {
         let schemaHint = schemaDiagnosticHint(content: content, components: components)
         let path =
             "\(operationContext)OpenAPI JSON path: paths · … · responses.\(httpStatus).content['application/json'].schema\(schemaHint.map { " → \($0)" } ?? "")"
+        var refChain = Set<OpenAPI.ComponentKey>()
         return try swiftInitializerForSchema(
             schema,
             components: components,
             operationId: operationId,
             diagnosticPath: path,
-            handlerStubWarnings: &handlerStubWarnings
+            handlerStubWarnings: &handlerStubWarnings,
+            refChain: &refChain
         )
     }
 
@@ -758,9 +775,35 @@ public enum KawarimiJutsu {
         components: OpenAPI.Components,
         operationId: String,
         diagnosticPath: String,
-        handlerStubWarnings: inout [String]
+        handlerStubWarnings: inout [String],
+        refChain: inout Set<OpenAPI.ComponentKey>
     ) throws -> String {
-        let resolved = resolveSchema(schema, components: components) ?? schema
+        if case .reference(let ref, _) = schema.value,
+           let name = ref.name,
+           let key = OpenAPI.ComponentKey(rawValue: name)
+        {
+            if refChain.contains(key) {
+                throw KawarimiJutsuError.handlerGenerationUnsupported(
+                    operationId: operationId,
+                    detail:
+                        "\(diagnosticPath) Circular JSON Schema $ref to components.schemas.\(name)."
+                )
+            }
+            if let inner = components.schemas[key] {
+                refChain.insert(key)
+                defer { refChain.remove(key) }
+                return try swiftInitializerForSchema(
+                    inner,
+                    components: components,
+                    operationId: operationId,
+                    diagnosticPath: diagnosticPath,
+                    handlerStubWarnings: &handlerStubWarnings,
+                    refChain: &refChain
+                )
+            }
+        }
+
+        let resolved = schema
 
         switch resolved.value {
         case .all, .one, .any, .not:
@@ -789,7 +832,8 @@ public enum KawarimiJutsu {
                     components: components,
                     operationId: operationId,
                     diagnosticPath: childPath,
-                    handlerStubWarnings: &handlerStubWarnings
+                    handlerStubWarnings: &handlerStubWarnings,
+                    refChain: &refChain
                 )
                 return "\(name): \(valueExpr)"
             }
@@ -800,11 +844,12 @@ public enum KawarimiJutsu {
             guard let itemsSchema = arrayContext.items else { return "[]" }
             let itemPath = "\(diagnosticPath) · items"
             let itemExpr = try swiftInitializerForSchema(
-                resolveSchema(itemsSchema, components: components) ?? itemsSchema,
+                itemsSchema,
                 components: components,
                 operationId: operationId,
                 diagnosticPath: itemPath,
-                handlerStubWarnings: &handlerStubWarnings
+                handlerStubWarnings: &handlerStubWarnings,
+                refChain: &refChain
             )
             return "[\(itemExpr)]"
         }

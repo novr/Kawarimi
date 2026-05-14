@@ -638,3 +638,18 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     let expected = OpenAPIGeneratorFileErrorMessages.noConfigFileFound(targetName: "DemoAPI")
     #expect(caught == expected)
 }
+
+@Test func mockJSONStopsOnComponentsSchemaRefCycle() throws {
+    guard let url = fixtureURL(name: "openapi-ref-cycle", extension: "yaml") else {
+        Issue.record("openapi-ref-cycle.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    #expect(transport.contains("case \"getNode\""))
+    #expect(transport.contains("\\\"self\\\": {\\\"self\\\": {}}"))
+    #expect(!transport.contains("\\\"self\\\": {\\\"self\\\": {\\\"self\""))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(spec.contains("getNode"))
+    #expect(spec.contains("\\\"self\\\": {\\\"self\\\": {}}"))
+}
