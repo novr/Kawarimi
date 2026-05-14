@@ -653,3 +653,15 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(spec.contains("getNode"))
     #expect(spec.contains("\\\"self\\\": {\\\"self\\\": {}}"))
 }
+
+@Test func mockJSONMergesAllOfObjectProperties() throws {
+    guard let url = fixtureURL(name: "openapi-allof-merge", extension: "yaml") else {
+        Issue.record("openapi-allof-merge.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    #expect(transport.contains("case \"getMerged\""))
+    #expect(transport.contains("\\\"a\\\":\\\"\\\""))
+    #expect(transport.contains("\\\"b\\\":0"))
+}

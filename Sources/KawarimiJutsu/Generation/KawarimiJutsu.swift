@@ -151,6 +151,23 @@ public enum KawarimiJutsu {
             }
             return "{}"
         case .all(of: let schemas, core: _):
+            var merged: [String: Any] = [:]
+            for sub in schemas {
+                let j = defaultJSONForSchema(sub, components: components, refChain: &refChain)
+                guard let data = j.data(using: .utf8),
+                      let obj = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) as? [String: Any]
+                else { continue }
+                for (k, v) in obj {
+                    merged[k] = v
+                }
+            }
+            if !merged.isEmpty {
+                if let data = try? JSONSerialization.data(withJSONObject: merged, options: [.sortedKeys]),
+                   let s = String(data: data, encoding: .utf8)
+                {
+                    return s
+                }
+            }
             if let first = schemas.first {
                 return defaultJSONForSchema(first, components: components, refChain: &refChain)
             }
