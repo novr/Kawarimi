@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-05-14
+
+### Fixed
+
+- **KawarimiJutsu**: **`$ref`** cycles in **components** schemas are detected while resolving references for mock JSON and handler literal generation; cyclic refs yield **`{}`** for transport/spec mocks and **`handlerGenerationUnsupported`** for literal stubs ([#51](https://github.com/novr/Kawarimi/issues/51), [#58](https://github.com/novr/Kawarimi/pull/58)).
+- **KawarimiJutsu**: **`allOf`** object branches for schema-derived mock JSON — shallow-merge top-level object keys (later members override earlier); non-object branches ignored; empty merge falls back to the first subschema ([#50](https://github.com/novr/Kawarimi/issues/50), [#58](https://github.com/novr/Kawarimi/pull/58)).
+- **KawarimiGeneratorConfigFileYAML**: invalid **`kawarimi-generator-config`** YAML decode logs one **stderr** line (path and error) instead of failing silently, then continues without a **`handlerStubPolicy`** override ([#52](https://github.com/novr/Kawarimi/issues/52), [#58](https://github.com/novr/Kawarimi/pull/58)).
+
+### Changed
+
+- **Kawarimi CLI**: **`[kawarimi-perf]`** phased timings on **stderr** only when **`KAWARIMI_PERF=1`** ([#49](https://github.com/novr/Kawarimi/pull/49)). **`ci.yaml`** perf job and **`Scripts/performance/`** set the variable for measurement.
+
+### Added
+
+- **`AGENT.md`** — contributor and agent guidelines ([#59](https://github.com/novr/Kawarimi/pull/59)).
+- **CI**: **`ci.yaml`** — skip **macOS** **`swift test`** / **`kawarimi-perf-report`** when changes touch only paths outside code, tests, Example, Scripts, and workflow filters (documentation-only PRs) ([#60](https://github.com/novr/Kawarimi/pull/60)).
+
 ## [2.0.2] - 2026-05-12
 
 ### Added
@@ -186,6 +203,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.3]: https://github.com/novr/Kawarimi/releases/tag/v2.0.3
 [2.0.2]: https://github.com/novr/Kawarimi/releases/tag/v2.0.2
 [2.0.1]: https://github.com/novr/Kawarimi/releases/tag/v2.0.1
 [2.0.0]: https://github.com/novr/Kawarimi/releases/tag/v2.0.0

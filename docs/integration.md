@@ -24,6 +24,8 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 **1.1.x → 2.0.0:** Add **`openapi-generator-config.yaml`** or **`.yml`** next to the spec; ensure **exactly one** OpenAPI basename and **at most one** **`kawarimi-generator-config`** appear in the target’s **`sourceFiles`**. **`KawarimiJutsu.loadOpenAPISpec`** returns **`OpenAPIKit.OpenAPI.Document`**; remove **`KawarimiJutsuError.specFileInvalidEncoding`** handling; use **`try`** for **`handlerStubPolicyBesideOpenAPIYAML`**. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.0**.
 
+**2.0.2 → 2.0.3:** The **`Kawarimi`** CLI writes **`[kawarimi-perf]`** timings to stderr only when **`KAWARIMI_PERF=1`**. Malformed optional **`kawarimi-generator-config`** YAML logs one stderr warning instead of being ignored silently. Mock JSON synthesis handles components **`$ref`** cycles and shallow-merges **`allOf`** object branches — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.3**.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -37,7 +39,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.2"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.3"),
 ],
 targets: [
     .target(
