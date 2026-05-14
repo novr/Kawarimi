@@ -316,6 +316,10 @@ public enum KawarimiJutsu {
         return "Kawarimi warning: Summary: \(n) \(noun) use fatalError stubs: \(list)"
     }
 
+    private static func stderrWarningForSkippedCodegenMissingOperationId(httpMethod: String, routePath: String) -> String {
+        "[kawarimi] warning: operation \(httpMethod) \(routePath) has no operationId and will be skipped"
+    }
+
     private static func generateHandlerMethods(
         document: OpenAPI.Document,
         namingStrategy: KawarimiNamingStrategy,
@@ -331,7 +335,11 @@ public enum KawarimiJutsu {
             let routePath = route.path.rawValue
             for endpoint in route.pathItem.endpoints {
                 let operation = endpoint.operation
-                guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
+                guard let operationId = operation.operationId, !operationId.isEmpty else {
+                    let httpMethod = endpoint.method.rawValue.uppercased()
+                    warnings.append(stderrWarningForSkippedCodegenMissingOperationId(httpMethod: httpMethod, routePath: routePath))
+                    continue
+                }
                 let httpMethod = endpoint.method.rawValue
                 let opContext = openapiOperationContextLabel(routePath: routePath, httpMethod: httpMethod)
                 let typeName = try namingStrategy.swiftOperationTypeName(forOperationId: operationId)

@@ -99,6 +99,41 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     _ = try JSONDecoder().decode(AnyJSON.self, from: data)
 }
 
+@Test func generateKawarimiHandlerSourceEmitsMissingOperationIdSkipWarning() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-opid-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    paths:
+      /no-id:
+        get:
+          responses:
+            '200':
+              description: ok
+              content:
+                application/json:
+                  schema:
+                    type: object
+      /has-id:
+        post:
+          operationId: createThing
+          responses:
+            '201':
+              description: created
+              content:
+                application/json:
+                  schema:
+                    type: object
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let (_, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.first == "[kawarimi] warning: operation GET /no-id has no operationId and will be skipped")
+}
+
 @Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
