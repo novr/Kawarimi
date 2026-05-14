@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kawarimi CLI** / **KawarimiJutsu**: **`generateKawarimiHandlerSource` `warnings`** — one **`[kawarimi] warning:`** line per operation omitted from generated transport, handler, and spec (missing or empty **`operationId`**), emitted from the same **`generateHandlerMethods`** pass as handler stub warnings; CLI **`stderr`** unchanged ([#55](https://github.com/novr/Kawarimi/issues/55)).
+
 ## [2.0.3] - 2026-05-14
 
 ### Fixed
