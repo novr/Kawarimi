@@ -23,7 +23,10 @@ The string is chosen in this order:
 2. **JSON Schema on that media type** — `example`, then `default`.
 3. **Shape-based synthesis** — recurse through `object` / `array` properties (placeholder values for primitives when needed).
 4. **`oneOf` / `anyOf`** — first branch whose result is not an empty placeholder (`{}`, `""`, `0`, `false`, `[]`); if every branch is placeholder-like, the first branch is used.
-5. **`allOf`** — first subschema (heuristic when no explicit example).
+5. **`allOf`** — **not** full [JSON Schema `allOf`](https://json-schema.org/understanding-json-schema/reference/combining#allof) semantics (all subschemas satisfied on one instance). Kawarimi does a **shallow merge of object-shaped JSON only**:
+   - For each subschema, the same synthesis rules run; if the result parses as a **JSON object** (`{ ... }`), its **top-level keys** are merged into one object. **Later** subschemas in the `allOf` array **override** the same key from an earlier one.
+   - Subschemas whose synthesized JSON is **not** a top-level object (primitives, arrays, or branches that fail to parse as an object) **do not contribute keys** and are effectively **ignored** for merging.
+   - If no keys were merged (for example only non-object branches), Kawarimi **falls back** to the **first** subschema’s synthesized JSON (same as older behavior).
 6. **`enum` (`allowedValues`)** — first value, encoded as JSON.
 7. **Primitives** — string `""`, number `0`, etc.; unknown shapes fall back to `{}`.
 
