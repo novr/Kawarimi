@@ -28,6 +28,8 @@
 
 **2.0.3 → 2.0.4:** **`Kawarimi`** CLI（**`generateKawarimiHandlerSource` の `warnings`** 経由）が、**`operationId`** が無いまたは空の OpenAPI 操作ごとに **`[kawarimi] warning:`** を stderr に出す（生成される transport / handler / spec からは除外される）。詳しくは CHANGELOG の **2.0.4** を参照。
 
+**2.0.4 → 2.0.5:** 任意の **`kawarimi-generator-config.yaml`** で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 **`true`**）により CLI と **KawarimiPlugin** が個別の成果物をスキップできる（いずれか 1 つは **`true`** 必須）。**`SpecEndpointProviding`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに OpenAPI の任意 **`tags`**（無いとき **`nil`**）が付く。詳しくは CHANGELOG の **2.0.5** を参照。
+
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
@@ -41,7 +43,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.4"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.5"),
 ],
 targets: [
     .target(
@@ -73,7 +75,7 @@ targets: [
 
 Kawarimi が読むキーは **`namingStrategy`** と **`accessModifier`** です。
 
-**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）は **`kawarimi-generator-config.yaml`**（または `.yml`）に書きます（`openapi-generator-config` とは別。Kawarimi 専用キー）。**`kawarimi-generator-config` は高々 1 本**（CLI では仕様と同じディレクトリ、プラグインでは **`sourceFiles`** 上。2 本以上はエラー）。
+**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）に加え、任意で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 `true`、いずれか 1 つは `true` 必須）を **`kawarimi-generator-config.yaml`**（または `.yml`）に書けます（`openapi-generator-config` とは別。Kawarimi 専用キー）。**`kawarimi-generator-config` は高々 1 本**（CLI では仕様と同じディレクトリ、プラグインでは **`sourceFiles`** 上。2 本以上はエラー）。
 
 **KawarimiPlugin** は OpenAPI 仕様、**`openapi-generator-config`**、任意の **`kawarimi-generator-config`** を **`sourceFiles`** から解決します。**`Kawarimi`** CLI は仕様パスと同じディレクトリから **`openapi-generator-config`** と任意の **`kawarimi-generator-config`** を読みます（`openapi-generator-config` 系のエラー文面は swift-openapi-generator の **`FileError`** と同一。文言は **`Plugins/KawarimiPlugin/`** の **シンボリックリンク**で **KawarimiJutsu** と共有）。
 

@@ -28,6 +28,8 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 **2.0.3 → 2.0.4:** The **`Kawarimi`** CLI (via **`generateKawarimiHandlerSource` `warnings`**) prints **`[kawarimi] warning:`** lines for OpenAPI operations with missing or empty **`operationId`** (they are skipped from generated transport, handler, and spec) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.4**.
 
+**2.0.4 → 2.0.5:** Optional **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) let the CLI and **KawarimiPlugin** skip individual outputs; at least one must stay enabled. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** — generated endpoints now expose optional OpenAPI **`tags`** (`nil` when absent) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.5**.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -41,7 +43,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.4"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.5"),
 ],
 targets: [
     .target(
@@ -73,7 +75,7 @@ Add **exactly one** of **`openapi-generator-config.yaml`** or **`openapi-generat
 
 Kawarimi reads **`namingStrategy`** and **`accessModifier`** from that file.
 
-Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) in **`kawarimi-generator-config.yaml`** (or `.yml`). **At most one** of these files may exist next to the OpenAPI document (CLI) or among the target’s **`sourceFiles`** (plugin); two or more is an error.
+Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) and optionally **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (`true` by default; at least one must be `true`) in **`kawarimi-generator-config.yaml`** (or `.yml`). **At most one** of these files may exist next to the OpenAPI document (CLI) or among the target’s **`sourceFiles`** (plugin); two or more is an error.
 
 **KawarimiPlugin** resolves the OpenAPI document, **`openapi-generator-config`**, and optional **`kawarimi-generator-config`** from **SwiftPM’s `sourceFiles`** list. The **`Kawarimi`** CLI loads **`openapi-generator-config`** and optional **`kawarimi-generator-config`** from the same directory as the OpenAPI path you pass (labels in **swift-openapi-generator**–style messages use the parent directory name unless overridden).
 
