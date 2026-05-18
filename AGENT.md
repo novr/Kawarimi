@@ -11,6 +11,11 @@ OpenAPI からモック・Handler・Spec をビルド時生成する SwiftPM プ
 **`KawarimiHenge`** — ランタイム側（動的モック等）；コード生成パスと混同しない。
 - **スコープ外**: **実 API サーバの実装**や、本パッケージの成果物では満たせない **サーバ実装に閉じる要件**は本パッケージに含めない。Issue に残っていても、本リポジトリでの実装・保守対象外としてよい。
 
+## Keep it Simple & Quick
+
+Before implementing a large-scale change, always ask yourself: "Can we try something quicker/simpler?"
+Prioritize utilizing existing code and minimizing moving parts over creating new abstractions or adding heavy dependencies.
+
 ## 作業の進め方
 
 - **スコープ**: 依頼に必要な変更だけに限定する。無関係なリファクタや、明示されていないドキュメント追加を広げない。
