@@ -114,6 +114,13 @@ public actor KawarimiConfigStore {
         if result.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             result.exampleId = nil
         }
+        if let ms = result.delayMs {
+            if ms <= 0 {
+                result.delayMs = nil
+            } else if ms > 60_000 {
+                result.delayMs = 60_000
+            }
+        }
         return result
     }
 

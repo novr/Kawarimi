@@ -133,6 +133,20 @@ struct OverrideDetailColumnView: View {
         )
     }
 
+    private var delayMsBinding: Binding<String> {
+        Binding(
+            get: { mock.delayMs.map(String.init) ?? "" },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty {
+                    mock.delayMs = nil
+                } else if let ms = Int(trimmed), ms >= 0 {
+                    mock.delayMs = ms
+                }
+            }
+        )
+    }
+
     private var jsonLineCount: Int {
         let text = mock.body ?? ""
         if text.isEmpty { return 1 }
@@ -388,6 +402,24 @@ struct OverrideDetailColumnView: View {
                 .padding(.top, 2)
             }
             responseStatusChipStrip
+        }
+
+        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+            Text("RESPONSE DELAY")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+                .tracking(0.6)
+            Text("Optional delay in milliseconds before the mock response is returned. Leave empty for no delay.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(detailTightVertical ? 2 : nil)
+            TextField("ms", text: delayMsBinding)
+                .font(.body.monospacedDigit())
+                .textFieldStyle(.roundedBorder)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                #endif
+                .frame(maxWidth: 120)
         }
     }
 

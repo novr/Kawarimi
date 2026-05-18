@@ -611,6 +611,14 @@ public enum KawarimiJutsu {
         )]
     }
 
+    private struct SpecParameterEntry {
+        var name: String
+        var location: SpecParameterLocation
+        var required: Bool
+        var description: String?
+        var schemaType: String?
+    }
+
     public static func generateKawarimiSpecSource(document: OpenAPI.Document) -> String {
         let info = document.info
         let title = info.title
@@ -627,6 +635,8 @@ public enum KawarimiJutsu {
             var method: String
             var fullPath: String
             var operationId: String
+            var tags: [String]
+            var parameters: [SpecParameterEntry]
             var responses: [SpecResponseRow]
         }
 
@@ -669,10 +679,19 @@ public enum KawarimiJutsu {
                     }
                 }
 
+                let tags = operation.tags ?? []
+                let parameters = mergedSpecParameters(
+                    pathItemParameters: route.pathItem.parameters,
+                    operationParameters: operation.parameters,
+                    components: components
+                )
+
                 endpointEntries.append(EndpointEntry(
                     method: method,
                     fullPath: fullPath,
                     operationId: operationId,
+                    tags: tags,
+                    parameters: parameters,
                     responses: responseRows
                 ))
             }
@@ -697,11 +716,39 @@ public enum KawarimiJutsu {
                         ),
 """
             }.joined(separator: "\n")
+            let tagsLiteral: String
+            if entry.tags.isEmpty {
+                tagsLiteral = "[]"
+            } else {
+                let tagStrings = entry.tags.map { "\"\(escapeForSwiftStringLiteral($0))\"" }.joined(separator: ", ")
+                tagsLiteral = "[\(tagStrings)]"
+            }
+            let parametersBlock: String
+            if entry.parameters.isEmpty {
+                parametersBlock = "[]"
+            } else {
+                let parameterLines = entry.parameters.map { param in
+                    let descVal = param.description.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+                    let schemaVal = param.schemaType.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+                    return """
+                            Parameter(
+                                name: "\(escapeForSwiftStringLiteral(param.name))",
+                                location: .\(param.location),
+                                required: \(param.required),
+                                description: \(descVal),
+                                schemaType: \(schemaVal)
+                            )
+                    """
+                }.joined(separator: ",\n")
+                parametersBlock = "[\n\(parameterLines)\n                        ]"
+            }
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
                         method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
+                        tags: \(tagsLiteral),
+                        parameters: \(parametersBlock),
                         responses: [
             \(responsesBlock)
                         ]
@@ -740,10 +787,19 @@ public enum KawarimiJutsu {
                     public var serverURL: String
                     public var apiPathPrefix: String
                 }
+                public struct Parameter: Codable, Sendable {
+                    public var name: String
+                    public var location: SpecParameterLocation
+                    public var required: Bool
+                    public var description: String?
+                    public var schemaType: String?
+                }
                 public struct Endpoint: Codable, Sendable {
                     public var path: String
                     public var method: HTTPRequest.Method
                     public var operationId: String
+                    public var tags: [String]
+                    public var parameters: [Parameter]
                     public var responses: [MockResponse]
                 }
                 public struct MockResponse: Codable, Sendable {
@@ -774,6 +830,7 @@ public enum KawarimiJutsu {
 
             extension KawarimiSpec.Meta: SpecMetaProviding {}
             extension KawarimiSpec.MockResponse: SpecMockResponseProviding {}
+            extension KawarimiSpec.Parameter: SpecParameterProviding {}
             extension KawarimiSpec.Endpoint: SpecEndpointProviding {
                 public var responseList: [any SpecMockResponseProviding] { responses }
             }
@@ -793,6 +850,97 @@ public enum KawarimiJutsu {
 
     private static func responseBodyJSON(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
         mockJSONBodyFromJSONMediaType(content: content, components: components)
+    }
+
+    private static func mergedSpecParameters(
+        pathItemParameters: OpenAPI.Parameter.Array,
+        operationParameters: OpenAPI.Parameter.Array,
+        components: OpenAPI.Components
+    ) -> [SpecParameterEntry] {
+        var byKey: [String: SpecParameterEntry] = [:]
+        for params in [pathItemParameters, operationParameters] {
+            for either in params {
+                guard let param = components[either] else { continue }
+                guard let location = specParameterLocation(for: param.context) else { continue }
+                var refChain = Set<OpenAPI.ComponentKey>()
+                let schemaType = schemaPrimaryTypeString(
+                    from: param.schemaOrContent,
+                    components: components,
+                    refChain: &refChain
+                )
+                let key = "\(location.rawValue):\(param.name)"
+                byKey[key] = SpecParameterEntry(
+                    name: param.name,
+                    location: location,
+                    required: param.required,
+                    description: param.description,
+                    schemaType: schemaType
+                )
+            }
+        }
+        return byKey.values.sorted {
+            if $0.location != $1.location { return $0.location.rawValue < $1.location.rawValue }
+            return $0.name < $1.name
+        }
+    }
+
+    private static func specParameterLocation(for context: OpenAPI.Parameter.Context) -> SpecParameterLocation? {
+        switch context {
+        case .path: return .path
+        case .query: return .query
+        case .header: return .header
+        case .cookie: return nil
+        }
+    }
+
+    private static func schemaPrimaryTypeString(
+        from schemaOrContent: Either<OpenAPI.Parameter.SchemaContext, OpenAPI.Content.Map>,
+        components: OpenAPI.Components,
+        refChain: inout Set<OpenAPI.ComponentKey>
+    ) -> String? {
+        switch schemaOrContent {
+        case .a(let schemaContext):
+            switch schemaContext.schema {
+            case .a(let ref):
+                guard let name = ref.name,
+                      let key = OpenAPI.ComponentKey(rawValue: name),
+                      let schema = components.schemas[key] else { return nil }
+                if refChain.contains(key) { return nil }
+                refChain.insert(key)
+                defer { refChain.remove(key) }
+                return schemaPrimaryTypeString(schema, components: components, refChain: &refChain)
+            case .b(let schema):
+                return schemaPrimaryTypeString(schema, components: components, refChain: &refChain)
+            }
+        case .b:
+            return nil
+        }
+    }
+
+    private static func schemaPrimaryTypeString(
+        _ schema: JSONSchema,
+        components: OpenAPI.Components,
+        refChain: inout Set<OpenAPI.ComponentKey>
+    ) -> String? {
+        if case .reference(let ref, _) = schema.value,
+           let name = ref.name,
+           let key = OpenAPI.ComponentKey(rawValue: name),
+           let resolved = components.schemas[key]
+        {
+            if refChain.contains(key) { return nil }
+            refChain.insert(key)
+            defer { refChain.remove(key) }
+            return schemaPrimaryTypeString(resolved, components: components, refChain: &refChain)
+        }
+        switch schema.value {
+        case .string: return "string"
+        case .integer: return "integer"
+        case .number: return "number"
+        case .boolean: return "boolean"
+        case .array: return "array"
+        case .object: return "object"
+        default: return nil
+        }
     }
 
     private static func swiftInitializerForSchema(

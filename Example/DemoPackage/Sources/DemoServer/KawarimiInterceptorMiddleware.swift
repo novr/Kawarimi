@@ -53,6 +53,10 @@ struct KawarimiInterceptorMiddleware: AsyncMiddleware {
             contentType = override.contentType ?? "application/json"
         }
 
+        if let ms = override.delayMs, ms > 0 {
+            try await Task.sleep(for: .milliseconds(ms))
+        }
+
         var headers = HTTPHeaders()
         headers.replaceOrAdd(name: .contentType, value: contentType)
         return Response(

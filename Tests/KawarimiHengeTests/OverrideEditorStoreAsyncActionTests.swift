@@ -17,6 +17,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var path: String
     var method: HTTPRequest.Method
     var operationId: String
+    var tags: [String] = []
+    var parameters: [any SpecParameterProviding] = []
     var responseList: [any SpecMockResponseProviding]
 }
 
