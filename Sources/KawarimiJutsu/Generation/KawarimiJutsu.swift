@@ -627,6 +627,7 @@ public enum KawarimiJutsu {
             var method: String
             var fullPath: String
             var operationId: String
+            var tags: [String]
             var responses: [SpecResponseRow]
         }
 
@@ -669,10 +670,13 @@ public enum KawarimiJutsu {
                     }
                 }
 
+                let tags = operation.tags ?? []
+
                 endpointEntries.append(EndpointEntry(
                     method: method,
                     fullPath: fullPath,
                     operationId: operationId,
+                    tags: tags,
                     responses: responseRows
                 ))
             }
@@ -697,11 +701,19 @@ public enum KawarimiJutsu {
                         ),
 """
             }.joined(separator: "\n")
+            let tagsLiteral: String
+            if entry.tags.isEmpty {
+                tagsLiteral = "nil"
+            } else {
+                let tagStrings = entry.tags.map { "\"\(escapeForSwiftStringLiteral($0))\"" }.joined(separator: ", ")
+                tagsLiteral = "[\(tagStrings)]"
+            }
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
                         method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
+                        tags: \(tagsLiteral),
                         responses: [
             \(responsesBlock)
                         ]
@@ -744,6 +756,7 @@ public enum KawarimiJutsu {
                     public var path: String
                     public var method: HTTPRequest.Method
                     public var operationId: String
+                    public var tags: [String]?
                     public var responses: [MockResponse]
                 }
                 public struct MockResponse: Codable, Sendable {
