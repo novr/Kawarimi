@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **KawarimiJutsu** / **KawarimiPlugin**: **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) for selective codegen ([#54](https://github.com/novr/Kawarimi/issues/54)).
+- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **`tags`** on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56)). Omitted when the operation has no tags (`nil`, not `[]`). Request **parameters**: [#74](https://github.com/novr/Kawarimi/issues/74).
 
 ## [2.0.4] - 2026-05-14
 

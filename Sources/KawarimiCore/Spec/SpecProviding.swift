@@ -22,6 +22,8 @@ public protocol SpecEndpointProviding: Identifiable, Sendable {
     var path: String { get }
     var method: HTTPRequest.Method { get }
     var operationId: String { get }
+    /// OpenAPI operation `tags` when present; `nil` when the operation has no tags.
+    var tags: [String]? { get }
     var responseList: [any SpecMockResponseProviding] { get }
 }
 
@@ -38,4 +40,5 @@ extension SpecMockResponseProviding {
 
 extension SpecEndpointProviding {
     public var id: String { operationId }
+    public var tags: [String]? { nil }
 }
