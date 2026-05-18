@@ -5,6 +5,7 @@ English guides for integrating and operating Kawarimi.
 | Document | Contents |
 |----------|----------|
 | [CHANGELOG.md](../CHANGELOG.md) | Release notes and migration (SemVer) |
+| [Roadmap.md](../Roadmap.md) | Project goals (future direction); backlog on GitHub Issues, releases in CHANGELOG |
 | [integration.md](integration.md) | SwiftPM setup, OpenAPI layout, generator configs, tests |
 | [henge.md](henge.md) | Runtime mock (Henge), `__kawarimi` HTTP API, Vapor wiring, `kawarimi.json` |
 | [mock-json.md](mock-json.md) | Mock JSON for `KawarimiSpec` / `Kawarimi` transport; default `KawarimiHandler` stubs (including JSON decode fallback) |
