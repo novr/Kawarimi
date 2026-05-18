@@ -11,13 +11,13 @@ enum OverrideListQueries {
         pathPrefix: String,
         operationId: String?
     ) -> Bool {
-        guard ov.method == rowKey.method else { return false }
-        let na = ov.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let op = operationId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !na.isEmpty, !op.isEmpty, na == op { return true }
-        let pa = KawarimiPath.aligned(path: ov.path, pathPrefix: pathPrefix)
-        let pb = KawarimiPath.aligned(path: rowKey.path, pathPrefix: pathPrefix)
-        return pa == pb
+        MockOverrideRequestMatching.overrideMatchesOperation(
+            ov,
+            method: rowKey.method,
+            operationPath: rowKey.path,
+            operationID: operationId,
+            pathPrefix: pathPrefix
+        )
     }
 
     /// Enabled overrides for this path + method, ordered like the interceptor tie-break (first wins).

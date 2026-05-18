@@ -35,6 +35,7 @@
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
 - **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec` は **OpenAPIKit** の **`OpenAPI.Document`**、OpenAPI **3.0.x / 3.1.x / 3.2.0** を **swift-openapi-generator** の **YamsParser** と同様に読み込み、`OpenAPISpecDocumentURL`、YAML 設定ローダーなど）。**OpenAPIKit** / **OpenAPIKit30** / **OpenAPIKitCompat** 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
 - **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。**エクスプローラの状態**（スナップショット・ドラフト・起動・`isDirty` と未保存）: [henge.md](henge.md#henge-explorer-state)。ライフサイクル／一覧 `.id`: [henge.md](henge.md#henge-ui-data-flow)。
+- **KawarimiServer** — OpenAPI サーバ向け動的モック（`registerHandlers(middlewares:)` の **`KawarimiServerMiddleware`**）。**swift-openapi-runtime** に依存。詳細は [henge.md](henge.md)。
 
 **KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
 
@@ -61,7 +62,7 @@ targets: [
 ]
 ```
 
-ダイナミックモック用 SwiftUIには **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore** を追加（[henge.md](henge.md)）。
+ダイナミックモック用 SwiftUIには **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。
 
 ## 2. OpenAPI の置き場所
 

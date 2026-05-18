@@ -177,7 +177,7 @@ struct EndpointRowView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.orange)
-                        .help("Multiple enabled mocks exist for this operation; interceptor uses the first after server ordering.")
+                        .help("Multiple enabled mocks exist for this operation; server uses the first after server ordering.")
                         .accessibilityLabel("Warning: multiple enabled mocks for this operation")
                 }
                 if hasUnsavedDraft {

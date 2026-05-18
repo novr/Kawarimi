@@ -7,9 +7,14 @@ OpenAPI からモック・Handler・Spec をビルド時生成する SwiftPM プ
 - **生成の分担**: 利用者ターゲットの **OpenAPI 文書**と **openapi-generator-config** は swift-openapi-generator と共有する。本パッケージは **Kawarimi（`ClientTransport` モック）・`KawarimiHandler`・`KawarimiSpec`** の生成に責務を限定し、Types / Client / Server の生成ロジックを抱えない。
 - **ターゲットの役割**:
 **`KawarimiCore`** — 共有モデル・ファイル I/O 等の土台。
-**`KawarimiJutsu`** — OpenAPI の解釈と上記生成物の Swift ソース生成。**`Kawarimi`** — CLI（プラグインがビルド時に起動する実行体を含む）。**`KawarimiPlugin`** — SwiftPM Build Tool Plugin（CLI 実行と入出力パスを境界とする）。
-**`KawarimiHenge`** — ランタイム側（動的モック等）；コード生成パスと混同しない。
-- **スコープ外**: **実 API サーバの実装**や、本パッケージの成果物では満たせない **サーバ実装に閉じる要件**は本パッケージに含めない。Issue に残っていても、本リポジトリでの実装・保守対象外としてよい。
+**`KawarimiJutsu`** — OpenAPI の解釈と上記生成物の Swift ソース生成。
+**`Kawarimi`** — CLI（プラグインがビルド時に起動する実行体を含む）。
+**`KawarimiPlugin`** — SwiftPM Build Tool Plugin（CLI 実行と入出力パスを境界とする）。
+**`KawarimiHenge`** — ランタイム側（動的モック UI 等）；コード生成パスと混同しない。
+**`KawarimiServer`** — OpenAPI サーバ向け動的モック。
+
+- **スコープ外**:
+**実 API サーバの実装**や、本パッケージの成果物では満たせない **サーバ実装に閉じる要件**は本パッケージに含めない。Issue に残っていても、本リポジトリでの実装・保守対象外としてよい。
 
 ## Keep it Simple & Quick
 

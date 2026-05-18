@@ -8,6 +8,7 @@ var products: [Product] = [
     .executable(name: "Kawarimi", targets: ["Kawarimi"]),
     .library(name: "KawarimiCore", targets: ["KawarimiCore"]),
     .library(name: "KawarimiJutsu", targets: ["KawarimiJutsu"]),
+    .library(name: "KawarimiServer", targets: ["KawarimiServer"]),
     .plugin(
         name: "KawarimiPlugin",
         targets: ["KawarimiPlugin"]
@@ -41,10 +42,27 @@ var targets: [Target] = [
         capability: .buildTool(),
         dependencies: ["Kawarimi"]
     ),
+    .target(
+        name: "KawarimiServer",
+        dependencies: [
+            "KawarimiCore",
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        ]
+    ),
     .testTarget(
         name: "KawarimiCoreTests",
         dependencies: ["KawarimiCore", "KawarimiJutsu"],
         resources: [.copy("Fixtures")]
+    ),
+    .testTarget(
+        name: "KawarimiServerTests",
+        dependencies: [
+            "KawarimiServer",
+            "KawarimiCore",
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        ]
     ),
     .testTarget(
         name: "KawarimiTests",
@@ -85,6 +103,7 @@ let package = Package(
         .package(url: "https://github.com/jpsim/Yams.git", from: "6.2.1"),
         .package(url: "https://github.com/mattpolzin/OpenAPIKit.git", from: "3.9.0"),
         .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     ],
     targets: targets
 )

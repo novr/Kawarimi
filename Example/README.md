@@ -19,9 +19,9 @@ This document is the **reference for this repository’s sample layout**, run co
 
 Wiring: [`DemoPackage/Package.swift`](DemoPackage/Package.swift) (`DemoServer` target).
 
-Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift), [`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift).
+Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
 
-**`KawarimiInterceptorMiddleware` is not a KawarimiCore product**—copy or adapt it for your own Vapor app.
+Dynamic mocks use **`KawarimiServerMiddleware`** from the **KawarimiServer** product (`registerHandlers(middlewares:)`). See [Henge](../docs/henge.md).
 
 ## Security (sample only)
 
@@ -110,7 +110,7 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so the Example interceptor picks the matching enabled override among several for the same route.
+When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so **`KawarimiServerMiddleware`** picks the matching enabled override among several for the same route.
 
 See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
 

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiServer**: **`KawarimiServerMiddleware`** (`ServerMiddleware`) for Henge runtime overrides on `registerHandlers(middlewares:)` ([#75](https://github.com/novr/Kawarimi/issues/75)).
+- **KawarimiCore**: **`MockOverrideRequestMatching`**, **`KawarimiDynamicMockResponseResolver`**, **`KawarimiRequestPath`** — shared override selection and response resolution for server middleware and Henge.
+
+### Changed
+
+- **Example `DemoServer`**: dynamic mocks via **`KawarimiServerMiddleware`** instead of Vapor-global **`KawarimiInterceptorMiddleware`** (removed).
+
 ## [2.0.5] - 2026-05-18
 
 ### Added
