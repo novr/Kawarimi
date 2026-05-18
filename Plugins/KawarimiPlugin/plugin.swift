@@ -15,7 +15,8 @@ struct KawarimiPlugin: BuildToolPlugin {
             targetName: swiftTarget.name
         )
 
-        let outputNames = ["Kawarimi.swift", "KawarimiHandler.swift", "KawarimiSpec.swift"]
+        let kawarimiFile = try PluginKawarimiGeneratorConfig.load(kawarimiConfigURL: kawarimiConfigURL)
+        let outputNames = kawarimiFile.outputFileNames
         let outputFiles = outputNames.map { outputDirURL.appendingPathComponent($0) }
         let arguments = [openAPIURL.path, outputDirURL.path]
 
@@ -90,6 +91,62 @@ private enum OpenAPIGeneratorStyleTargetFiles {
         }
         let kawarimiConfig: URL? = kawarimiConfigs.count == 1 ? kawarimiConfigs[0] : nil
         return (docs[0], configs[0], kawarimiConfig)
+    }
+}
+
+private struct PluginKawarimiGeneratorConfig {
+    var generateKawarimi: Bool
+    var generateHandler: Bool
+    var generateSpec: Bool
+
+    static let defaults = PluginKawarimiGeneratorConfig(
+        generateKawarimi: true,
+        generateHandler: true,
+        generateSpec: true
+    )
+
+    var outputFileNames: [String] {
+        var names: [String] = []
+        if generateKawarimi { names.append("Kawarimi.swift") }
+        if generateHandler { names.append("KawarimiHandler.swift") }
+        if generateSpec { names.append("KawarimiSpec.swift") }
+        return names
+    }
+
+    static func load(kawarimiConfigURL: URL?) throws -> PluginKawarimiGeneratorConfig {
+        guard let configURL = kawarimiConfigURL else { return .defaults }
+        guard let data = FileManager.default.contents(atPath: configURL.path),
+              let text = String(data: data, encoding: .utf8)
+        else {
+            return .defaults
+        }
+        let file = PluginKawarimiGeneratorConfig(
+            generateKawarimi: parseBoolFlag(in: text, key: "generateKawarimi") ?? true,
+            generateHandler: parseBoolFlag(in: text, key: "generateHandler") ?? true,
+            generateSpec: parseBoolFlag(in: text, key: "generateSpec") ?? true
+        )
+        guard file.generateKawarimi || file.generateHandler || file.generateSpec else {
+            throw KawarimiPluginError.fileErrors([
+                "kawarimi-generator-config at \(configURL.path): at least one of generateKawarimi, generateHandler, or generateSpec must be true",
+            ])
+        }
+        return file
+    }
+
+    private static func parseBoolFlag(in text: String, key: String) -> Bool? {
+        let prefix = key + ":"
+        for line in text.split(whereSeparator: \.isNewline) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            guard trimmed.hasPrefix(prefix) else { continue }
+            let value = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
+            switch value.lowercased() {
+            case "true", "yes", "on": return true
+            case "false", "no", "off": return false
+            default: return nil
+            }
+        }
+        return nil
     }
 }
 

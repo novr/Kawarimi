@@ -41,21 +41,45 @@ public struct KawarimiGeneratorConfigYAML: Equatable, Sendable {
     public var namingStrategy: KawarimiNamingStrategy
     public var accessModifier: KawarimiAccessModifier
     public var handlerStubPolicy: KawarimiHandlerStubPolicy
+    public var generateKawarimi: Bool
+    public var generateHandler: Bool
+    public var generateSpec: Bool
 
     public static let defaults = KawarimiGeneratorConfigYAML(
         namingStrategy: .defensive,
         accessModifier: .public,
-        handlerStubPolicy: .throw
+        handlerStubPolicy: .throw,
+        generateKawarimi: true,
+        generateHandler: true,
+        generateSpec: true
     )
 
     public init(
         namingStrategy: KawarimiNamingStrategy = Self.defaults.namingStrategy,
         accessModifier: KawarimiAccessModifier = Self.defaults.accessModifier,
-        handlerStubPolicy: KawarimiHandlerStubPolicy = Self.defaults.handlerStubPolicy
+        handlerStubPolicy: KawarimiHandlerStubPolicy = Self.defaults.handlerStubPolicy,
+        generateKawarimi: Bool = Self.defaults.generateKawarimi,
+        generateHandler: Bool = Self.defaults.generateHandler,
+        generateSpec: Bool = Self.defaults.generateSpec
     ) {
         self.namingStrategy = namingStrategy
         self.accessModifier = accessModifier
         self.handlerStubPolicy = handlerStubPolicy
+        self.generateKawarimi = generateKawarimi
+        self.generateHandler = generateHandler
+        self.generateSpec = generateSpec
+    }
+
+    public func applyingKawarimiGeneratorFile(_ file: KawarimiGeneratorConfigFile?) -> KawarimiGeneratorConfigYAML {
+        guard let file else { return self }
+        return KawarimiGeneratorConfigYAML(
+            namingStrategy: namingStrategy,
+            accessModifier: accessModifier,
+            handlerStubPolicy: handlerStubPolicy,
+            generateKawarimi: file.generateKawarimi,
+            generateHandler: file.generateHandler,
+            generateSpec: file.generateSpec
+        )
     }
 
     public static func loadBesideOpenAPIYAML(

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiJutsu** / **KawarimiPlugin**: **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) for selective codegen ([#54](https://github.com/novr/Kawarimi/issues/54)).
+
 ## [2.0.4] - 2026-05-14
 
 ### Added
