@@ -114,6 +114,56 @@ import Testing
     #expect(handlerGenerated.contains("deleteItem"))
 }
 
+@Test func cliHelpExitsZero() throws {
+    let packageRoot = resolvePackageRoot()
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    let process = Process()
+    process.executableURL = kawarimiURL
+    process.arguments = ["--help"]
+    let stdoutPipe = Pipe()
+    process.standardOutput = stdoutPipe
+    process.standardError = FileHandle.nullDevice
+    try process.run()
+    process.waitUntilExit()
+    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+    let stdoutStr = String(data: stdoutData, encoding: .utf8) ?? ""
+
+    #expect(process.terminationStatus == 0)
+    #expect(stdoutStr.contains("Usage:"))
+    #expect(stdoutStr.contains("--version"))
+}
+
+@Test func cliVersionPrintsVersionAndExitsZero() throws {
+    let packageRoot = resolvePackageRoot()
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    let process = Process()
+    process.executableURL = kawarimiURL
+    process.arguments = ["--version"]
+    let stdoutPipe = Pipe()
+    process.standardOutput = stdoutPipe
+    process.standardError = FileHandle.nullDevice
+    try process.run()
+    process.waitUntilExit()
+    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+    let stdoutStr = String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+    let versionURL = packageRoot
+        .appendingPathComponent("Sources/Kawarimi/Resources/VERSION")
+    let expectedVersion = try String(contentsOf: versionURL, encoding: .utf8)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
+    #expect(process.terminationStatus == 0)
+    #expect(stdoutStr == expectedVersion)
+}
+
 @Test func cliWarnsWhenKawarimiGeneratorConfigYamlIsInvalid() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-invalid-kw-cfg-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)

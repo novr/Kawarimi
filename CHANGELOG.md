@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** (reads bundled **`Sources/Kawarimi/Resources/VERSION`**) ([#57](https://github.com/novr/Kawarimi/issues/57)).
+
 ## [2.0.4] - 2026-05-14
 
 ### Added

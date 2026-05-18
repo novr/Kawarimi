@@ -22,14 +22,28 @@ private enum KawarimiPerfLog {
 @main
 struct Kawarimi {
     static func main() throws {
-        let args = CommandLine.arguments
-        guard args.count >= 3 else {
-            let prog = args.first ?? "Kawarimi"
+        let args = Array(CommandLine.arguments.dropFirst())
+        let prog = CommandLine.arguments.first ?? "Kawarimi"
+
+        for arg in args {
+            switch arg {
+            case "-h", "--help":
+                printHelp(programName: prog)
+                exit(0)
+            case "--version":
+                print(CLIVersion.string)
+                exit(0)
+            default:
+                break
+            }
+        }
+
+        guard args.count >= 2 else {
             fputs("Usage: \(prog) <openapi path> <output directory>\n", stderr)
             exit(1)
         }
-        let inputPath = args[1]
-        let outputDirPath = args[2]
+        let inputPath = args[0]
+        let outputDirPath = args[1]
 
         let clock = ContinuousClock()
         let runStarted = clock.now
@@ -95,6 +109,18 @@ struct Kawarimi {
         }
     }
 
+    private static func printHelp(programName: String) {
+        print(
+            """
+            Usage: \(programName) <openapi path> <output directory>
+
+            Options:
+              -h, --help       Show this help
+                  --version    Show version
+            """
+        )
+    }
+
     private static func resolveHandlerStubPolicy(openAPIPath: String, targetLabel: String) throws -> KawarimiHandlerStubPolicy {
         if let yaml = try KawarimiGeneratorConfigFileYAML.handlerStubPolicyBesideOpenAPIYAML(
             atPath: openAPIPath,
@@ -114,5 +140,4 @@ struct Kawarimi {
         }
         return policy
     }
-
 }
