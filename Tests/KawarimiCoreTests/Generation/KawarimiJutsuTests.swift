@@ -527,6 +527,20 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("path: \"/app/setting\""))
 }
 
+@Test func kawarimiJutsuSpecEmitsTags() throws {
+    guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
+        Issue.record("openapi.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    #expect(source.contains("tags: [\"Items\"]"))
+    #expect(source.contains("tags: [\"Greetings\"]"))
+    #expect(source.contains("public var tags: [String]?"))
+    #expect(!source.contains("SpecParameterProviding"))
+    #expect(!source.contains("parameters:"))
+}
+
 @Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
     guard let url = fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
