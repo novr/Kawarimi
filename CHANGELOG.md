@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** ([#57](https://github.com/novr/Kawarimi/issues/57)).
+- **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** (reads bundled **`Sources/Kawarimi/Resources/VERSION`**) ([#57](https://github.com/novr/Kawarimi/issues/57)).
 - **KawarimiJutsu** / **KawarimiPlugin**: **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) for selective codegen ([#54](https://github.com/novr/Kawarimi/issues/54)).
 - **KawarimiSpec**: OpenAPI **`tags`** and **`parameters`** (`path` / `query` / `header`) on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56)).
 - **KawarimiCore** / **KawarimiHenge**: optional **`delayMs`** on mock overrides (normalized 0–60_000 ms) ([#53](https://github.com/novr/Kawarimi/issues/53)).

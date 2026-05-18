@@ -155,8 +155,13 @@ import Testing
     let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
     let stdoutStr = String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
+    let versionURL = packageRoot
+        .appendingPathComponent("Sources/Kawarimi/Resources/VERSION")
+    let expectedVersion = try String(contentsOf: versionURL, encoding: .utf8)
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+
     #expect(process.terminationStatus == 0)
-    #expect(stdoutStr == "2.0.4")
+    #expect(stdoutStr == expectedVersion)
 }
 
 @Test func cliPartialGenerationSkipsHandler() throws {
