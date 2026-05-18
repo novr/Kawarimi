@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.5] - 2026-05-18
+
 ### Added
 
-- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **`tags`** on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56)). Omitted when the operation has no tags (`nil`, not `[]`). Request **parameters**: [#74](https://github.com/novr/Kawarimi/issues/74).
+- **KawarimiJutsu** / **KawarimiPlugin**: **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) for selective codegen ([#54](https://github.com/novr/Kawarimi/issues/54), [#68](https://github.com/novr/Kawarimi/pull/68)).
+- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **`tags`** on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56), [#69](https://github.com/novr/Kawarimi/pull/69)). Omitted when the operation has no tags (`nil`, not `[]`). Request **parameters**: [#74](https://github.com/novr/Kawarimi/issues/74).
 
 ## [2.0.4] - 2026-05-14
 
@@ -213,6 +216,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.0.5]: https://github.com/novr/Kawarimi/releases/tag/v2.0.5
 [2.0.4]: https://github.com/novr/Kawarimi/releases/tag/v2.0.4
 [2.0.3]: https://github.com/novr/Kawarimi/releases/tag/v2.0.3
 [2.0.2]: https://github.com/novr/Kawarimi/releases/tag/v2.0.2
