@@ -77,6 +77,14 @@ Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) in **`kawa
 
 **KawarimiPlugin** resolves the OpenAPI document, **`openapi-generator-config`**, and optional **`kawarimi-generator-config`** from **SwiftPM’s `sourceFiles`** list. The **`Kawarimi`** CLI loads **`openapi-generator-config`** and optional **`kawarimi-generator-config`** from the same directory as the OpenAPI path you pass (labels in **swift-openapi-generator**–style messages use the parent directory name unless overridden).
 
+### KawarimiSpec `tags` (optional)
+
+Regenerate **`KawarimiSpec.swift`** after upgrading **KawarimiCore** when you use **`SpecEndpointProviding`**.
+
+Generated **`KawarimiSpec.Endpoint`** exposes optional **`tags`** from the OpenAPI operation (`nil` when the operation has no tags — not an empty array). Custom **`SpecEndpointProviding`** types may omit **`tags`**; the protocol extension defaults it to **`nil`**. OpenAPI order is preserved.
+
+Request **parameters** (`path` / `query` / `header`) are not emitted yet; see [#74](https://github.com/novr/Kawarimi/issues/74).
+
 ## 4. Use the mock in tests
 
 ```swift

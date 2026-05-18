@@ -77,6 +77,14 @@ Kawarimi が読むキーは **`namingStrategy`** と **`accessModifier`** です
 
 **KawarimiPlugin** は OpenAPI 仕様、**`openapi-generator-config`**、任意の **`kawarimi-generator-config`** を **`sourceFiles`** から解決します。**`Kawarimi`** CLI は仕様パスと同じディレクトリから **`openapi-generator-config`** と任意の **`kawarimi-generator-config`** を読みます（`openapi-generator-config` 系のエラー文面は swift-openapi-generator の **`FileError`** と同一。文言は **`Plugins/KawarimiPlugin/`** の **シンボリックリンク**で **KawarimiJutsu** と共有）。
 
+### KawarimiSpec の `tags`（任意）
+
+**KawarimiCore** を上げたあとは **`SpecEndpointProviding`** を使う場合、**`KawarimiSpec.swift` を再生成**してください。
+
+生成される **`KawarimiSpec.Endpoint`** の **`tags`** は OpenAPI operation の `tags` です（operation に tags が無いときは **`nil`**。空配列にはしません）。手書きの **`SpecEndpointProviding`** は **`tags`** を実装しなくてよく、プロトコル拡張の既定値は **`nil`** です。OpenAPI の並びを保持します。
+
+リクエスト **parameters**（`path` / `query` / `header`）は未対応です。予定は [#74](https://github.com/novr/Kawarimi/issues/74) を参照してください。
+
 ## 4. テストでモックを使う
 
 ```swift
