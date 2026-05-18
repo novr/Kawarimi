@@ -272,7 +272,9 @@ try handler.registerHandlers(
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
-`kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` は `kawarimi-generator-config.yaml`）。
+`kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` と `generateKawarimi` / `generateHandler` / `generateSpec` は `kawarimi-generator-config.yaml`）。
+
+各オーバーライドに任意の **`delayMs`**（ミリ秒、1–60000）を指定できます。省略・`null`・`0`・負数は遅延なしです。参照ミドルウェアはモック応答の直前にスリープします。
 
 **初期 `kawarimi.json`・サンプル `kawarimi-generator-config.yaml`・`swift run DemoServer` のカレントディレクトリ**については [Example/README_JA.md](../../Example/README_JA.md) を参照してください。
 

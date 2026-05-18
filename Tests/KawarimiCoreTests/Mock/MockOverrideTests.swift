@@ -7,6 +7,37 @@ import Testing
     #expect(MockOverride(path: "/", method: "   ", statusCode: 200) == nil)
 }
 
+@Test func mockOverrideEncodeDecodeWithDelayMs() throws {
+    let override = MockOverride(
+        path: "/api/greet",
+        method: "GET",
+        statusCode: 200,
+        delayMs: 1500
+    )!
+    let data = try JSONEncoder().encode(override)
+    let decoded = try JSONDecoder().decode(MockOverride.self, from: data)
+    #expect(decoded.delayMs == 1500)
+}
+
+@Test func kawarimiConfigStoreNormalizesDelayMs() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-delay-\(UUID().uuidString).json")
+    let path = url.path
+    let store = try KawarimiConfigStore(configPath: path)
+    try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, delayMs: 0)!)
+    var overrides = await store.overrides()
+    #expect(overrides[0].delayMs == nil)
+
+    try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, delayMs: -5)!)
+    overrides = await store.overrides()
+    #expect(overrides[0].delayMs == nil)
+
+    try await store.configure(MockOverride(path: "/api/greet", method: "GET", statusCode: 200, delayMs: 99_999)!)
+    overrides = await store.overrides()
+    #expect(overrides[0].delayMs == 60_000)
+
+    try? FileManager.default.removeItem(at: url)
+}
+
 @Test func mockOverrideEncodeDecodeWithBodyAndContentType() throws {
     let override = MockOverride(
         name: "getGreeting",

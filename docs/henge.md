@@ -273,7 +273,9 @@ The file format uses `KawarimiConfig` (overrides array).
 
 Set `KAWARIMI_CONFIG` to override the config file path.
 
-`kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy`.
+`kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy` and codegen toggles (`generateKawarimi`, `generateHandler`, `generateSpec`).
+
+Each override may include optional **`delayMs`** (integer milliseconds, 1–60000). Omitted, `null`, `0`, or negative values mean no delay. The reference interceptor sleeps before returning the mock response.
 
 Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **`swift run DemoServer` working-directory notes** for this repository: [Example/README.md](../Example/README.md).
 

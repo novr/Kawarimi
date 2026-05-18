@@ -272,6 +272,7 @@ enum OverrideListQueries {
         guard a.isEnabled == b.isEnabled else { return false }
         guard a.statusCode == b.statusCode else { return false }
         guard MockExamplePresentation.exampleIdsEqual(a.exampleId, b.exampleId) else { return false }
+        guard a.delayMs == b.delayMs else { return false }
         let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard na == nb else { return false }

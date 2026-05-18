@@ -64,6 +64,9 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
             responseMap: responseMap,
             methodUppercased: request.method.rawValue.uppercased()
         )
+        if let ms = override.delayMs, ms > 0 {
+            try await Task.sleep(for: .milliseconds(ms))
+        }
         var response = HTTPResponse(status: .init(code: resolved.statusCode))
         response.headerFields[.contentType] = resolved.contentType
         return (response, HTTPBody(resolved.body))
