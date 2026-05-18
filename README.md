@@ -17,6 +17,7 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | | |
 | --- | --- |
 | **[docs/README.md](docs/README.md)** | Index of all guides |
+| [Roadmap.md](Roadmap.md) | Project goals (future direction); backlog on GitHub Issues, releases in CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | Releases and breaking changes (SemVer) |
 | [Integration](docs/integration.md) | SwiftPM, OpenAPI layout, configs, tests |
 | [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, `kawarimi.json` |

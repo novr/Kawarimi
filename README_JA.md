@@ -17,6 +17,7 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | | |
 | --- | --- |
 | **[docs/ja/README.md](docs/ja/README.md)** | ガイド一覧 |
+| [Roadmap.md](Roadmap.md) | プロジェクトのゴール（未来の方向）。バックログは GitHub Issues、リリースは CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | リリース・破壊的変更（SemVer） |
 | [導入・統合](docs/ja/integration.md) | SwiftPM、OpenAPI の配置、設定、テスト |
 | [ダイナミックモック（Henge）](docs/ja/henge.md) | ランタイムモック、`__kawarimi` API、Vapor、`kawarimi.json` |

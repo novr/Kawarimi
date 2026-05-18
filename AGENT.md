@@ -1,6 +1,6 @@
 # エージェント向けルール（Kawarimi）
 
-OpenAPI からモック・Handler・Spec をビルド時生成する SwiftPM プラグイン。Types / Client / Server は swift-openapi-generator と併用。詳細は README と `docs`。
+OpenAPI からモック・Handler・Spec をビルド時生成する SwiftPM プラグイン。Types / Client / Server は swift-openapi-generator と併用。詳細は README、`docs`、および **`Roadmap.md`**（プロジェクトのゴール＝未来の方向。バックログ・議論は GitHub Issues、届けた変更は CHANGELOG）。
 
 ## Kawarimi 固有の境界
 
