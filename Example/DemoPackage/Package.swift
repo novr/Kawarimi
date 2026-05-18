@@ -60,5 +60,10 @@ let package = Package(
             dependencies: ["DemoAPI"],
             path: "Tests/DemoAPITests"
         ),
+        .testTarget(
+            name: "DemoServerE2ETests",
+            dependencies: [],
+            path: "Tests/DemoServerE2ETests"
+        ),
     ]
 )

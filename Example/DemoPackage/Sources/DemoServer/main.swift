@@ -9,6 +9,16 @@ enum DemoServerError: Error {
     case invalidStubURL
 }
 
+private func applyListenConfiguration(to app: Application) {
+    let env = ProcessInfo.processInfo.environment
+    if let host = env["HOST"], !host.isEmpty {
+        app.http.server.configuration.hostname = host
+    }
+    if let portString = env["PORT"], let port = Int(portString) {
+        app.http.server.configuration.port = port
+    }
+}
+
 private func resolvedKawarimiConfigPath() -> String {
     if let env = ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"], !env.isEmpty {
         return env
@@ -30,6 +40,7 @@ private func resolvedKawarimiConfigPath() -> String {
 struct DemoServer {
     static func main() async throws {
         let app = try await Application.make()
+        applyListenConfiguration(to: app)
         let configPath = resolvedKawarimiConfigPath()
         let store = try KawarimiConfigStore(
             configPath: configPath,
