@@ -27,7 +27,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 - **ブランチとコミット**: 作業用ブランチを切り、**論理単位でコミットを分割**する。
 - **プラン・To-do**: 既に To-do がある場合は作り直さず、**先頭から in_progress にして完了まで**進める。プラン用の添付ファイルは編集しない。
 - **検証**: 変更内容に応じて `swift test`、必要なら `Scripts/performance/` や CI と揃えた環境変数で確認する。**パフォーマンスに触れたら性能チェックも行う**。
-- **ビルド情報**: 未生成時はコミット済みスタブ **`dev`**。**PR の CI** もスタブのままテストする。タグ付きリリースは [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Scripts/generate-build-info.sh` を実行する。ローカルで `git describe` と揃えるときだけ手動で同スクリプトを実行する。
+- **ビルド情報**: コミット済みスタブ **`dev`**（ローカル・PR CI）。タグ付きリリース時のみ [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `git describe --tags` で `Generated.swift` を上書きし、Release 用ソースアーカイブに含める（ワークツリーは汚さない）。
 - **`[kawarimi-perf]`**: 利用者・計測手向けの説明は [Scripts/performance/README.md](Scripts/performance/README.md) に従う（実装やワークフローへの参照はこのファイルでは書かない）。
 - **Issue**: バグ・機能は Issue で追う。**サーバ実装依存は本パッケージのスコープ外**（上記「境界」と同じ前提）。
 
@@ -54,7 +54,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 - **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
 - **リリース直前**: **`CHANGELOG.md`** の **`[Unreleased]`** を **`## [X.Y.Z] - YYYY-MM-DD`** 見出しへ移し、既存パターンに合わせて**フッタのバージョン比較リンク**（`CHANGELOG.md` 末尾）を更新する。**SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
-- **タグ**: 公開リリースは **`vX.Y.Z`**。`git push origin vX.Y.Z` で [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が走り、`Scripts/generate-build-info.sh` → `swift test` のあと **`kawarimi-vX.Y.Z-source.tar.gz`** を GitHub Release に添付する（このアーカイブをビルドすると **`--version`** がタグと一致）。GitHub が自動生成する **Source code (zip/tar.gz)** はコミット済みスタブのままなので **`dev`** になる。
+- **タグ**: 公開リリースは **`vX.Y.Z`**。`git push origin vX.Y.Z` で [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Generated.swift` を生成 → `swift test` → **`kawarimi-vX.Y.Z-source.tar.gz`** を GitHub Release に添付（このアーカイブをビルドすると **`--version`** がタグと一致）。GitHub 自動の **Source code (zip/tar.gz)** はスタブ **`dev`** のまま。
 
 ## コードとテスト（原則）
 
