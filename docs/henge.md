@@ -138,12 +138,12 @@ API summary:
 
 `sortedForInterceptorTieBreak` remains as an alias of `sortedForOverrideTieBreak`.
 
-### Runtime updates (current)
+### Runtime updates
 
 | What | Behavior |
 | --- | --- |
-| **Overrides** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure` (in-memory `KawarimiConfigStore`). **Editing `kawarimi.json` on disk does not auto-apply** — restart the server or use the Henge API. |
-| **`responseMap`** | Fixed at **`KawarimiServerMiddleware` init** (typically `KawarimiSpec.responseMap`). After OpenAPI regen, **rebuild and re-register** middleware (or restart the server). |
+| **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, or when you call **`POST …/reload`** to re-read the config file from disk (not file-watched). **Editing `kawarimi.json` on disk does not auto-apply** until reload or server restart. Reload uses the **same load rules as startup** (invalid JSON → empty overrides). Disk loads do **not** run `configure` normalization. Within a single server process, the last completed `configure` / `reload` / `reset` wins. |
+| **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware
 
@@ -167,6 +167,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/remove` | Remove one override row that matches the same identity as `configure` (normalized path, method, `statusCode`, `exampleId`). Idempotent. |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
+| `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore`. Returns **`204 No Content`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** (aligned with your API `baseURL`) and your generated **`SpecResponse.self`** (conforms to **`KawarimiFetchedSpec`**).

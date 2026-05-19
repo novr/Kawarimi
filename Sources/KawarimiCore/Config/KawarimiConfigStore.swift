@@ -60,16 +60,30 @@ public actor KawarimiConfigStore {
         }
         self.configPath = absolute
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
-        if let data = FileManager.default.contents(atPath: absolute) {
-            do {
-                let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
-                self.cachedOverrides = config.overrides
-            } catch {
-                logInvalidKawarimiConfig(at: absolute, error: error)
-                self.cachedOverrides = []
-            }
-        } else {
-            self.cachedOverrides = []
+        self.cachedOverrides = Self.loadOverridesFromDisk(at: absolute)
+    }
+
+    /// Re-reads `kawarimi.json` using the same rules as ``init(configPath:pathPrefix:)``.
+    /// Returns ``KawarimiConfigReloadResult/unchanged`` when the decoded overrides match the in-memory cache.
+    public func reloadFromDisk() -> KawarimiConfigReloadResult {
+        let loaded = Self.loadOverridesFromDisk(at: configPath)
+        if loaded == cachedOverrides {
+            return .unchanged
+        }
+        cachedOverrides = loaded
+        return .applied
+    }
+
+    private static func loadOverridesFromDisk(at absolute: String) -> [MockOverride] {
+        guard let data = FileManager.default.contents(atPath: absolute) else {
+            return []
+        }
+        do {
+            let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
+            return config.overrides
+        } catch {
+            logInvalidKawarimiConfig(at: absolute, error: error)
+            return []
         }
     }
 

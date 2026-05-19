@@ -10,8 +10,8 @@ private let kawarimiServerMiddlewareLog = Logger(subsystem: "Kawarimi", category
 
 /// Applies Henge dynamic mock overrides for registered OpenAPI operations (`ServerMiddleware`).
 ///
-/// - ``KawarimiConfigStore`` overrides refresh via `POST …/configure` (not by watching `kawarimi.json` on disk).
-/// - ``responseMap`` is fixed at init; re-register middleware after OpenAPI regen.
+/// - ``KawarimiConfigStore`` overrides refresh via `POST …/configure` or `POST …/reload` (re-read `kawarimi.json`; not file-watched).
+/// - ``responseMap`` is fixed at init (build-time ``KawarimiSpec``); rebuild and re-register middleware after OpenAPI regen.
 public struct KawarimiServerMiddleware: ServerMiddleware {
     public let store: KawarimiConfigStore
     /// Spec example bodies; not updated until you construct a new middleware instance.

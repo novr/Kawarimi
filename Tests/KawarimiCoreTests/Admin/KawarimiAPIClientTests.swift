@@ -81,3 +81,42 @@ private final class MockKawarimiURLProtocol: URLProtocol {
         #expect(e.statusCode == 404)
     }
 }
+
+/// `URL.host` is the `X-Kawarimi-Reload` value (`applied` / `unchanged`); responds with `204`.
+private final class MockKawarimiReloadURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let outcome = url.host ?? "applied"
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 204,
+            httpVersion: nil,
+            headerFields: [KawarimiAdminHeaders.reloadOutcome: outcome]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Test func kawarimiAPIClientReloadParsesReloadOutcomeHeader() async throws {
+    URLProtocol.registerClass(MockKawarimiReloadURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiReloadURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiReloadURLProtocol.self]
+    let session = URLSession(configuration: config)
+
+    let appliedClient = KawarimiAPIClient(baseURL: URL(string: "http://applied/")!, session: session)
+    #expect(try await appliedClient.reload() == .applied)
+
+    let unchangedClient = KawarimiAPIClient(baseURL: URL(string: "http://unchanged/")!, session: session)
+    #expect(try await unchangedClient.reload() == .unchanged)
+}

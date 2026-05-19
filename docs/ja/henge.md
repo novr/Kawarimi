@@ -137,12 +137,12 @@ API 対応:
 
 `sortedForInterceptorTieBreak` は `sortedForOverrideTieBreak` の別名です。
 
-### 実行時更新（現状）
+### 実行時更新
 
 | 対象 | 挙動 |
 | --- | --- |
-| **オーバーライド** | Henge / `KawarimiAPIClient` の `POST …/configure` でメモリ上の `KawarimiConfigStore` を更新。**ディスクの `kawarimi.json` を直接編集しても自動反映されない** — サーバ再起動か Henge API を使う。 |
-| **`responseMap`** | **`KawarimiServerMiddleware` 初期化時に固定**（通常は `KawarimiSpec.responseMap`）。OpenAPI 再生成後は **middleware の再構築**（またはサーバ再起動）が必要。 |
+| **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、または **`POST …/reload`** でディスクから再読み込み（ファイル監視なし）。**ディスクを直接編集しても reload または再起動まで反映されない**。reload は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の正規化を行わない。単一プロセス内では最後に完了した `configure` / `reload` / `reset` が勝つ。 |
+| **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware
 
@@ -166,6 +166,7 @@ API 対応:
 | `POST {pathPrefix}/__kawarimi/remove` | `configure` と同じ同一視（正規化後の path・メソッド・`statusCode`・`exampleId`）で 1 行を削除。べき等 |
 | `GET {pathPrefix}/__kawarimi/status` | 有効なオーバーライド一覧を取得 |
 | `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除 |
+| `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**。`**204 No Content**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
 **KawarimiHenge（`KawarimiConfigView`）:** API の `baseURL` に揃えた **`KawarimiAPIClient`** と、生成された **`SpecResponse.self`**（**`KawarimiFetchedSpec`** 準拠）を渡します。
