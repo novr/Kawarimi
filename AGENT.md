@@ -35,7 +35,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 - **`main` 向け PR**: [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) の `changes`（`dorny/paths-filter`）が、次のいずれかに触れる変更があるかだけを見る: `Sources/**`, `Tests/**`, `Package.swift`, `Package.resolved`, `Example/**`, `Scripts/**`, `.github/**`。
 - **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテスト／perf ジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。
-- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートは `swift test --filter 'KawarimiCoreTests|KawarimiTests'`、`Example/DemoPackage` は `DemoAPITests|DemoServerE2ETests`。**`KAWARIMI_LINUX_CI=1`** のとき `Package.swift` は Henge ターゲットを除外する。**`KawarimiHengeTests` は CI に含めない**（SwiftUI）。マージ前に macOS ローカルで `swift test` 全件（Henge 含む）を実行すること。
+- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`。**`KAWARIMI_LINUX_CI=1`** のとき `Package.swift` は Henge（および Demo の `HengeCli`）ターゲットを除外するため、Linux では Henge 系はビルドされない。**`KawarimiHengeTests` は CI に含めない**（SwiftUI）。マージ前に macOS ローカルで `swift test` 全件（Henge 含む）を実行すること。
 - **ビルドや CI に効く新しいパス**（上記以外に置いたツールや設定など）を追加したら、同じワークフローの `code` フィルタに追記し、該当変更でテストが走るようにする。
 
 ## CHANGELOG
@@ -46,7 +46,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 ## PR とリリース準備
 
-- **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では CI フィルタに合わせた `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
+- **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
 - **リリース直前**: **`CHANGELOG.md`** の **`[Unreleased]`** を **`## [X.Y.Z] - YYYY-MM-DD`** 見出しへ移し、既存パターンに合わせて**フッタのバージョン比較リンク**（`CHANGELOG.md` 末尾）を更新する。**SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
 - **タグ**: 公開リリースは既存の Git タグ命名（**`vX.Y.Z`**）に合わせる。タグ付け・GitHub Releases の具体操作はリポジトリの慣習に従う（本ファイルでは手順を固定しない）。
 

@@ -53,7 +53,7 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run tests
-        run: swift test --filter 'KawarimiCoreTests|KawarimiTests'
+        run: swift test
 
   demo-package:
     name: Swift Test (Example/DemoPackage)
@@ -73,7 +73,7 @@ jobs:
 
       - name: Run tests
         working-directory: Example/DemoPackage
-        run: swift test --filter 'DemoAPITests|DemoServerE2ETests'
+        run: swift test
 
   kawarimi-perf:
     name: Kawarimi perf
