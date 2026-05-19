@@ -30,7 +30,14 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 **2.0.4 → 2.0.5:** Optional **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) let the CLI and **KawarimiPlugin** skip individual outputs; at least one must stay enabled. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** — generated endpoints now expose optional OpenAPI **`tags`** (`nil` when absent) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.5**.
 
-**2.0.5 → 2.1.0:** New **`KawarimiServer`** product with **`KawarimiServerMiddleware`** for OpenAPI server dynamic mocks on **`registerHandlers(middlewares:)`** (replaces ad hoc Vapor-global interceptors). Server targets add **`.product(name: "KawarimiServer", package: "Kawarimi")`** — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.1.0** and [henge.md](henge.md).
+**2.0.5 → 2.1.0:** (additive — no public API removals in **KawarimiCore** / **KawarimiHenge**)
+
+1. Bump the package pin to **`from: "2.1.0"`**.
+2. **Server** targets that apply Henge runtime mocks on OpenAPI operations: add **`.product(name: "KawarimiServer", package: "Kawarimi")`**, `import KawarimiServer`, and pass **`KawarimiServerMiddleware(store:responseMap:)`** in **`registerHandlers(middlewares:)`** (typically `responseMap: KawarimiSpec.responseMap`). See [henge.md](henge.md) and [Example/README.md](../Example/README.md).
+3. If you copied the old Example **Vapor-global** interceptor pattern for operation mocks, **remove** it and use the middleware above instead (admin **`__kawarimi`** routes stay on Vapor as before).
+4. After OpenAPI regen, **rebuild** and construct a new middleware instance (or restart the server) so **`responseMap`** matches regenerated **`KawarimiSpec`**.
+
+Client-only or in-process **`Kawarimi()`** transport users need no change. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.1.0**.
 
 SwiftPM products from this package:
 

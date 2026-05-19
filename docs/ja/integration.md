@@ -30,7 +30,14 @@
 
 **2.0.4 → 2.0.5:** 任意の **`kawarimi-generator-config.yaml`** で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 **`true`**）により CLI と **KawarimiPlugin** が個別の成果物をスキップできる（いずれか 1 つは **`true`** 必須）。**`SpecEndpointProviding`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに OpenAPI の任意 **`tags`**（無いとき **`nil`**）が付く。詳しくは CHANGELOG の **2.0.5** を参照。
 
-**2.0.5 → 2.1.0:** 新プロダクト **`KawarimiServer`** と **`KawarimiServerMiddleware`** により、OpenAPI サーバの動的モックを **`registerHandlers(middlewares:)`** で適用できる（Vapor 全体インターセプタの独自実装に代わる）。サーバターゲットに **`.product(name: "KawarimiServer", package: "Kawarimi")`** を追加 — CHANGELOG の **2.1.0** と [henge.md](henge.md) を参照。
+**2.0.5 → 2.1.0:**（追加のみ — **KawarimiCore** / **KawarimiHenge** の公開 API 削除はなし）
+
+1. パッケージ pin を **`from: "2.1.0"`** に上げる。
+2. OpenAPI 登録 operation に Henge の実行時モックを載せる**サーバ**ターゲット: **`.product(name: "KawarimiServer", package: "Kawarimi")`** を追加し、`import KawarimiServer` のうえ **`registerHandlers(middlewares:)`** に **`KawarimiServerMiddleware(store:responseMap:)`** を渡す（通常 `responseMap: KawarimiSpec.responseMap`）。[henge.md](henge.md) と [Example/README_JA.md](../../Example/README_JA.md) を参照。
+3. 旧 Example の **Vapor グローバル**インターセプタをコピーして operation モックしていた場合は**削除**し、上記ミドルウェアに置き換える（admin の **`__kawarimi`** ルートは従来どおり Vapor 側）。
+4. OpenAPI 再生成後は **再ビルド**し、新しい middleware（またはサーバ再起動）で **`responseMap`** を更新した **`KawarimiSpec`** と揃える。
+
+クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は変更不要。CHANGELOG の **2.1.0** を参照。
 
 本パッケージの SwiftPM プロダクト:
 
