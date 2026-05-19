@@ -1,5 +1,6 @@
 import Foundation
 import KawarimiCore
+import KawarimiPluginSupport
 import Yams
 
 public struct KawarimiGeneratorConfigFile: Equatable, Sendable {
@@ -27,21 +28,25 @@ public struct KawarimiGeneratorConfigFile: Equatable, Sendable {
         self.generateSpec = generateSpec
     }
 
+    public var outputOptions: KawarimiGeneratorOutputOptions {
+        KawarimiGeneratorOutputOptions(
+            generateKawarimi: generateKawarimi,
+            generateHandler: generateHandler,
+            generateSpec: generateSpec
+        )
+    }
+
+    public var outputFileNames: [String] {
+        outputOptions.outputFileNames
+    }
+
     public func validateAtLeastOneOutputEnabled(configPath: String) throws {
-        guard generateKawarimi || generateHandler || generateSpec else {
+        guard outputOptions.hasAtLeastOneOutputEnabled else {
             throw KawarimiJutsuError.generatorConfigInvalid(
                 path: configPath,
                 reason: "At least one of generateKawarimi, generateHandler, or generateSpec must be true"
             )
         }
-    }
-
-    public static func outputFileNames(for config: KawarimiGeneratorConfigFile) -> [String] {
-        var names: [String] = []
-        if config.generateKawarimi { names.append("Kawarimi.swift") }
-        if config.generateHandler { names.append("KawarimiHandler.swift") }
-        if config.generateSpec { names.append("KawarimiSpec.swift") }
-        return names
     }
 }
 

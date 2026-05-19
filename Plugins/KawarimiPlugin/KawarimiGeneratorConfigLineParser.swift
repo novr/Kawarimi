@@ -1,0 +1,1 @@
+../../Sources/KawarimiPluginSupport/KawarimiGeneratorConfigLineParser.swift

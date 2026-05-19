@@ -1,0 +1,1 @@
+../../Sources/KawarimiPluginSupport/KawarimiGeneratorOutputOptions.swift
