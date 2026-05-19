@@ -94,6 +94,7 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: kawarimi-perf-out
+        shell: bash
         run: |
           set -euo pipefail
           FIXTURE="${RUNNER_TEMP}/kawarimi-perf-spec"
@@ -105,6 +106,7 @@ jobs:
           test -s kawarimi-perf-lines.txt
 
       - name: Compose PR comment body (markdown)
+        shell: bash
         run: |
           set -euo pipefail
           sha_short="${GITHUB_SHA:0:7}"
