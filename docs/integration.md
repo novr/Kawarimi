@@ -39,6 +39,16 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 Client-only or in-process **`Kawarimi()`** transport users need no change. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.1.0**.
 
+**2.1.0 → 2.2.0:** (additive)
+
+1. Bump the package pin to **`from: "2.2.0"`**.
+2. **Server** / Henge: optional **`delayMs`** on overrides is honored by **`KawarimiServerMiddleware`**; no OpenAPI regen required for existing configs.
+3. **Server** / admin: optional **`POST …/__kawarimi/reload`** (or **`KawarimiConfigStore.reloadFromDisk()`**) reloads **`kawarimi.json`** without restart — wire the route if you want remote reload (Example pattern).
+4. **Henge** explorer primary/enabled selection now matches server tie-break via Core APIs ([#78](https://github.com/novr/Kawarimi/issues/78)); custom UI that duplicated list logic should prefer **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`**.
+5. **`Kawarimi`** CLI: **`--help`** / **`--version`**; release source archives report the tag via **`--version`** (see **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.0**).
+
+Client-only or in-process **`Kawarimi()`** transport users need no change unless you call the CLI.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -53,7 +63,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.1.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.0"),
 ],
 targets: [
     .target(

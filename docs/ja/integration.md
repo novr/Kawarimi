@@ -39,6 +39,16 @@
 
 クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は変更不要。CHANGELOG の **2.1.0** を参照。
 
+**2.1.0 → 2.2.0:**（追加のみ）
+
+1. パッケージ pin を **`from: "2.2.0"`** に上げる。
+2. **サーバ** / Henge: オーバーライドの任意 **`delayMs`** は **`KawarimiServerMiddleware`** が反映する。既存設定の OpenAPI 再生成は不要。
+3. **サーバ** / admin: 任意の **`POST …/__kawarimi/reload`**（または **`KawarimiConfigStore.reloadFromDisk()`**）で **`kawarimi.json`** を再起動なしで再読み込みできる。リモート reload が必要ならルートを配線する（Example パターン）。
+4. **Henge** の primary / enabled 選択はサーバと同じ tie-break の Core API に統一 ([#78](https://github.com/novr/Kawarimi/issues/78))。リストロジックを独自実装している UI は **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`** を使う。
+5. **`Kawarimi`** CLI: **`--help`** / **`--version`**。リリース用ソースアーカイブの **`--version`** はタグを表示（CHANGELOG の **2.2.0** を参照）。
+
+クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は、CLI を使わない限り変更不要。
+
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
@@ -53,7 +63,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.1.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.0"),
 ],
 targets: [
     .target(

@@ -8,9 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-05-19
+
 ### Added
 
 - **KawarimiCore**: **`KawarimiConfigStore.reloadFromDisk()`** and **`POST …/__kawarimi/reload`** (`204` + **`X-Kawarimi-Reload: applied|unchanged`**) to re-read runtime **`kawarimi.json`** without restart ([#77](https://github.com/novr/Kawarimi/issues/77)).
+- **KawarimiCore**: **`matchingEnabledOverridesForOperation`** and **`primaryEnabledOverrideForOperation`** — shared override selection and tie-break for server middleware and Henge ([#78](https://github.com/novr/Kawarimi/issues/78)).
 - **KawarimiCore** / **KawarimiHenge**: optional **`delayMs`** on mock overrides (normalized 0–60_000 ms) ([#53](https://github.com/novr/Kawarimi/issues/53)).
 - **KawarimiServer**: **`KawarimiServerMiddleware`** honors **`delayMs`** before returning a mock response.
 - **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** via [swift-argument-parser](https://github.com/apple/swift-argument-parser) ([#71](https://github.com/novr/Kawarimi/issues/71)).
@@ -18,7 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Kawarimi CLI**: **`--version`** reports **`git describe --tags`** (e.g. **`v2.1.0`**) in release archives; committed **`Generated.swift`** stub is **`dev`** for local and PR CI ([#71](https://github.com/novr/Kawarimi/issues/71)).
+- **KawarimiHenge**: explorer primary and enabled override lists use the Core APIs above; **`sortedForOverrideTieBreak`** (alias **`sortedForInterceptorTieBreak`**) ([#78](https://github.com/novr/Kawarimi/issues/78)).
+- **KawarimiPlugin** / **KawarimiJutsu**: shared **`KawarimiGeneratorOutputOptions`** validation and output file names via **`KawarimiPluginSupport`** ([#73](https://github.com/novr/Kawarimi/issues/73)).
+- **Kawarimi CLI**: **`--version`** reports **`git describe --tags`** (e.g. **`v2.2.0`**) in release archives; committed **`Generated.swift`** stub is **`dev`** for local and PR CI ([#71](https://github.com/novr/Kawarimi/issues/71)).
+
+### Docs
+
+- **henge.md** / **ja/henge.md** — override matching **Product rules** ([#78](https://github.com/novr/Kawarimi/issues/78)).
 
 ## [2.1.0] - 2026-05-19
 
@@ -239,6 +248,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.2.0]: https://github.com/novr/Kawarimi/releases/tag/v2.2.0
 [2.1.0]: https://github.com/novr/Kawarimi/releases/tag/v2.1.0
 [2.0.5]: https://github.com/novr/Kawarimi/releases/tag/v2.0.5
 [2.0.4]: https://github.com/novr/Kawarimi/releases/tag/v2.0.4
