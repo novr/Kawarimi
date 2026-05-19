@@ -6,9 +6,9 @@
 
 Add **KawarimiCore** for `KawarimiAPIClient` (HTTP to `{pathPrefix}/__kawarimi/*`) and **KawarimiHenge** for SwiftUI (`KawarimiConfigView`).
 
-On the server, use **KawarimiCore** (`KawarimiConfigStore`, `PathTemplate`, `MockOverride`, …) and register the **Henge API** routes.
+On the server, use **KawarimiCore** (`KawarimiConfigStore`, `MockOverride`, …), **KawarimiServer** (`KawarimiServerMiddleware`), and register the **Henge API** routes.
 
-**Vapor `AsyncMiddleware` that applies overrides is not a KawarimiCore product** — copy or adapt the reference [`KawarimiInterceptorMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift) (see [Example README](../Example/README.md)).
+Apply dynamic mocks on OpenAPI-registered operations via **`KawarimiServerMiddleware`** (`registerHandlers(middlewares:)`). Vapor global `AsyncMiddleware` is optional when you need overrides on paths **not** registered on the handler (see below).
 
 ## Vapor-related packages (server)
 
@@ -21,6 +21,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | Runtime for generated code | [github.com/apple/swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) |
 | OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge file store + matching | **KawarimiCore** (this package) |
+| Dynamic mock on server operations | **KawarimiServer** (`KawarimiServerMiddleware`) |
 
 `DemoPackage` layout and `DemoServer` entrypoints: [Example/README.md](../Example/README.md).
 
@@ -96,28 +97,41 @@ Mount admin routes **under a path prefix aligned with your OpenAPI API** (e.g. *
 
 You may mount `__kawarimi` at the root in your own app; keep it aligned with `KawarimiAPIClient`’s `baseURL`.
 
-Register the admin routes and middleware in Vapor, for example:
+Register admin routes on your Vapor app, then attach **`KawarimiServerMiddleware`** when registering generated handlers:
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
 registerKawarimiRoutes(app: app, store: store)
-app.middleware.use(KawarimiInterceptorMiddleware(store: store))
+let transport = VaporTransport(routesBuilder: app)
+try handler.registerHandlers(
+    on: transport,
+    serverURL: serverURL,
+    middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
+)
 ```
 
-`KawarimiInterceptorMiddleware` lives in the **Example** target, not in the library.
+**`KawarimiServerMiddleware`** (product **KawarimiServer**) conforms to swift-openapi-runtime’s **`ServerMiddleware`**. It:
 
-It implements Vapor’s `AsyncMiddleware` by:
+- Matches enabled overrides (path template or `operationId` via `MockOverride.name`, HTTP method).
+- Resolves the body from the override or from `KawarimiSpec.responseMap` using **`statusCode` plus the effective example key** (`exampleId` → `__default` when unset).
+- Returns a synthetic HTTP response **without** calling `next` when a mock applies; otherwise delegates to the handler.
 
-- Skipping `__kawarimi` admin paths.
-- Matching enabled overrides (path template, method).
-- Resolving the body from the override or from `KawarimiSpec.responseMap` using **`statusCode` plus the effective example key** (`exampleId` → `__default` when unset).
-- Returning a synthetic `Response` or calling `next`.
+**In-process `Kawarimi` (`ClientTransport`) does not read `kawarimi.json` or apply runtime overrides** — only the server middleware path above (or your own integration) does.
 
-Use that file as the **authoritative sample** when writing your own middleware.
+### Runtime updates (current)
+
+| What | Behavior |
+| --- | --- |
+| **Overrides** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure` (in-memory `KawarimiConfigStore`). **Editing `kawarimi.json` on disk does not auto-apply** — restart the server or use the Henge API. |
+| **`responseMap`** | Fixed at **`KawarimiServerMiddleware` init** (typically `KawarimiSpec.responseMap`). After OpenAPI regen, **rebuild and re-register** middleware (or restart the server). |
+
+### Optional: Vapor global middleware
+
+If you need dynamic mocks on **unregistered** paths (not covered by `registerHandlers`), you can still implement Vapor `AsyncMiddleware` using **`MockOverrideRequestMatching`** and **`KawarimiDynamicMockResponseResolver`** from **KawarimiCore** (see [Example/README.md](../Example/README.md) for the previous pattern).
 
 ### Optional request header: `X-Kawarimi-Example-Id`
 
-For **per-request** disambiguation (not `configure` JSON), the Example middleware reads **`X-Kawarimi-Example-Id`**.
+For **per-request** disambiguation (not `configure` JSON), **`KawarimiServerMiddleware`** reads **`X-Kawarimi-Example-Id`**.
 
 The header name in code is **`KawarimiMockRequestHeaders.exampleId`** in **KawarimiCore**.
 
@@ -202,7 +216,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Save** builds **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`** then `configure`. If the draft is **Spec-shaped** (see below) **and** the user is on the **Spec** chip (`pinnedNumberedResponseChip` is false), **Save** sends **`isEnabled: false`** and cleared body fields for that default row — even if an **enabled** line for the same keys was still on the server — so you don’t accidentally stay “active” after choosing **Spec**. If the user chose a **numbered** chip (pin true) but the stored row is still **off** (draft can match the template), **Save** sends **enabled** so **200 OK** (etc.) becomes primary. Otherwise **`mock.isEnabled`** chooses **enabled** vs **disabled**; **disabled** saves still include trimmed **body** / **contentType** on the wire.
 
-**Primary badge (`P`)** on a **detail** numbered chip matches the **server’s** primary enabled row only (not unsaved edits). The **endpoint list** shows the primary’s HTTP status (and example caption) **without** a **P** badge. If **two or more** enabled rows exist for the same operation (e.g. hand-edited config), the list shows a **warning**; the interceptor uses the first row after server ordering (`sortedForInterceptorTieBreak`).
+**Primary badge (`P`)** on a **detail** numbered chip matches the **server’s** primary enabled row only (not unsaved edits). The **endpoint list** shows the primary’s HTTP status (and example caption) **without** a **P** badge. If **two or more** enabled rows exist for the same operation (e.g. hand-edited config), the list shows a **warning**; the server uses the first row after server ordering (`sortedForInterceptorTieBreak`).
 
 **Del** (−): mock **on** → **`configure`** with **off** for the same keys; mock **off** and a **saved** row matches the chip → **`remove`** (row deleted from config).
 
@@ -265,7 +279,7 @@ Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
-If several overrides match the same request (same path template + method), the interceptor **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry.
+If several overrides match the same request (same path template + method), **`KawarimiServerMiddleware`** **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry.
 
 Comparison order:
 

@@ -19,9 +19,9 @@
 
 依存の全体像: [`DemoPackage/Package.swift`](DemoPackage/Package.swift)（`DemoServer` ターゲット）。
 
-サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)、[`KawarimiInterceptorMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiInterceptorMiddleware.swift)。
+サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)。
 
-**`KawarimiInterceptorMiddleware` は KawarimiCore の製品ではありません**—自前の Vapor アプリではコピー／改変して使ってください。
+動的モックは製品 **KawarimiServer** の **`KawarimiServerMiddleware`**（`registerHandlers(middlewares:)`）を使用。詳細は [henge.md](../docs/ja/henge.md)。
 
 ## セキュリティ（サンプル限定）
 

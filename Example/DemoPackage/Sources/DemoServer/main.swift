@@ -2,6 +2,7 @@
 import DemoAPI
 import Foundation
 import KawarimiCore
+import KawarimiServer
 import OpenAPIVapor
 import Vapor
 
@@ -56,7 +57,6 @@ struct DemoServer {
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
         )
         await registerKawarimiRoutes(app: app, store: store)
-        app.middleware.use(KawarimiInterceptorMiddleware(store: store))
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()
         let stubPath = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(await store.pathPrefix))
@@ -67,7 +67,11 @@ struct DemoServer {
         guard let serverURL = stubComponents.url else {
             throw DemoServerError.invalidStubURL
         }
-        try handler.registerHandlers(on: transport, serverURL: serverURL)
+        try handler.registerHandlers(
+            on: transport,
+            serverURL: serverURL,
+            middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
+        )
         try await app.execute()
     }
 }

@@ -26,6 +26,7 @@ var targets: [Target] = [
         dependencies: [
             "DemoAPI",
             .product(name: "KawarimiCore", package: "Kawarimi"),
+            .product(name: "KawarimiServer", package: "Kawarimi"),
             .product(
                 name: "OpenAPIVapor",
                 package: "swift-openapi-vapor",

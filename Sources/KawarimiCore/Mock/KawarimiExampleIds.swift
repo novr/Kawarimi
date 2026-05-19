@@ -36,7 +36,7 @@ public enum KawarimiMockResponseResolver {
     }
 }
 
-/// Optional HTTP request headers interpreted by reference middleware (e.g. ``KawarimiInterceptorMiddleware`` in the Example app).
+/// Optional HTTP request headers interpreted by ``KawarimiServerMiddleware`` (and legacy Example interceptors).
 ///
 /// These are unrelated to ``MockOverride`` JSON on `POST …/configure`; they affect **per-request** choice among several enabled overrides for the same path and method.
 public enum KawarimiMockRequestHeaders {

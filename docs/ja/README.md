@@ -5,7 +5,7 @@
 | ドキュメント | 内容 |
 |-------------|------|
 | [CHANGELOG.md](../../CHANGELOG.md) | リリースノート・移行（SemVer） |
-| [Roadmap.md](../../Roadmap.md) | プロジェクトのゴール（未来の方向）。バックログは GitHub Issues、リリースは CHANGELOG |
+| [Roadmap.md](../../Roadmap.md) | ゴールと**将来テーマ（概要のみ）**。**詳細は GitHub Issues**、届いた挙動は docs / CHANGELOG |
 | [integration.md](integration.md) | SwiftPM セットアップ、OpenAPI の置き場所、ジェネレータ設定、テスト |
 | [henge.md](henge.md) | ランタイムモック（Henge）、`__kawarimi` HTTP API、Vapor、`kawarimi.json` |
 | [mock-json.md](mock-json.md) | `KawarimiSpec` / `Kawarimi` のモック JSON、`KawarimiHandler` のデフォルトスタブ（JSON デコード含む） |
