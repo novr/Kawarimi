@@ -16,6 +16,9 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     container:
       image: swift:6.2-noble
     steps:
