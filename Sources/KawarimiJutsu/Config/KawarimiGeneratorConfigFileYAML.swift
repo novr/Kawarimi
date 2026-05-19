@@ -1,4 +1,5 @@
 import Foundation
+import KawarimiCore
 import Yams
 
 public struct KawarimiGeneratorConfigFile: Equatable, Sendable {
@@ -96,7 +97,7 @@ public enum KawarimiGeneratorConfigFileYAML {
         } catch {
             let path = url.path
             let msg = String(describing: error).replacingOccurrences(of: "\n", with: " ")
-            fputs("Kawarimi warning: invalid kawarimi-generator-config YAML at \(path): \(msg)\n", stderr)
+            StandardError.write("Kawarimi warning: invalid kawarimi-generator-config YAML at \(path): \(msg)")
             return nil
         }
     }

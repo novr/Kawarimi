@@ -9,6 +9,9 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  KAWARIMI_LINUX_CI: "1"
+
 jobs:
   changes:
     runs-on: ubuntu-latest
@@ -37,37 +40,58 @@ jobs:
     name: Swift Test (Kawarimi)
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: macos-26
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.2-noble
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Trust workspace for SwiftPM
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run tests
-        run: swift test
+        run: swift test --filter 'KawarimiCoreTests|KawarimiTests'
 
   demo-package:
     name: Swift Test (Example/DemoPackage)
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: macos-26
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.2-noble
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Trust workspace for SwiftPM
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Run tests
         working-directory: Example/DemoPackage
-        run: swift test
+        run: swift test --filter 'DemoAPITests|DemoServerE2ETests'
 
   kawarimi-perf:
     name: Kawarimi perf
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: macos-26
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.2-noble
     env:
       KAWARIMI_PERF: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Trust workspace for SwiftPM
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: kawarimi-perf-out
         run: |
@@ -124,7 +148,7 @@ jobs:
             exit 0
           fi
           if [ "$KAWARIMI" != "success" ] || [ "$DEMO" != "success" ] || [ "$PERF" != "success" ]; then
-            echo "Expected macOS jobs to succeed; got KAWARIMI=$KAWARIMI DEMO=$DEMO PERF=$PERF"
+            echo "Expected ubuntu test jobs to succeed; got KAWARIMI=$KAWARIMI DEMO=$DEMO PERF=$PERF"
             exit 1
           fi
           echo "OK"

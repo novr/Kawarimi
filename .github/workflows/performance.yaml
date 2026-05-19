@@ -6,11 +6,21 @@ on:
 permissions:
   contents: read
 
+env:
+  KAWARIMI_LINUX_CI: "1"
+
 jobs:
   run:
-    runs-on: macos-26
+    runs-on: ubuntu-latest
+    container:
+      image: swift:6.2-noble
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Trust workspace for SwiftPM
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Incremental build
         run: ./Scripts/performance/incremental-build.sh --clean

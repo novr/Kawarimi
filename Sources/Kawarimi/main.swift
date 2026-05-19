@@ -15,7 +15,7 @@ private enum KawarimiPerfLog {
     static func emit(phase: String, duration: Duration, skipped: Bool = false) {
         guard isEnabled else { return }
         let suffix = skipped ? " skipped" : ""
-        fputs("\(prefix) phase=\(phase) seconds=\(seconds(duration))\(suffix)\n", stderr)
+        StandardError.write("\(prefix) phase=\(phase) seconds=\(seconds(duration))\(suffix)")
     }
 }
 
@@ -25,7 +25,7 @@ struct Kawarimi {
         let args = CommandLine.arguments
         guard args.count >= 3 else {
             let prog = args.first ?? "Kawarimi"
-            fputs("Usage: \(prog) <openapi path> <output directory>\n", stderr)
+            StandardError.write("Usage: \(prog) <openapi path> <output directory>")
             exit(1)
         }
         let inputPath = args[1]
@@ -82,7 +82,7 @@ struct Kawarimi {
                     handlerStubPolicy: stubPolicy
                 )
                 for line in handlerWarnings {
-                    fputs("\(line)\n", stderr)
+                    StandardError.write(line)
                 }
                 let handlerWritten = try GeneratedFileWriter.writeIfChanged(
                     handlerSource,
@@ -109,7 +109,7 @@ struct Kawarimi {
             let totalElapsed = runStarted.duration(to: clock.now)
             KawarimiPerfLog.emit(phase: "total", duration: totalElapsed)
         } catch {
-            fputs("Error: \(error)\n", stderr)
+            StandardError.write("Error: \(error)")
             exit(1)
         }
     }

@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(Linux)
 import Foundation
 
 /// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
