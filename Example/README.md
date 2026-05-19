@@ -43,6 +43,8 @@ swift run DemoServer   # kawarimi.json under DemoPackage/
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
+Override the listen address with `HOST` and `PORT` (default port **8080**). Use `PORT=0` to bind an ephemeral port. After the server is listening, write `http://host:port` to a file with `KAWARIMI_LISTEN_READY_FILE=/path/to/file` or `swift run DemoServer --print-listen-url /path/to/file` (stdout only: `--print-listen-url` with no path).
+
 `DemoAPITests` covers the in-process **`Kawarimi()`** transport path.
 
 ## HengeCli (macOS)

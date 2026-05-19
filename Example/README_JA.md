@@ -43,6 +43,8 @@ swift run DemoServer   # kawarimi.json は DemoPackage/ 配下
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 ```
 
+`HOST`（待受ホスト）と `PORT`（待受ポート、省略時は 8080）を環境変数で上書きできます。空きポートに任せる場合は `PORT=0` を指定します。listen 完了後に `http://host:port` を 1 行で受け取るには、`KAWARIMI_LISTEN_READY_FILE=/path/to/file` または `swift run DemoServer --print-listen-url /path/to/file`（stdout のみなら `--print-listen-url`）を使います。
+
 **`DemoAPITests`** がプロセス内の **`Kawarimi()`** トランスポートを検証します。
 
 ## HengeCli（macOS）
