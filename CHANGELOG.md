@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KawarimiCore**: **`KawarimiConfigStore.reloadFromDisk()`** and **`POST …/__kawarimi/reload`** (`204` + **`X-Kawarimi-Reload: applied|unchanged`**) to re-read runtime **`kawarimi.json`** without restart ([#77](https://github.com/novr/Kawarimi/issues/77)).
 - **KawarimiCore** / **KawarimiHenge**: optional **`delayMs`** on mock overrides (normalized 0–60_000 ms) ([#53](https://github.com/novr/Kawarimi/issues/53)).
 - **KawarimiServer**: **`KawarimiServerMiddleware`** honors **`delayMs`** before returning a mock response.
 - **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** via [swift-argument-parser](https://github.com/apple/swift-argument-parser) ([#71](https://github.com/novr/Kawarimi/issues/71)).

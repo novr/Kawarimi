@@ -121,4 +121,23 @@ public struct KawarimiAPIClient: Sendable {
         let (_, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: nil)
     }
+
+    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects `204` and `X-Kawarimi-Reload`.
+    public func reload() async throws -> KawarimiConfigReloadResult {
+        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("reload")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw KawarimiAPIError(statusCode: 0, data: data)
+        }
+        guard http.statusCode == 204 else {
+            throw KawarimiAPIError(statusCode: http.statusCode, data: data)
+        }
+        let raw = http.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) ?? ""
+        guard let result = KawarimiConfigReloadResult(httpHeaderValue: raw) else {
+            throw KawarimiAPIError(statusCode: http.statusCode, data: data)
+        }
+        return result
+    }
 }

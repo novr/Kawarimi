@@ -68,6 +68,13 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 return Response(status: .ok)
             }
 
+            kawarimi.post("reload") { _ async throws -> Response in
+                let result = await store.reloadFromDisk()
+                var headers = HTTPHeaders()
+                headers.add(name: KawarimiAdminHeaders.reloadOutcome, value: result.httpHeaderValue)
+                return Response(status: .noContent, headers: headers)
+            }
+
             kawarimi.get("spec") { _ async throws -> SpecResponse in
                 SpecResponse(meta: KawarimiSpec.meta, endpoints: KawarimiSpec.endpoints)
             }

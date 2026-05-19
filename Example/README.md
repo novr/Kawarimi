@@ -129,6 +129,12 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
+After editing **`kawarimi.json` on disk**, re-read it into the server (`204`; check **`X-Kawarimi-Reload`** — `applied` or `unchanged`):
+
+```bash
+curl -i -X POST http://localhost:8080/api/__kawarimi/reload
+```
+
 When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so **`KawarimiServerMiddleware`** picks the matching enabled override among several for the same route.
 
 See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
