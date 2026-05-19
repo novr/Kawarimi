@@ -118,6 +118,26 @@ try handler.registerHandlers(
 
 **In-process `Kawarimi` (`ClientTransport`) does not read `kawarimi.json` or apply runtime overrides** — only the server middleware path above (or your own integration) does.
 
+### Override matching product rules
+
+The **single source of truth for matching and primary selection** is **KawarimiCore** (`MockOverrideRequestMatching`, `MockOverride.sortedForOverrideTieBreak`). Henge explorer and `KawarimiServerMiddleware` call the same APIs; this section is the user-facing contract.
+
+1. **Operation identity** — When `MockOverride.name` and the OpenAPI `operationId` are both non-empty and equal, the override matches that operation **without comparing path** (hand-edited `path` typos still match by id). This is intentional, not a bug.
+2. **Path binding** — When identity does not decide:
+   - **Incoming HTTP (server):** Compare the request URL (path only) to the persisted override `path` using `PathTemplate` + `pathPrefix` (`overrideMatchesIncomingRequest`).
+   - **Explorer row (Henge):** Compare the spec / row template path to the persisted `path` using `KawarimiPath.aligned` (`overrideMatchesOperation`).
+3. **Primary selection** — Among **enabled** overrides that match the same operation, the **first** after `sortedForOverrideTieBreak` wins (`path` → `statusCode` → `name` → `exampleId`; stable sort preserves `hits` order for equal keys). **`X-Kawarimi-Example-Id`** narrows candidates only on **incoming** requests (`matchingEnabledOverrides`); the explorer does not send this header.
+4. **Non-goals** — In-process `Kawarimi` (`ClientTransport`) does not apply runtime overrides (#75).
+
+API summary:
+
+| Context | Match | Primary / list |
+| --- | --- | --- |
+| Server (`KawarimiServerMiddleware`) | `matchingEnabledOverrides` / `primaryEnabledOverride` | Incoming path + optional example header |
+| Henge explorer | `matchingEnabledOverridesForOperation` / `primaryEnabledOverrideForOperation` | Spec row path + `operationId` |
+
+`sortedForInterceptorTieBreak` remains as an alias of `sortedForOverrideTieBreak`.
+
 ### Runtime updates (current)
 
 | What | Behavior |
@@ -216,7 +236,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Save** builds **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`** then `configure`. If the draft is **Spec-shaped** (see below) **and** the user is on the **Spec** chip (`pinnedNumberedResponseChip` is false), **Save** sends **`isEnabled: false`** and cleared body fields for that default row — even if an **enabled** line for the same keys was still on the server — so you don’t accidentally stay “active” after choosing **Spec**. If the user chose a **numbered** chip (pin true) but the stored row is still **off** (draft can match the template), **Save** sends **enabled** so **200 OK** (etc.) becomes primary. Otherwise **`mock.isEnabled`** chooses **enabled** vs **disabled**; **disabled** saves still include trimmed **body** / **contentType** on the wire.
 
-**Primary badge (`P`)** on a **detail** numbered chip matches the **server’s** primary enabled row only (not unsaved edits). The **endpoint list** shows the primary’s HTTP status (and example caption) **without** a **P** badge. If **two or more** enabled rows exist for the same operation (e.g. hand-edited config), the list shows a **warning**; the server uses the first row after server ordering (`sortedForInterceptorTieBreak`).
+**Primary badge (`P`)** on a **detail** numbered chip matches the **server’s** primary enabled row only (not unsaved edits). The **endpoint list** shows the primary’s HTTP status (and example caption) **without** a **P** badge. If **two or more** enabled rows exist for the same operation (e.g. hand-edited config), the list shows a **warning**; the server and explorer both use the first row after `sortedForOverrideTieBreak` (same Core ordering).
 
 **Del** (−): mock **on** → **`configure`** with **off** for the same keys; mock **off** and a **saved** row matches the chip → **`remove`** (row deleted from config).
 
@@ -281,7 +301,7 @@ Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.
 
-If several overrides match the same request (same path template + method), **`KawarimiServerMiddleware`** **sorts** by `MockOverride.sortedForInterceptorTieBreak` and uses the **first** entry.
+If several overrides match the same request (same path template + method), **`KawarimiServerMiddleware`** **sorts** by `MockOverride.sortedForOverrideTieBreak` and uses the **first** entry.
 
 Comparison order:
 

@@ -636,6 +636,70 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(opts.first?.isSpec == true)
 }
 
+// MARK: - Primary override (Core-aligned)
+
+@Test func hengePrimaryMatchesCoreForOperationIdDespitePathTypo() {
+    let rowKey = EndpointRowKey(method: .get, path: "/api/items")
+    let overrides = [
+        MockOverride(
+            name: "listItems",
+            path: "/api/wrong-path",
+            method: .get,
+            statusCode: 200,
+            exampleId: "alt",
+            isEnabled: true
+        ),
+        MockOverride(
+            name: "listItems",
+            path: "/api/items",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true
+        ),
+    ]
+    let hengePrimary = OverrideListQueries.primaryEnabledOverride(
+        for: rowKey,
+        operationId: "listItems",
+        pathPrefix: "/api",
+        in: overrides
+    )
+    let corePrimary = MockOverrideRequestMatching.primaryEnabledOverrideForOperation(
+        in: overrides,
+        method: rowKey.method,
+        operationPath: rowKey.path,
+        operationID: "listItems",
+        pathPrefix: "/api"
+    )
+    #expect(hengePrimary == corePrimary)
+    #expect(hengePrimary?.path == "/api/items")
+    #expect(hengePrimary?.exampleId == nil)
+}
+
+@Test func hengeEnabledOverridesForOperationMatchesCoreOrdering() {
+    let rowKey = EndpointRowKey(method: .get, path: "/api/items")
+    let overrides = [
+        MockOverride(path: "/api/zebra", method: .get, statusCode: 500, isEnabled: true),
+        MockOverride(path: "/api/apple", method: .get, statusCode: 200, isEnabled: true),
+        MockOverride(path: "/api/items", method: .get, statusCode: 404, isEnabled: true),
+    ]
+    let hengeList = OverrideListQueries.enabledOverridesForOperation(
+        rowKey: rowKey,
+        operationId: nil,
+        pathPrefix: "/api",
+        in: overrides
+    )
+    let coreList = MockOverrideRequestMatching.matchingEnabledOverridesForOperation(
+        in: overrides,
+        method: rowKey.method,
+        operationPath: rowKey.path,
+        operationID: nil,
+        pathPrefix: "/api"
+    )
+    #expect(hengeList == coreList)
+    #expect(hengeList.map { $0.path } == ["/api/items"])
+}
+
 @Test func specResponseListIndexForPrimaryBadgeDisambiguatesDuplicateStatusAndExample() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",

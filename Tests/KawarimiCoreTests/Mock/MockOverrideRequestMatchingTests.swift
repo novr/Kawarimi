@@ -37,6 +37,64 @@ struct MockOverrideRequestMatchingTests {
         )
     }
 
+    @Test func matchesOperationByAlignedPath() {
+        let override = MockOverride(path: "/api/items", method: .get, statusCode: 200)
+        #expect(
+            MockOverrideRequestMatching.overrideMatchesOperation(
+                override,
+                method: .get,
+                operationPath: "/items",
+                operationID: nil,
+                pathPrefix: "/api"
+            )
+        )
+    }
+
+    @Test func matchesOperationByOperationIDIgnoresPathTypo() {
+        let override = MockOverride(
+            name: "listItems",
+            path: "/api/wrong-path",
+            method: .get,
+            statusCode: 200,
+            isEnabled: true
+        )
+        #expect(
+            MockOverrideRequestMatching.overrideMatchesOperation(
+                override,
+                method: .get,
+                operationPath: "/api/items",
+                operationID: "listItems",
+                pathPrefix: "/api"
+            )
+        )
+    }
+
+    @Test func primaryForOperationUsesTieBreakOrder() {
+        let laterPath = MockOverride(path: "/api/zebra", method: .get, statusCode: 200, isEnabled: true)
+        let earlierPath = MockOverride(path: "/api/apple", method: .get, statusCode: 200, isEnabled: true)
+        let primary = MockOverrideRequestMatching.primaryEnabledOverrideForOperation(
+            in: [laterPath, earlierPath],
+            method: .get,
+            operationPath: "/api/apple",
+            operationID: nil,
+            pathPrefix: "/api"
+        )
+        #expect(primary?.path == "/api/apple")
+    }
+
+    @Test func matchingEnabledOverridesForOperationExcludesDisabled() {
+        let enabled = MockOverride(path: "/api/items", method: .get, statusCode: 200, isEnabled: true)
+        let disabled = MockOverride(path: "/api/items", method: .get, statusCode: 404, isEnabled: false)
+        let matches = MockOverrideRequestMatching.matchingEnabledOverridesForOperation(
+            in: [enabled, disabled],
+            method: .get,
+            operationPath: "/api/items",
+            operationID: nil,
+            pathPrefix: "/api"
+        )
+        #expect(matches == [enabled])
+    }
+
     @Test func primaryRespectsExampleIdHeader() {
         let defaultRow = MockOverride(
             path: "/api/items",

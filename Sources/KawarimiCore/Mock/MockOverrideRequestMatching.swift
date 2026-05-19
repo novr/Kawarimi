@@ -54,7 +54,45 @@ public enum MockOverrideRequestMatching {
                 )
         }
         let narrowed = KawarimiMockRequestHeaders.filterOverrides(candidates, exampleIdHeaderRaw: exampleIdHeaderRaw)
-        return MockOverride.sortedForInterceptorTieBreak(narrowed)
+        return MockOverride.sortedForOverrideTieBreak(narrowed)
+    }
+
+    /// Enabled overrides for an OpenAPI operation row (Henge explorer / configure identity), tie-break order (first wins).
+    public static func matchingEnabledOverridesForOperation(
+        in overrides: [MockOverride],
+        method: HTTPRequest.Method,
+        operationPath: String,
+        operationID: String?,
+        pathPrefix: String
+    ) -> [MockOverride] {
+        let candidates = overrides.filter { ov in
+            ov.isEnabled
+                && overrideMatchesOperation(
+                    ov,
+                    method: method,
+                    operationPath: operationPath,
+                    operationID: operationID,
+                    pathPrefix: pathPrefix
+                )
+        }
+        return MockOverride.sortedForOverrideTieBreak(candidates)
+    }
+
+    /// First enabled override for an OpenAPI operation row after tie-break.
+    public static func primaryEnabledOverrideForOperation(
+        in overrides: [MockOverride],
+        method: HTTPRequest.Method,
+        operationPath: String,
+        operationID: String?,
+        pathPrefix: String
+    ) -> MockOverride? {
+        matchingEnabledOverridesForOperation(
+            in: overrides,
+            method: method,
+            operationPath: operationPath,
+            operationID: operationID,
+            pathPrefix: pathPrefix
+        ).first
     }
 
     /// First enabled override for an incoming request after header narrowing and tie-break.

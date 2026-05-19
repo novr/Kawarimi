@@ -117,6 +117,26 @@ try handler.registerHandlers(
 
 **プロセス内の `Kawarimi`（`ClientTransport`）は `kawarimi.json` を読まず、実行時オーバーライドも適用しません** — 上記サーバ経路（または自前統合）のみです。
 
+### オーバーライドマッチングの Product ルール
+
+マッチングとプライマリ選択の**実装の単一ソース**は **KawarimiCore**（`MockOverrideRequestMatching`、`MockOverride.sortedForOverrideTieBreak`）です。Henge エクスプローラと `KawarimiServerMiddleware` は同じ API を使います。以下は利用者向けの契約です。
+
+1. **Operation identity** — `MockOverride.name` と OpenAPI の `operationId` が両方非空で一致すれば、**path は比較せず**同一 operation とみなします（手編集の `path` の typo でも id でマッチ）。意図したルールであり、バグではありません。
+2. **Path binding** — identity で決まらないとき:
+   - **着信 HTTP（サーバ）:** リクエスト URL（path のみ）と persisted `path` を `PathTemplate` + `pathPrefix` で比較（`overrideMatchesIncomingRequest`）。
+   - **エクスプローラ行（Henge）:** spec / 行のテンプレート path と persisted `path` を `KawarimiPath.aligned` で比較（`overrideMatchesOperation`）。
+3. **Primary selection** — 同一 operation にマッチする **enabled** 行のうち、`sortedForOverrideTieBreak` の**先頭**がプライマリ（`path` → `statusCode` → `name` → `exampleId`、同順位は安定ソートで `hits` 順を維持）。**`X-Kawarimi-Example-Id`** は**着信**時のみ候補を絞ります（`matchingEnabledOverrides`）。エクスプローラはこのヘッダーを送りません。
+4. **非目標** — プロセス内 `Kawarimi`（`ClientTransport`）は実行時オーバーライド非対応（#75）。
+
+API 対応:
+
+| 文脈 | マッチ | プライマリ / 一覧 |
+| --- | --- | --- |
+| サーバ（`KawarimiServerMiddleware`） | `matchingEnabledOverrides` / `primaryEnabledOverride` | 着信 path + 任意の example ヘッダー |
+| Henge エクスプローラ | `matchingEnabledOverridesForOperation` / `primaryEnabledOverrideForOperation` | spec 行 path + `operationId` |
+
+`sortedForInterceptorTieBreak` は `sortedForOverrideTieBreak` の別名です。
+
 ### 実行時更新（現状）
 
 | 対象 | 挙動 |
@@ -215,7 +235,7 @@ try handler.registerHandlers(
 
 **Save** は **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`** を組み立てて `configure` します。**Spec 形**のドラフトでも、ユーザーが **Spec チップ**を選んでいるときだけ（**`pinnedNumberedResponseChip`** が false）**無効＋本文クリア**の先頭分岐に入ります。**200 OK** など番号チップ（pin true）で、保存行はまだオフでも本文がテンプレ一致のときは **有効**を送り、プライマリにします。それ以外は **`mock.isEnabled`** で **有効**／**無効**を切り替え、**無効**でもトリム済みの **body** / **contentType** を送ります。
 
-詳細の番号チップの **`P`** だけが**サーバー上のプライマリ**行を示します（未保存の選択とは一致しないことがあります）。**一覧**は **P なし**でプライマリの HTTP ステータス（と例キャプション）を出し、編集中のチップとは切り離されます。同一操作に **enabled 行が2件以上**あるときは一覧に**警告**が出ます。サーバーは並び（`sortedForInterceptorTieBreak`）の先頭を使います。
+詳細の番号チップの **`P`** だけが**サーバー上のプライマリ**行を示します（未保存の選択とは一致しないことがあります）。**一覧**は **P なし**でプライマリの HTTP ステータス（と例キャプション）を出し、編集中のチップとは切り離されます。同一操作に **enabled 行が2件以上**あるときは一覧に**警告**が出ます。サーバーとエクスプローラはどちらも `sortedForOverrideTieBreak`（Core 共通）の先頭を使います。
 
 **Del**（−）: モック **オン** → 同一キーで **`configure` でオフ**。**オフ**で保存行が一致 → **`remove`**（設定から行削除）。
 
@@ -280,7 +300,7 @@ try handler.registerHandlers(
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。
 
-同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、**`KawarimiServerMiddleware`** は **`MockOverride.sortedForInterceptorTieBreak`** で並べ替えた **先頭**を採用します。
+同一リクエストに複数のオーバーライドがマッチする場合（パステンプレート・メソッドが一致）、**`KawarimiServerMiddleware`** は **`MockOverride.sortedForOverrideTieBreak`** で並べ替えた **先頭**を採用します。
 
 比較順:
 

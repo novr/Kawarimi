@@ -27,10 +27,13 @@ enum OverrideListQueries {
         pathPrefix: String,
         in overrides: [MockOverride]
     ) -> MockOverride? {
-        let candidates = overrides.filter { ov in
-            ov.isEnabled && overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
-        }
-        return MockOverride.sortedForInterceptorTieBreak(candidates).first
+        MockOverrideRequestMatching.primaryEnabledOverrideForOperation(
+            in: overrides,
+            method: rowKey.method,
+            operationPath: rowKey.path,
+            operationID: operationId,
+            pathPrefix: pathPrefix
+        )
     }
 
     /// Status code of the primary enabled override for the row, or nil when following spec only.
@@ -73,10 +76,13 @@ enum OverrideListQueries {
         pathPrefix: String,
         in overrides: [MockOverride]
     ) -> [MockOverride] {
-        let candidates = overrides.filter { ov in
-            ov.isEnabled && overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
-        }
-        return MockOverride.sortedForInterceptorTieBreak(candidates)
+        MockOverrideRequestMatching.matchingEnabledOverridesForOperation(
+            in: overrides,
+            method: rowKey.method,
+            operationPath: rowKey.path,
+            operationID: operationId,
+            pathPrefix: pathPrefix
+        )
     }
 
     /// More than one enabled row for the same operation (e.g. hand-edited config); interceptor uses tie-break order.
