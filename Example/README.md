@@ -72,6 +72,25 @@ This repo’s `DemoPackage` includes `kawarimi-generator-config.yaml` next to `o
 
 ```yaml
 handlerStubPolicy: throw
+# generateKawarimi: true
+# generateHandler: true
+# generateSpec: true
+```
+
+Example override with response delay (`delayMs` in milliseconds):
+
+```json
+{
+  "overrides": [
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "isEnabled": true,
+      "delayMs": 500
+    }
+  ]
+}
 ```
 
 Override merge / tie-break rules and empty-body normalization: [henge.md](../docs/henge.md#kawarimijson--kawarimi_config).

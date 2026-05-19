@@ -22,6 +22,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public var body: String?
     /// When body is set and this is nil, the server treats the body as JSON.
     public var contentType: String?
+    /// Optional response delay in milliseconds before the mock body is returned.
+    public var delayMs: Int?
 
     public var hasEffectiveCustomBody: Bool { body.map { !$0.isEmpty } ?? false }
 
@@ -36,7 +38,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
         exampleId: String? = nil,
         isEnabled: Bool = true,
         body: String? = nil,
-        contentType: String? = nil
+        contentType: String? = nil,
+        delayMs: Int? = nil
     ) {
         self.name = name
         self.path = path
@@ -46,6 +49,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.isEnabled = isEnabled
         self.body = body
         self.contentType = contentType
+        self.delayMs = delayMs
     }
 
     /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
@@ -57,7 +61,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
         exampleId: String? = nil,
         isEnabled: Bool = true,
         body: String? = nil,
-        contentType: String? = nil
+        contentType: String? = nil,
+        delayMs: Int? = nil
     ) {
         let normalized = methodString.uppercased()
         guard let m = HTTPRequest.Method(normalized) else { return nil }
@@ -69,7 +74,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
             exampleId: exampleId,
             isEnabled: isEnabled,
             body: body,
-            contentType: contentType
+            contentType: contentType,
+            delayMs: delayMs
         )
     }
 }

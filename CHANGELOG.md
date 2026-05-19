@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore** / **KawarimiHenge**: optional **`delayMs`** on mock overrides (normalized 0–60_000 ms) ([#53](https://github.com/novr/Kawarimi/issues/53)).
+- **KawarimiServer**: **`KawarimiServerMiddleware`** honors **`delayMs`** before returning a mock response.
+
 ## [2.1.0] - 2026-05-19
 
 ### Added

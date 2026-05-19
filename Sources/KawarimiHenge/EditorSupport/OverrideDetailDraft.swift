@@ -39,6 +39,7 @@ struct OverrideDetailDraft {
             mock.isEnabled = exact.isEnabled
             mock.statusCode = exact.statusCode
             mock.exampleId = exact.exampleId
+            mock.delayMs = exact.delayMs
             mock.name = exact.name ?? endpoint.operationId
             if exact.hasEffectiveCustomBody {
                 mock.body = exact.body
@@ -65,6 +66,7 @@ struct OverrideDetailDraft {
            ) {
             mock.statusCode = pinned.statusCode
             mock.exampleId = pinned.exampleId
+            mock.delayMs = pinned.delayMs
             mock.name = pinned.name ?? endpoint.operationId
             mergeResponseTemplate(
                 endpoint: endpoint,
@@ -83,6 +85,7 @@ struct OverrideDetailDraft {
             if let ov = MockOverride.sortedForInterceptorTieBreak(candidates).first {
                 mock.statusCode = ov.statusCode
                 mock.exampleId = ov.exampleId
+                mock.delayMs = ov.delayMs
                 mock.name = ov.name ?? endpoint.operationId
                 mergeResponseTemplate(
                     endpoint: endpoint,
@@ -100,6 +103,7 @@ struct OverrideDetailDraft {
         mock.exampleId = nil
         mock.body = nil
         mock.contentType = nil
+        mock.delayMs = nil
         mock.name = endpoint.operationId
     }
 

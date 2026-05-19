@@ -50,7 +50,8 @@ enum SavePayload {
             exampleId: nil,
             isEnabled: false,
             body: nil,
-            contentType: nil
+            contentType: nil,
+            delayMs: nil
         )
     }
 
@@ -69,7 +70,8 @@ enum SavePayload {
             exampleId: mock.exampleId,
             isEnabled: true,
             body: body,
-            contentType: contentType
+            contentType: contentType,
+            delayMs: mock.delayMs
         )
     }
 
@@ -89,7 +91,8 @@ enum SavePayload {
             exampleId: mock.exampleId,
             isEnabled: false,
             body: body,
-            contentType: contentType
+            contentType: contentType,
+            delayMs: mock.delayMs
         )
     }
 }
