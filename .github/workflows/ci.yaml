@@ -93,6 +93,9 @@ jobs:
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
+      - name: Install Python for perf fixture
+        run: apt-get update -qq && apt-get install -y -qq python3
+
       - name: kawarimi-perf-out
         shell: bash
         run: |
