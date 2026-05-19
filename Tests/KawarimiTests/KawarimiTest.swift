@@ -231,41 +231,38 @@ import Testing
 }
 
 private func resolvePackageRoot() -> URL {
-    var root = URL(fileURLWithPath: #filePath)
+    URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
         .deletingLastPathComponent()
-        .deletingLastPathComponent()
-    if root.lastPathComponent != "Kawarimi" {
-        root = root.appendingPathComponent("Kawarimi")
-    }
-    return root
 }
 
 private func findKawarimiExecutable(packageRoot: URL) -> URL? {
     let fm = FileManager.default
-    let candidates: [URL] = [
-        packageRoot.appendingPathComponent(".build").appendingPathComponent("arm64-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-        packageRoot.appendingPathComponent(".build").appendingPathComponent("arm64e-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-        packageRoot.appendingPathComponent(".build").appendingPathComponent("x86_64-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-        packageRoot.deletingLastPathComponent().appendingPathComponent(".build").appendingPathComponent("arm64-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-        packageRoot.deletingLastPathComponent().appendingPathComponent(".build").appendingPathComponent("arm64e-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-        packageRoot.deletingLastPathComponent().appendingPathComponent(".build").appendingPathComponent("x86_64-apple-macosx").appendingPathComponent("debug").appendingPathComponent("Kawarimi"),
-    ]
-    for url in candidates where fm.fileExists(atPath: url.path) {
-        return url
-    }
     if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty {
         let url = URL(fileURLWithPath: binPath).appendingPathComponent("Kawarimi")
         if fm.fileExists(atPath: url.path) { return url }
     }
-    return nil
+    let macOSTriples = ["arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx"]
+    let linuxTriples = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
+    let roots = [packageRoot, packageRoot.deletingLastPathComponent()]
+    var candidates: [URL] = []
+    for root in roots {
+        for triple in macOSTriples + linuxTriples {
+            candidates.append(
+                root.appendingPathComponent(".build").appendingPathComponent(triple).appendingPathComponent("debug")
+                    .appendingPathComponent("Kawarimi")
+            )
+        }
+    }
+    return candidates.first { fm.fileExists(atPath: $0.path) }
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
     process.arguments = ["swift", "build", "--package-path", packageRoot.path, "--show-bin-path"]
+    process.environment = ProcessInfo.processInfo.environment
     let pipe = Pipe()
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice

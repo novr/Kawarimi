@@ -1,5 +1,8 @@
-#if os(macOS)
+#if os(macOS) || os(Linux)
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
 struct DemoServerHarness {
@@ -230,7 +233,10 @@ enum DemoServerHTTP {
 
 private func findDemoServerExecutable(packageRoot: URL) -> URL? {
     let fm = FileManager.default
-    let triples = ["arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx"]
+    let triples = [
+        "arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx",
+        "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
+    ]
     var candidates: [URL] = []
     for triple in triples {
         candidates.append(

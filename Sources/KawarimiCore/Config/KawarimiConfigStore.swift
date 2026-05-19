@@ -1,6 +1,9 @@
 import Foundation
 import HTTPTypes
+
+#if canImport(OSLog)
 import OSLog
+#endif
 
 public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     /// Rejects `..` in the config path to avoid escaping the intended directory.
@@ -17,7 +20,18 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     }
 }
 
+#if canImport(OSLog)
 private let kawarimiConfigStoreLog = Logger(subsystem: "Kawarimi", category: "KawarimiConfigStore")
+#endif
+
+private func logInvalidKawarimiConfig(at absolute: String, error: Error) {
+    let message = "Ignoring invalid kawarimi config JSON at \(absolute): \(error.localizedDescription)"
+#if canImport(OSLog)
+    kawarimiConfigStoreLog.warning("\(message, privacy: .public)")
+#else
+    StandardError.write("KawarimiConfigStore: \(message)")
+#endif
+}
 
 public enum KawarimiConfigDefaults {
     public static let fileName = "kawarimi.json"
@@ -51,9 +65,7 @@ public actor KawarimiConfigStore {
                 let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
                 self.cachedOverrides = config.overrides
             } catch {
-                kawarimiConfigStoreLog.warning(
-                    "Ignoring invalid kawarimi config JSON at \(absolute, privacy: .public): \(error.localizedDescription, privacy: .public)"
-                )
+                logInvalidKawarimiConfig(at: absolute, error: error)
                 self.cachedOverrides = []
             }
         } else {

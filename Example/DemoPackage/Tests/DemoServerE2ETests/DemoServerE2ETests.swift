@@ -1,5 +1,8 @@
-#if os(macOS)
+#if os(macOS) || os(Linux)
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 
 @Suite(.serialized)

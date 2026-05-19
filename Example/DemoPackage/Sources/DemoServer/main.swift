@@ -1,4 +1,4 @@
-#if os(macOS)
+#if os(macOS) || os(Linux)
 import DemoAPI
 import Foundation
 import KawarimiCore
