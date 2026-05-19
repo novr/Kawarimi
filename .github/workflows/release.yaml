@@ -61,11 +61,11 @@ jobs:
           else
             VERSION="$(sed -n 's/.*static let version = "\(.*\)".*/\1/p' Sources/Kawarimi/Generated.swift)"
           fi
-          ARCHIVE="kawarimi-${VERSION}-source.tar.gz"
+          ARCHIVE="/tmp/kawarimi-${VERSION}-source.tar.gz"
           tar czf "$ARCHIVE" \
             --exclude='.git' \
             --exclude='.build' \
-            --exclude='*.tar.gz' \
+            -C "$GITHUB_WORKSPACE" \
             .
           echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
 
