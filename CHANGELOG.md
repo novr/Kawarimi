@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-05-19
+
 ### Added
 
 - **KawarimiServer**: **`KawarimiServerMiddleware`** (`ServerMiddleware`) for Henge runtime overrides on `registerHandlers(middlewares:)` ([#75](https://github.com/novr/Kawarimi/issues/75)).
@@ -225,6 +227,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.1.0]: https://github.com/novr/Kawarimi/releases/tag/v2.1.0
 [2.0.5]: https://github.com/novr/Kawarimi/releases/tag/v2.0.5
 [2.0.4]: https://github.com/novr/Kawarimi/releases/tag/v2.0.4
 [2.0.3]: https://github.com/novr/Kawarimi/releases/tag/v2.0.3
