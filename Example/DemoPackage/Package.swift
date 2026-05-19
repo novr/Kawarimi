@@ -62,7 +62,7 @@ let package = Package(
         ),
         .testTarget(
             name: "DemoServerE2ETests",
-            dependencies: [],
+            dependencies: ["DemoAPI"],
             path: "Tests/DemoServerE2ETests"
         ),
     ]

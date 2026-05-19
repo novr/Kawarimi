@@ -41,6 +41,15 @@ struct DemoServer {
     static func main() async throws {
         let app = try await Application.make()
         applyListenConfiguration(to: app)
+        let launch = DemoServerLaunchOptions.parse()
+        if launch.listenReadyFile != nil || launch.printListenURLToStdout {
+            app.lifecycle.use(
+                ListenReadyNotifier(
+                    readyFilePath: launch.listenReadyFile,
+                    printToStdout: launch.printListenURLToStdout
+                )
+            )
+        }
         let configPath = resolvedKawarimiConfigPath()
         let store = try KawarimiConfigStore(
             configPath: configPath,

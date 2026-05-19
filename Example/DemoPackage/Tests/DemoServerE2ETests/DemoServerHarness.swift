@@ -1,13 +1,14 @@
 #if os(macOS)
 import Foundation
 
-/// Spins up a `DemoServer` subprocess; binds with `PORT=0` and learns the listen URL from Vapor stderr.
+/// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
 struct DemoServerHarness {
     private(set) var baseURL: URL
     var kawarimiBaseURL: URL { baseURL.appending(path: "__kawarimi") }
 
     private let process: Process
     private let configDir: URL
+    private let listenReadyFile: URL
     private let stderrMonitor: StderrMonitor
 
     static func start(packageRoot: URL, timeout: TimeInterval = 45) async throws -> DemoServerHarness {
@@ -22,6 +23,7 @@ struct DemoServerHarness {
         try FileManager.default.createDirectory(at: configDir, withIntermediateDirectories: true)
         let configPath = configDir.appendingPathComponent("kawarimi.json")
         try Data("{\"overrides\":[]}".utf8).write(to: configPath)
+        let listenReadyFile = configDir.appendingPathComponent("listen-ready.txt")
 
         let stderrPipe = Pipe()
         let stderrMonitor = StderrMonitor(pipe: stderrPipe)
@@ -32,15 +34,17 @@ struct DemoServerHarness {
         environment["HOST"] = "127.0.0.1"
         environment["PORT"] = "0"
         environment["KAWARIMI_CONFIG"] = configPath.path
+        environment["KAWARIMI_LISTEN_READY_FILE"] = listenReadyFile.path
         process.environment = environment
         process.standardOutput = FileHandle.nullDevice
         process.standardError = stderrPipe
         try process.run()
 
         var harness = DemoServerHarness(
-            baseURL: URL(string: "http://127.0.0.1:0/api")!,
+            baseURL: URL(string: "http://127.0.0.1:0")!,
             process: process,
             configDir: configDir,
+            listenReadyFile: listenReadyFile,
             stderrMonitor: stderrMonitor
         )
         try await harness.waitUntilReady(timeout: timeout)
@@ -75,11 +79,13 @@ struct DemoServerHarness {
         baseURL: URL,
         process: Process,
         configDir: URL,
+        listenReadyFile: URL,
         stderrMonitor: StderrMonitor
     ) {
         self.baseURL = baseURL
         self.process = process
         self.configDir = configDir
+        self.listenReadyFile = listenReadyFile
         self.stderrMonitor = stderrMonitor
     }
 
@@ -93,8 +99,8 @@ struct DemoServerHarness {
                 )
             }
 
-            if let origin = stderrMonitor.listenOrigin {
-                let apiBase = origin.appending(path: "api")
+            if let origin = Self.readListenOrigin(from: listenReadyFile) {
+                let apiBase = DemoServerE2EPaths.apiBaseURL(origin: origin)
                 var request = URLRequest(url: apiBase.appending(path: "greet"))
                 request.httpMethod = "GET"
                 do {
@@ -110,17 +116,27 @@ struct DemoServerHarness {
 
             try await Task.sleep(for: .milliseconds(100))
         }
-        let hint = stderrMonitor.listenOrigin.map { "\($0)/api/greet" } ?? "http://127.0.0.1:<port>/api/greet"
+        let hint = "\(DemoServerE2EPaths.greetPath) on listen-ready file"
         throw HarnessError.readyTimeout(hint, stderr: stderrMonitor.snapshot())
+    }
+
+    private static func readListenOrigin(from fileURL: URL) -> URL? {
+        guard let data = try? Data(contentsOf: fileURL),
+            let text = String(data: data, encoding: .utf8)?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+            let firstLine = text.split(whereSeparator: \.isNewline).first.map(String.init),
+            !firstLine.isEmpty
+        else {
+            return nil
+        }
+        return URL(string: firstLine)
     }
 }
 
-/// Reads DemoServer stderr and extracts Vapor's `Server started on …` listen URL.
 private final class StderrMonitor: @unchecked Sendable {
     private let handle: FileHandle
     private let lock = NSLock()
     private var buffer = Data()
-    private(set) var listenOrigin: URL?
 
     init(pipe: Pipe) {
         handle = pipe.fileHandleForReading
@@ -130,12 +146,6 @@ private final class StderrMonitor: @unchecked Sendable {
             guard !chunk.isEmpty else { return }
             self.lock.lock()
             self.buffer.append(chunk)
-            if self.listenOrigin == nil,
-                let text = String(data: self.buffer, encoding: .utf8),
-                let origin = Self.parseListenOrigin(from: text)
-            {
-                self.listenOrigin = origin
-            }
             self.lock.unlock()
         }
     }
@@ -161,13 +171,6 @@ private final class StderrMonitor: @unchecked Sendable {
             buffer.append(pending)
         }
         return String(data: buffer, encoding: .utf8) ?? ""
-    }
-
-    static func parseListenOrigin(from log: String) -> URL? {
-        guard let range = log.range(of: "Server started on ") else { return nil }
-        let rest = log[range.upperBound...]
-        guard let end = rest.firstIndex(where: { $0.isWhitespace || $0.isNewline }) else { return nil }
-        return URL(string: String(rest[..<end]))
     }
 }
 

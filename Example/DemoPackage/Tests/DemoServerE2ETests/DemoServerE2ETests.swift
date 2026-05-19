@@ -26,9 +26,10 @@ final class DemoServerE2ETests {
     @Test func hengeConfigureAppliesInterceptorOverride() async throws {
         try await server.resetOverrides()
 
+        let greetPath = DemoServerE2EPaths.greetPath
         let configureBody = Data(
             """
-            {"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true,\
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,\
             "body":"{\\"message\\":\\"From E2E test\\"}","contentType":"application/json"}
             """.utf8
         )
@@ -49,15 +50,16 @@ final class DemoServerE2ETests {
         #expect(statusResponse.statusCode == 200)
         let overrides = try JSONSerialization.jsonObject(with: statusData) as? [[String: Any]]
         #expect(overrides?.count == 1)
-        #expect(overrides?.first?["path"] as? String == "/api/greet")
+        #expect(overrides?.first?["path"] as? String == greetPath)
     }
 
     @Test func hengeResetClearsOverrides() async throws {
         try await server.resetOverrides()
 
+        let greetPath = DemoServerE2EPaths.greetPath
         let configureBody = Data(
             """
-            {"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true,\
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,\
             "body":"{\\"message\\":\\"Temporary\\"}","contentType":"application/json"}
             """.utf8
         )
@@ -85,8 +87,9 @@ final class DemoServerE2ETests {
     @Test func hengeRemoveDeletesOverrideRow() async throws {
         try await server.resetOverrides()
 
+        let greetPath = DemoServerE2EPaths.greetPath
         let row = """
-            {"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":false}
             """
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
             server.kawarimiBaseURL.appending(path: "configure"),
