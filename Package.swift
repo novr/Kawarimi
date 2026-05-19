@@ -17,6 +17,9 @@ var products: [Product] = [
 
 var targets: [Target] = [
     .target(
+        name: "KawarimiPluginSupport"
+    ),
+    .target(
         name: "KawarimiCore",
         dependencies: [
             .product(name: "HTTPTypes", package: "swift-http-types"),
@@ -26,6 +29,7 @@ var targets: [Target] = [
         name: "KawarimiJutsu",
         dependencies: [
             "KawarimiCore",
+            "KawarimiPluginSupport",
             .product(name: "Yams", package: "Yams"),
             .product(name: "OpenAPIKit", package: "OpenAPIKit"),
             .product(name: "OpenAPIKit30", package: "OpenAPIKit"),
@@ -49,6 +53,10 @@ var targets: [Target] = [
             .product(name: "HTTPTypes", package: "swift-http-types"),
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
         ]
+    ),
+    .testTarget(
+        name: "KawarimiPluginSupportTests",
+        dependencies: ["KawarimiPluginSupport"]
     ),
     .testTarget(
         name: "KawarimiCoreTests",
