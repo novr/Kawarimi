@@ -2,9 +2,11 @@ import Foundation
 import HTTPTypes
 import KawarimiCore
 import OpenAPIRuntime
-import OSLog
 
+#if canImport(OSLog)
+import OSLog
 private let kawarimiServerMiddlewareLog = Logger(subsystem: "Kawarimi", category: "KawarimiServerMiddleware")
+#endif
 
 /// Applies Henge dynamic mock overrides for registered OpenAPI operations (`ServerMiddleware`).
 ///
@@ -45,9 +47,13 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
             exampleIdHeaderRaw: exampleIdHeader
         )
         if hits.count > 1 {
-            kawarimiServerMiddlewareLog.warning(
-                "Multiple overrides match \(requestPath, privacy: .public) \(request.method.rawValue, privacy: .public): using first of \(hits.count, privacy: .public)"
-            )
+            let message =
+                "Multiple overrides match \(requestPath) \(request.method.rawValue): using first of \(hits.count)"
+#if canImport(OSLog)
+            kawarimiServerMiddlewareLog.warning("\(message, privacy: .public)")
+#else
+            StandardError.write("KawarimiServerMiddleware: \(message)")
+#endif
         }
         guard let override = hits.first else {
             return try await next(request, body, metadata)
