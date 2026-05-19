@@ -30,6 +30,8 @@
 
 **2.0.4 → 2.0.5:** 任意の **`kawarimi-generator-config.yaml`** で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 **`true`**）により CLI と **KawarimiPlugin** が個別の成果物をスキップできる（いずれか 1 つは **`true`** 必須）。**`SpecEndpointProviding`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに OpenAPI の任意 **`tags`**（無いとき **`nil`**）が付く。詳しくは CHANGELOG の **2.0.5** を参照。
 
+**2.0.5 → 2.1.0:** 新プロダクト **`KawarimiServer`** と **`KawarimiServerMiddleware`** により、OpenAPI サーバの動的モックを **`registerHandlers(middlewares:)`** で適用できる（Vapor 全体インターセプタの独自実装に代わる）。サーバターゲットに **`.product(name: "KawarimiServer", package: "Kawarimi")`** を追加 — CHANGELOG の **2.1.0** と [henge.md](henge.md) を参照。
+
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
@@ -44,7 +46,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.5"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.1.0"),
 ],
 targets: [
     .target(

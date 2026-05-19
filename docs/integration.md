@@ -30,6 +30,8 @@ Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking 
 
 **2.0.4 → 2.0.5:** Optional **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) let the CLI and **KawarimiPlugin** skip individual outputs; at least one must stay enabled. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** — generated endpoints now expose optional OpenAPI **`tags`** (`nil` when absent) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.5**.
 
+**2.0.5 → 2.1.0:** New **`KawarimiServer`** product with **`KawarimiServerMiddleware`** for OpenAPI server dynamic mocks on **`registerHandlers(middlewares:)`** (replaces ad hoc Vapor-global interceptors). Server targets add **`.product(name: "KawarimiServer", package: "Kawarimi")`** — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.1.0** and [henge.md](henge.md).
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -44,7 +46,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.0.5"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.1.0"),
 ],
 targets: [
     .target(
