@@ -99,11 +99,16 @@ public struct KawarimiConfig: Codable, Sendable {
 
 extension MockOverride {
     /// Deterministic ordering; first match wins when several overrides qualify.
-    public static func sortedForInterceptorTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
-        hits.sorted { interceptorTieBreakKey($0) < interceptorTieBreakKey($1) }
+    public static func sortedForOverrideTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
+        hits.sorted { overrideTieBreakKey($0) < overrideTieBreakKey($1) }
     }
 
-    private static func interceptorTieBreakKey(_ o: MockOverride)
+    /// Backward-compatible name for ``sortedForOverrideTieBreak(_:)``.
+    public static func sortedForInterceptorTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
+        sortedForOverrideTieBreak(hits)
+    }
+
+    private static func overrideTieBreakKey(_ o: MockOverride)
         -> (String, Int, String, String)
     {
         (
