@@ -230,6 +230,54 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
 }
 
+@Test func cliPrintsVersion() throws {
+    let packageRoot = resolvePackageRoot()
+    guard let expectedVersion = buildInfoVersion(packageRoot: packageRoot) else {
+        Issue.record("Could not read BuildInfo.version from Sources/Kawarimi/Generated.swift")
+        return
+    }
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    let result = try runKawarimiCLI(executable: kawarimiURL, arguments: ["--version"], packageRoot: packageRoot)
+    #expect(result.exitCode == 0, "stderr: \(result.stderr)")
+    #expect(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == expectedVersion)
+}
+
+@Test func cliPrintsHelp() throws {
+    let packageRoot = resolvePackageRoot()
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    for flag in ["--help", "-h"] {
+        let result = try runKawarimiCLI(executable: kawarimiURL, arguments: [flag], packageRoot: packageRoot)
+        #expect(result.exitCode == 0, "\(flag) stderr: \(result.stderr)")
+        #expect(result.stdout.contains("openapi"))
+        #expect(result.stdout.contains("output"))
+    }
+}
+
+@Test func cliRejectsUnknownOption() throws {
+    let packageRoot = resolvePackageRoot()
+    guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
+        Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
+        return
+    }
+
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: ["--not-a-real-flag", "/tmp/openapi.yaml", "/tmp/out"],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode != 0)
+    let combined = result.stdout + result.stderr
+    #expect(combined.contains("Unknown option"))
+}
+
 private func resolvePackageRoot() -> URL {
     URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
@@ -256,6 +304,45 @@ private func findKawarimiExecutable(packageRoot: URL) -> URL? {
         }
     }
     return candidates.first { fm.fileExists(atPath: $0.path) }
+}
+
+private struct KawarimiCLIResult {
+    let exitCode: Int32
+    let stdout: String
+    let stderr: String
+}
+
+private func buildInfoVersion(packageRoot: URL) -> String? {
+    let generatedURL = packageRoot.appendingPathComponent("Sources/Kawarimi/Generated.swift")
+    guard let text = try? String(contentsOf: generatedURL, encoding: .utf8) else { return nil }
+    for line in text.split(whereSeparator: \.isNewline) {
+        let trimmed = String(line).trimmingCharacters(in: .whitespaces)
+        guard trimmed.contains("static let version") else { continue }
+        let parts = trimmed.split(separator: "\"", omittingEmptySubsequences: false)
+        guard parts.count >= 2 else { continue }
+        return String(parts[1])
+    }
+    return nil
+}
+
+private func runKawarimiCLI(executable: URL, arguments: [String], packageRoot: URL) throws -> KawarimiCLIResult {
+    let process = Process()
+    process.executableURL = executable
+    process.arguments = arguments
+    process.currentDirectoryURL = packageRoot
+    let stdoutPipe = Pipe()
+    let stderrPipe = Pipe()
+    process.standardOutput = stdoutPipe
+    process.standardError = stderrPipe
+    try process.run()
+    process.waitUntilExit()
+    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    return KawarimiCLIResult(
+        exitCode: process.terminationStatus,
+        stdout: String(data: stdoutData, encoding: .utf8) ?? "",
+        stderr: String(data: stderrData, encoding: .utf8) ?? ""
+    )
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {

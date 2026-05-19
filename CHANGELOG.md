@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **KawarimiCore** / **KawarimiHenge**: optional **`delayMs`** on mock overrides (normalized 0–60_000 ms) ([#53](https://github.com/novr/Kawarimi/issues/53)).
 - **KawarimiServer**: **`KawarimiServerMiddleware`** honors **`delayMs`** before returning a mock response.
+- **Kawarimi CLI**: **`--help`** / **`-h`** and **`--version`** via [swift-argument-parser](https://github.com/apple/swift-argument-parser) ([#71](https://github.com/novr/Kawarimi/issues/71)).
+- **Release workflow** (`.github/workflows/release.yaml`): on tag **`v*`** push, writes **`BuildInfo.version`** from **`git describe --tags`**, runs **`swift test`**, and attaches **`kawarimi-vX.Y.Z-source.tar.gz`** ([#71](https://github.com/novr/Kawarimi/issues/71)).
+
+### Changed
+
+- **Kawarimi CLI**: **`--version`** reports **`git describe --tags`** (e.g. **`v2.1.0`**) in release archives; committed **`Generated.swift`** stub is **`dev`** for local and PR CI ([#71](https://github.com/novr/Kawarimi/issues/71)).
 
 ## [2.1.0] - 2026-05-19
 

@@ -27,6 +27,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 - **ブランチとコミット**: 作業用ブランチを切り、**論理単位でコミットを分割**する。
 - **プラン・To-do**: 既に To-do がある場合は作り直さず、**先頭から in_progress にして完了まで**進める。プラン用の添付ファイルは編集しない。
 - **検証**: 変更内容に応じて `swift test`、必要なら `Scripts/performance/` や CI と揃えた環境変数で確認する。**パフォーマンスに触れたら性能チェックも行う**。
+- **ビルド情報**: コミット済みスタブ **`dev`**（ローカル・PR CI）。タグ付きリリース時のみ [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `git describe --tags` で `Generated.swift` を上書きし、Release 用ソースアーカイブに含める（ワークツリーは汚さない）。
 - **`[kawarimi-perf]`**: 利用者・計測手向けの説明は [Scripts/performance/README.md](Scripts/performance/README.md) に従う（実装やワークフローへの参照はこのファイルでは書かない）。
 - **Issue**: バグ・機能は Issue で追う。**サーバ実装依存は本パッケージのスコープ外**（上記「境界」と同じ前提）。
 
@@ -40,7 +41,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 - **`main` 向け PR**: [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) の `changes`（`dorny/paths-filter`）が、次のいずれかに触れる変更があるかだけを見る: `Sources/**`, `Tests/**`, `Package.swift`, `Package.resolved`, `Example/**`, `Scripts/**`, `.github/**`。
 - **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテスト／perf ジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。
-- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`。**`KAWARIMI_LINUX_CI=1`** のとき `Package.swift` は Henge（および Demo の `HengeCli`）ターゲットを除外するため、Linux では Henge 系はビルドされない。**`KawarimiHengeTests` は CI に含めない**（SwiftUI）。マージ前に macOS ローカルで `swift test` 全件（Henge 含む）を実行すること。
+- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`（**`BuildInfo.version` は生成しない** — スタブ **`dev`**）。**`KAWARIMI_LINUX_CI=1`** のとき `Package.swift` は Henge（および Demo の `HengeCli`）ターゲットを除外するため、Linux では Henge 系はビルドされない。**`KawarimiHengeTests` は CI に含めない**（SwiftUI）。マージ前に macOS ローカルで `swift test` 全件（Henge 含む）を実行すること。
 - **ビルドや CI に効く新しいパス**（上記以外に置いたツールや設定など）を追加したら、同じワークフローの `code` フィルタに追記し、該当変更でテストが走るようにする。
 
 ## CHANGELOG
@@ -53,7 +54,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 - **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
 - **リリース直前**: **`CHANGELOG.md`** の **`[Unreleased]`** を **`## [X.Y.Z] - YYYY-MM-DD`** 見出しへ移し、既存パターンに合わせて**フッタのバージョン比較リンク**（`CHANGELOG.md` 末尾）を更新する。**SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
-- **タグ**: 公開リリースは既存の Git タグ命名（**`vX.Y.Z`**）に合わせる。タグ付け・GitHub Releases の具体操作はリポジトリの慣習に従う（本ファイルでは手順を固定しない）。
+- **タグ**: 公開リリースは **`vX.Y.Z`**。`git push origin vX.Y.Z` で [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Generated.swift` を生成 → `swift test` → **`kawarimi-vX.Y.Z-source.tar.gz`** を GitHub Release に添付（このアーカイブをビルドすると **`--version`** がタグと一致）。GitHub 自動の **Source code (zip/tar.gz)** はスタブ **`dev`** のまま。
 
 ## コードとテスト（原則）
 

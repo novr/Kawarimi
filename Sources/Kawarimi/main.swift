@@ -1,3 +1,4 @@
+import ArgumentParser
 import Foundation
 import KawarimiCore
 import KawarimiJutsu
@@ -20,98 +21,107 @@ private enum KawarimiPerfLog {
 }
 
 @main
-struct Kawarimi {
-    static func main() throws {
-        let args = CommandLine.arguments
-        guard args.count >= 3 else {
-            let prog = args.first ?? "Kawarimi"
-            StandardError.write("Usage: \(prog) <openapi path> <output directory>")
-            exit(1)
-        }
-        let inputPath = args[1]
-        let outputDirPath = args[2]
+struct KawarimiCommand: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "kawarimi",
+        abstract: "Generate Kawarimi mock transport, handler, and spec Swift sources from an OpenAPI document.",
+        version: BuildInfo.version
+    )
 
+    @Argument(help: "Path to the OpenAPI document (YAML or JSON).")
+    var openapiPath: String
+
+    @Argument(help: "Directory where generated Swift files are written.")
+    var outputDirectory: String
+
+    func run() throws {
+        do {
+            try KawarimiGenerator.run(openapiPath: openapiPath, outputDirectory: outputDirectory)
+        } catch {
+            StandardError.write("Error: \(error)")
+            throw ExitCode.failure
+        }
+    }
+}
+
+private enum KawarimiGenerator {
+    static func run(openapiPath inputPath: String, outputDirectory outputDirPath: String) throws {
         let clock = ContinuousClock()
         let runStarted = clock.now
         var lapStart = runStarted
 
-        do {
-            let specDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent()
-            let targetLabel = specDir.lastPathComponent
-            let openAPIConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(
-                atPath: inputPath,
-                targetNameForErrorMessages: targetLabel
+        let specDir = URL(fileURLWithPath: inputPath).deletingLastPathComponent()
+        let targetLabel = specDir.lastPathComponent
+        let openAPIConfig = try KawarimiGeneratorConfigYAML.loadBesideOpenAPIYAML(
+            atPath: inputPath,
+            targetNameForErrorMessages: targetLabel
+        )
+        let kawarimiFile = try KawarimiGeneratorConfigFileYAML.loadBesideOpenAPIYAML(
+            atPath: inputPath,
+            targetNameForErrorMessages: targetLabel
+        )
+        let generatorConfig = openAPIConfig.applyingKawarimiGeneratorFile(kawarimiFile)
+        let stubPolicy = try resolveHandlerStubPolicy(
+            openAPIPath: inputPath,
+            kawarimiFile: kawarimiFile
+        )
+        let setupElapsed = lapStart.duration(to: clock.now)
+        KawarimiPerfLog.emit(phase: "setup", duration: setupElapsed)
+        lapStart = clock.now
+
+        let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
+        let loadElapsed = lapStart.duration(to: clock.now)
+        KawarimiPerfLog.emit(phase: "load", duration: loadElapsed)
+        lapStart = clock.now
+
+        let outputDir = URL(fileURLWithPath: outputDirPath)
+
+        if generatorConfig.generateKawarimi {
+            let kawarimiWritten = try GeneratedFileWriter.writeIfChanged(
+                KawarimiJutsu.generateSwiftSource(document: document),
+                to: outputDir.appendingPathComponent("Kawarimi.swift")
             )
-            let kawarimiFile = try KawarimiGeneratorConfigFileYAML.loadBesideOpenAPIYAML(
-                atPath: inputPath,
-                targetNameForErrorMessages: targetLabel
-            )
-            let generatorConfig = openAPIConfig.applyingKawarimiGeneratorFile(kawarimiFile)
-            let stubPolicy = try resolveHandlerStubPolicy(
-                openAPIPath: inputPath,
-                kawarimiFile: kawarimiFile
-            )
-            let setupElapsed = lapStart.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "setup", duration: setupElapsed)
+            let kawarimiElapsed = lapStart.duration(to: clock.now)
+            KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: kawarimiElapsed, skipped: !kawarimiWritten)
             lapStart = clock.now
-
-            let document = try KawarimiJutsu.loadOpenAPISpec(path: inputPath)
-            let loadElapsed = lapStart.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "load", duration: loadElapsed)
-            lapStart = clock.now
-
-            let outputDir = URL(fileURLWithPath: outputDirPath)
-
-            if generatorConfig.generateKawarimi {
-                let kawarimiWritten = try GeneratedFileWriter.writeIfChanged(
-                    KawarimiJutsu.generateSwiftSource(document: document),
-                    to: outputDir.appendingPathComponent("Kawarimi.swift")
-                )
-                let kawarimiElapsed = lapStart.duration(to: clock.now)
-                KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: kawarimiElapsed, skipped: !kawarimiWritten)
-                lapStart = clock.now
-            } else {
-                KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: .zero, skipped: true)
-            }
-
-            if generatorConfig.generateHandler {
-                let (handlerSource, handlerWarnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
-                    document: document,
-                    namingStrategy: generatorConfig.namingStrategy,
-                    accessModifier: generatorConfig.accessModifier,
-                    handlerStubPolicy: stubPolicy
-                )
-                for line in handlerWarnings {
-                    StandardError.write(line)
-                }
-                let handlerWritten = try GeneratedFileWriter.writeIfChanged(
-                    handlerSource,
-                    to: outputDir.appendingPathComponent("KawarimiHandler.swift")
-                )
-                let handlerElapsed = lapStart.duration(to: clock.now)
-                KawarimiPerfLog.emit(phase: "generate_handler", duration: handlerElapsed, skipped: !handlerWritten)
-                lapStart = clock.now
-            } else {
-                KawarimiPerfLog.emit(phase: "generate_handler", duration: .zero, skipped: true)
-            }
-
-            if generatorConfig.generateSpec {
-                let specWritten = try GeneratedFileWriter.writeIfChanged(
-                    KawarimiJutsu.generateKawarimiSpecSource(document: document),
-                    to: outputDir.appendingPathComponent("KawarimiSpec.swift")
-                )
-                let specElapsed = lapStart.duration(to: clock.now)
-                KawarimiPerfLog.emit(phase: "generate_spec", duration: specElapsed, skipped: !specWritten)
-            } else {
-                KawarimiPerfLog.emit(phase: "generate_spec", duration: .zero, skipped: true)
-            }
-
-            let totalElapsed = runStarted.duration(to: clock.now)
-            KawarimiPerfLog.emit(phase: "total", duration: totalElapsed)
-        } catch {
-            StandardError.write("Error: \(error)")
-            exit(1)
+        } else {
+            KawarimiPerfLog.emit(phase: "generate_kawarimi", duration: .zero, skipped: true)
         }
+
+        if generatorConfig.generateHandler {
+            let (handlerSource, handlerWarnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+                document: document,
+                namingStrategy: generatorConfig.namingStrategy,
+                accessModifier: generatorConfig.accessModifier,
+                handlerStubPolicy: stubPolicy
+            )
+            for line in handlerWarnings {
+                StandardError.write(line)
+            }
+            let handlerWritten = try GeneratedFileWriter.writeIfChanged(
+                handlerSource,
+                to: outputDir.appendingPathComponent("KawarimiHandler.swift")
+            )
+            let handlerElapsed = lapStart.duration(to: clock.now)
+            KawarimiPerfLog.emit(phase: "generate_handler", duration: handlerElapsed, skipped: !handlerWritten)
+            lapStart = clock.now
+        } else {
+            KawarimiPerfLog.emit(phase: "generate_handler", duration: .zero, skipped: true)
+        }
+
+        if generatorConfig.generateSpec {
+            let specWritten = try GeneratedFileWriter.writeIfChanged(
+                KawarimiJutsu.generateKawarimiSpecSource(document: document),
+                to: outputDir.appendingPathComponent("KawarimiSpec.swift")
+            )
+            let specElapsed = lapStart.duration(to: clock.now)
+            KawarimiPerfLog.emit(phase: "generate_spec", duration: specElapsed, skipped: !specWritten)
+        } else {
+            KawarimiPerfLog.emit(phase: "generate_spec", duration: .zero, skipped: true)
+        }
+
+        let totalElapsed = runStarted.duration(to: clock.now)
+        KawarimiPerfLog.emit(phase: "total", duration: totalElapsed)
     }
 
     private static func resolveHandlerStubPolicy(
