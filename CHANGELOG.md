@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiSpec** / **`SpecResponse`**: OpenAPI `components.securitySchemes` and per-endpoint effective `security` (global inheritance, `security: []` override, OR/AND semantics). Emits `apiKey` / `http` fields and `openIdConnectURL`; oauth2 flows are not expanded.
+- **KawarimiCore**: `SpecSecuritySchemeProviding`, `SpecSecurityRequirementProviding`, `SpecScopedSecuritySchemeProviding`; `SpecEndpointProviding.security`.
+- **Example**: Demo `openapi.yaml` adds sample `securitySchemes` and operation-level `security` overrides.
+
 ## [2.2.2] - 2026-05-20
 
 ### Added

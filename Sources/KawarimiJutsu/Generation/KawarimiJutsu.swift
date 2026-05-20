@@ -547,6 +547,158 @@ public enum KawarimiJutsu {
 
     // MARK: - KawarimiSpec source emission
 
+    private struct SpecSecuritySchemeEntry {
+        var name: String
+        var type: String
+        var description: String?
+        var apiKeyName: String?
+        var apiKeyIn: String?
+        var httpScheme: String?
+        var bearerFormat: String?
+        var openIdConnectURL: String?
+    }
+
+    private struct SpecScopedSecurityEntry {
+        var name: String
+        var scopes: [String]
+    }
+
+    private struct SpecSecurityRequirementEntry {
+        var schemes: [SpecScopedSecurityEntry]
+    }
+
+    private static func securitySchemeLocationString(_ location: OpenAPI.SecurityScheme.Location) -> String {
+        switch location {
+        case .query: return "query"
+        case .header: return "header"
+        case .cookie: return "cookie"
+        }
+    }
+
+    private static func securitySchemeEntries(from components: OpenAPI.Components) -> [SpecSecuritySchemeEntry] {
+        guard !components.securitySchemes.isEmpty else { return [] }
+        let sortedNames = components.securitySchemes.keys.sorted { $0.rawValue < $1.rawValue }
+        var out: [SpecSecuritySchemeEntry] = []
+        for name in sortedNames {
+            guard let scheme = components.securitySchemes[name] else { continue }
+            let typeName = scheme.type.name.rawValue
+            var entry = SpecSecuritySchemeEntry(
+                name: name.rawValue,
+                type: typeName,
+                description: scheme.description,
+                apiKeyName: nil,
+                apiKeyIn: nil,
+                httpScheme: nil,
+                bearerFormat: nil,
+                openIdConnectURL: nil
+            )
+            switch scheme.type {
+            case .apiKey(name: let keyName, location: let location):
+                entry.apiKeyName = keyName
+                entry.apiKeyIn = securitySchemeLocationString(location)
+            case .http(scheme: let httpScheme, bearerFormat: let bearerFormat):
+                entry.httpScheme = httpScheme
+                entry.bearerFormat = bearerFormat
+            case .openIdConnect(openIdConnectUrl: let url):
+                entry.openIdConnectURL = url.absoluteString
+            case .oauth2, .mutualTLS:
+                break
+            }
+            out.append(entry)
+        }
+        return out
+    }
+
+    private static func scopedSecurityEntries(from requirement: OpenAPI.SecurityRequirement) -> [SpecScopedSecurityEntry] {
+        let pairs = requirement.compactMap { ref, scopes -> SpecScopedSecurityEntry? in
+            guard let name = ref.name else { return nil }
+            return SpecScopedSecurityEntry(name: name, scopes: scopes)
+        }
+        return pairs.sorted { $0.name < $1.name }
+    }
+
+    private static func effectiveSecurityRequirementEntries(
+        operation: OpenAPI.Operation,
+        document: OpenAPI.Document
+    ) -> [SpecSecurityRequirementEntry]? {
+        let raw: [OpenAPI.SecurityRequirement]
+        if let operationSecurity = operation.security {
+            raw = operationSecurity
+        } else {
+            raw = document.security
+        }
+        if raw.isEmpty { return nil }
+        return raw.map { SpecSecurityRequirementEntry(schemes: scopedSecurityEntries(from: $0)) }
+    }
+
+    private static func optionalStringLiteral(_ value: String?) -> String {
+        value.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+    }
+
+    private static func securitySchemeStructLiteral(_ entry: SpecSecuritySchemeEntry) -> String {
+        """
+                SecurityScheme(
+                    name: "\(escapeForSwiftStringLiteral(entry.name))",
+                    type: "\(escapeForSwiftStringLiteral(entry.type))",
+                    description: \(optionalStringLiteral(entry.description)),
+                    apiKeyName: \(optionalStringLiteral(entry.apiKeyName)),
+                    apiKeyIn: \(optionalStringLiteral(entry.apiKeyIn)),
+                    httpScheme: \(optionalStringLiteral(entry.httpScheme)),
+                    bearerFormat: \(optionalStringLiteral(entry.bearerFormat)),
+                    openIdConnectURL: \(optionalStringLiteral(entry.openIdConnectURL))
+                ),
+"""
+    }
+
+    private static func scopedSecuritySchemeStructLiteral(_ entry: SpecScopedSecurityEntry) -> String {
+        let scopesLiteral: String
+        if entry.scopes.isEmpty {
+            scopesLiteral = "nil"
+        } else {
+            let parts = entry.scopes.map { "\"\(escapeForSwiftStringLiteral($0))\"" }.joined(separator: ", ")
+            scopesLiteral = "[\(parts)]"
+        }
+        return """
+                            ScopedSecurityScheme(
+                                name: "\(escapeForSwiftStringLiteral(entry.name))",
+                                scopes: \(scopesLiteral)
+                            ),
+"""
+    }
+
+    private static func securityRequirementStructLiteral(_ entry: SpecSecurityRequirementEntry) -> String {
+        let schemesBlock = entry.schemes.map(scopedSecuritySchemeStructLiteral).joined()
+        return """
+                        SecurityRequirement(
+                            schemes: [
+            \(schemesBlock)
+                            ]
+                        ),
+"""
+    }
+
+    private static func endpointSecurityLiteral(_ requirements: [SpecSecurityRequirementEntry]?) -> String {
+        guard let requirements, !requirements.isEmpty else { return "security: nil," }
+        let block = requirements.map(securityRequirementStructLiteral).joined()
+        return """
+                        security: [
+            \(block)
+                        ],
+"""
+    }
+
+    private static func securitySchemesPropertyLiteral(_ entries: [SpecSecuritySchemeEntry]) -> String {
+        if entries.isEmpty {
+            return "public static let securitySchemes: [SecurityScheme]? = nil"
+        }
+        let block = entries.map(securitySchemeStructLiteral).joined()
+        return """
+                public static let securitySchemes: [SecurityScheme]? = [
+            \(block)
+                ]
+"""
+    }
+
     private struct NamedJSONExample {
         let mapKey: String
         let json: String
@@ -628,8 +780,11 @@ public enum KawarimiJutsu {
             var fullPath: String
             var operationId: String
             var tags: [String]
+            var security: [SpecSecurityRequirementEntry]?
             var responses: [SpecResponseRow]
         }
+
+        let securitySchemeCatalog = securitySchemeEntries(from: components)
 
         var endpointEntries: [EndpointEntry] = []
 
@@ -671,12 +826,14 @@ public enum KawarimiJutsu {
                 }
 
                 let tags = operation.tags ?? []
+                let security = effectiveSecurityRequirementEntries(operation: operation, document: document)
 
                 endpointEntries.append(EndpointEntry(
                     method: method,
                     fullPath: fullPath,
                     operationId: operationId,
                     tags: tags,
+                    security: security,
                     responses: responseRows
                 ))
             }
@@ -708,13 +865,14 @@ public enum KawarimiJutsu {
                 let tagStrings = entry.tags.map { "\"\(escapeForSwiftStringLiteral($0))\"" }.joined(separator: ", ")
                 tagsLiteral = "[\(tagStrings)]"
             }
+            let securityLiteral = endpointSecurityLiteral(entry.security)
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
                         method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
                         tags: \(tagsLiteral),
-                        responses: [
+            \(securityLiteral)                        responses: [
             \(responsesBlock)
                         ]
                     ),
@@ -738,6 +896,8 @@ public enum KawarimiJutsu {
             return "                \"\(keyEsc)\": [\(statusBlocks)],"
         }.joined(separator: "\n")
 
+        let securitySchemesLiteral = securitySchemesPropertyLiteral(securitySchemeCatalog)
+
         return """
             // Generated by Kawarimi. Do not edit.
 
@@ -752,11 +912,29 @@ public enum KawarimiJutsu {
                     public var serverURL: String
                     public var apiPathPrefix: String
                 }
+                public struct SecurityScheme: Codable, Sendable {
+                    public var name: String
+                    public var type: String
+                    public var description: String?
+                    public var apiKeyName: String?
+                    public var apiKeyIn: String?
+                    public var httpScheme: String?
+                    public var bearerFormat: String?
+                    public var openIdConnectURL: String?
+                }
+                public struct ScopedSecurityScheme: Codable, Sendable {
+                    public var name: String
+                    public var scopes: [String]?
+                }
+                public struct SecurityRequirement: Codable, Sendable {
+                    public var schemes: [ScopedSecurityScheme]
+                }
                 public struct Endpoint: Codable, Sendable {
                     public var path: String
                     public var method: HTTPRequest.Method
                     public var operationId: String
                     public var tags: [String]?
+                    public var security: [SecurityRequirement]?
                     public var responses: [MockResponse]
                 }
                 public struct MockResponse: Codable, Sendable {
@@ -776,6 +954,8 @@ public enum KawarimiJutsu {
                     apiPathPrefix: "\(apiPathPrefixEscaped)"
                 )
 
+            \(securitySchemesLiteral)
+
                 public static let endpoints: [Endpoint] = [
             \(endpointsLiteral)
                 ]
@@ -786,6 +966,11 @@ public enum KawarimiJutsu {
             }
 
             extension KawarimiSpec.Meta: SpecMetaProviding {}
+            extension KawarimiSpec.SecurityScheme: SpecSecuritySchemeProviding {}
+            extension KawarimiSpec.ScopedSecurityScheme: SpecScopedSecuritySchemeProviding {}
+            extension KawarimiSpec.SecurityRequirement: SpecSecurityRequirementProviding {
+                public var schemeList: [any SpecScopedSecuritySchemeProviding] { schemes }
+            }
             extension KawarimiSpec.MockResponse: SpecMockResponseProviding {}
             extension KawarimiSpec.Endpoint: SpecEndpointProviding {
                 public var responseList: [any SpecMockResponseProviding] { responses }
@@ -794,9 +979,15 @@ public enum KawarimiJutsu {
             public struct SpecResponse: Codable, Sendable {
                 public var meta: KawarimiSpec.Meta
                 public var endpoints: [KawarimiSpec.Endpoint]
-                public init(meta: KawarimiSpec.Meta, endpoints: [KawarimiSpec.Endpoint]) {
+                public var securitySchemes: [KawarimiSpec.SecurityScheme]?
+                public init(
+                    meta: KawarimiSpec.Meta,
+                    endpoints: [KawarimiSpec.Endpoint],
+                    securitySchemes: [KawarimiSpec.SecurityScheme]? = KawarimiSpec.securitySchemes
+                ) {
                     self.meta = meta
                     self.endpoints = endpoints
+                    self.securitySchemes = securitySchemes
                 }
             }
 

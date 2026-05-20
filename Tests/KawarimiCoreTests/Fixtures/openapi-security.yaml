@@ -1,0 +1,56 @@
+openapi: 3.0.3
+info:
+  title: SecurityFixture
+  version: "1"
+security:
+  - HeaderA: []
+    HeaderB: []
+    BearerAuth: []
+components:
+  securitySchemes:
+    HeaderA:
+      type: apiKey
+      in: header
+      name: x-header-a
+      description: First app header
+    HeaderB:
+      type: apiKey
+      in: header
+      name: x-header-b
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token
+paths:
+  /inherit:
+    get:
+      operationId: inheritSecurity
+      responses:
+        "200":
+          description: ok
+  /public:
+    get:
+      operationId: publicNoSecurity
+      security: []
+      responses:
+        "200":
+          description: ok
+  /partial:
+    get:
+      operationId: partialSecurity
+      security:
+        - HeaderA: []
+          HeaderB: []
+      responses:
+        "200":
+          description: ok
+  /or-alt:
+    get:
+      operationId: orAlternativeSecurity
+      security:
+        - HeaderA: []
+        - BearerAuth: []
+      responses:
+        "200":
+          description: ok

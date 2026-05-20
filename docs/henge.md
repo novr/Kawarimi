@@ -51,12 +51,15 @@ Use **`DemoApp`** or your own target for those platforms.
 `KawarimiSpec` is generated into your API target and exposes:
 
 ```swift
-KawarimiSpec.meta        // title, version, serverURL
-KawarimiSpec.endpoints   // all endpoints with their possible responses
-KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
+KawarimiSpec.meta             // title, version, serverURL
+KawarimiSpec.securitySchemes  // components.securitySchemes catalog (nil when empty)
+KawarimiSpec.endpoints        // operations; each may include effective security
+KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
 ```
 
-The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`**.
+Each **`Endpoint.security`** is the **effective** OpenAPI security for that operation (global `security` inherited when the operation omits it; `security: []` means none). The `security` array is a list of **OR** alternatives; each `SecurityRequirement.schemes` entry is an **AND** group. For apiKey schemes, use `SecurityScheme.apiKeyName` for the HTTP header/query/cookie name; for `http` use `httpScheme` / `bearerFormat`; for openIdConnect use `openIdConnectURL`. OAuth2 flow URLs and scopes are not emitted. `ScopedSecurityScheme.name` is the components key.
+
+The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`** and also carries **`securitySchemes`** for the Henge wire JSON (`GET …/__kawarimi/spec`).
 
 So **`KawarimiConfigView(client:specType:)`** can decode `/__kawarimi/spec` without manual wiring.
 

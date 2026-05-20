@@ -76,7 +76,11 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
             }
 
             kawarimi.get("spec") { _ async throws -> SpecResponse in
-                SpecResponse(meta: KawarimiSpec.meta, endpoints: KawarimiSpec.endpoints)
+                SpecResponse(
+                    meta: KawarimiSpec.meta,
+                    endpoints: KawarimiSpec.endpoints,
+                    securitySchemes: KawarimiSpec.securitySchemes
+                )
             }
         }
     }
