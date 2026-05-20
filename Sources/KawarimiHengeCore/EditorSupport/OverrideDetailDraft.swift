@@ -2,23 +2,23 @@ import Foundation
 import KawarimiCore
 
 /// Per-endpoint editor draft (``mock``, ``isDirty``, ``pinnedNumberedResponseChip``). Sync via ``resyncMockFromServer``; first open via ``OverrideExplorerDraftBootstrap``.
-struct OverrideDetailDraft {
-    var mock: MockOverride
-    var validationMessage: String?
-    var isDirty: Bool
-    var pinnedNumberedResponseChip: Bool = false
+package struct OverrideDetailDraft {
+    package var mock: MockOverride
+    package var validationMessage: String?
+    package var isDirty: Bool
+    package var pinnedNumberedResponseChip: Bool = false
 
-    init(mock: MockOverride, validationMessage: String?, isDirty: Bool = false) {
+    package init(mock: MockOverride, validationMessage: String?, isDirty: Bool = false) {
         self.mock = mock
         self.validationMessage = validationMessage
         self.isDirty = isDirty
     }
 
-    var endpointRowKey: EndpointRowKey {
+    package var endpointRowKey: EndpointRowKey {
         EndpointRowKey(method: mock.method, path: mock.path)
     }
 
-    mutating func resyncMockFromServer(
+    package mutating func resyncMockFromServer(
         overrides: [MockOverride],
         endpoints: [any SpecEndpointProviding],
         pathPrefix: String
@@ -108,7 +108,7 @@ struct OverrideDetailDraft {
     }
 
     /// True when the draft’s mock differs from what ``resyncMockFromServer`` would produce for the same `overrides` snapshot (ignores ``pinnedNumberedResponseChip``, ``validationMessage``, and ``isDirty``).
-    func persistableMockDiffersFromServer(
+    package func persistableMockDiffersFromServer(
         overrides: [MockOverride],
         endpoints: [any SpecEndpointProviding],
         pathPrefix: String

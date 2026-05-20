@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 
 /// Prefers a real body from a stored override (enabled or disabled) for the same path, method, status, and example over the spec example.
-func mergeResponseTemplate(
+package func mergeResponseTemplate(
     endpoint: any SpecEndpointProviding,
     overrides: [MockOverride],
     pathPrefix: String,

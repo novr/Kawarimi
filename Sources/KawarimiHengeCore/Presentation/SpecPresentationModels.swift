@@ -1,27 +1,27 @@
 import KawarimiCore
 
-struct SpecEndpointItem: Identifiable, Sendable {
-    let id: String
-    let endpoint: any SpecEndpointProviding
-    let rowKey: EndpointRowKey
+package struct SpecEndpointItem: Identifiable, Sendable {
+    package let id: String
+    package let endpoint: any SpecEndpointProviding
+    package let rowKey: EndpointRowKey
 
     /// Picker rows for `ForEach`; each row uses ``SpecMockResponseProviding/id`` so duplicate status codes stay distinct.
-    var mockResponsePickerItems: [SpecMockResponseItem] {
+    package var mockResponsePickerItems: [SpecMockResponseItem] {
         endpoint.responseList.map { SpecMockResponseItem(response: $0) }
     }
 
-    init(_ endpoint: any SpecEndpointProviding) {
+    package init(_ endpoint: any SpecEndpointProviding) {
         id = endpoint.operationId
         self.endpoint = endpoint
         rowKey = EndpointRowKey(endpoint)
     }
 }
 
-struct SpecMockResponseItem: Identifiable, Sendable {
-    let id: String
-    let response: any SpecMockResponseProviding
+package struct SpecMockResponseItem: Identifiable, Sendable {
+    package let id: String
+    package let response: any SpecMockResponseProviding
 
-    init(response: any SpecMockResponseProviding) {
+    package init(response: any SpecMockResponseProviding) {
         self.response = response
         id = response.id
     }

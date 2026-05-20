@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import KawarimiCore
 import Testing
-@testable import KawarimiHenge
+@testable import KawarimiHengeCore
 
 private struct FakeSpecResponse: SpecMockResponseProviding {
     var statusCode: Int

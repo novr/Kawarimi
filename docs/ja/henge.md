@@ -249,7 +249,7 @@ API 対応:
 
 ### 実装者向け（コード対応）
 
-**編集ルール**は **`Sources/KawarimiHenge/EditorSupport/`**（`ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`、**`OverrideListQueries`**、**`OverrideExplorerDraftBootstrap`**）。**選択とドラフトメタ**（`validationMessage`、`isDirty`）は **`OverrideEditorStore`** / **`OverrideDetailDraft`**。
+**編集ルール**は **`KawarimiHengeCore`**（`Sources/KawarimiHengeCore/`）— `ResponseChips`、`SavePayload`、`DisableMockPlanner`、`EndpointFilter`、**`OverrideListQueries`**、**`OverrideExplorerDraftBootstrap`**。**選択とドラフトメタ**（`validationMessage`、`isDirty`）は **`OverrideEditorStore`** / **`OverrideDetailDraft`**。SwiftUI は **`KawarimiHenge`**（`Sources/KawarimiHenge/`）。
 
 | UI / ドキュメント上の言い方 | コード側 | メモ |
 | --- | --- | --- |
@@ -269,7 +269,7 @@ API 対応:
 
 **Del** — **`DisableMockPlanner`**: アクティブ → `configure` でオフ。オフ＋保存行一致 → **`remove`** ＋ Spec 寄せのリセット。それ以外は no-op。
 
-**自動テスト:** **`KawarimiHengeTests`**（`Tests/KawarimiHengeTests/`）。
+**自動テスト:** Henge エクスプローラのロジックは **`KawarimiCoreTests`**（`Tests/KawarimiCoreTests/Henge/`、モジュール **`KawarimiHengeCore`**）。ubuntu CI は **`KawarimiHengeCore`** のみ。SwiftUI の **`KawarimiHenge`** は macOS ローカルで確認。
 
 ## クライアント: 実サーバーと Kawarimi モック
 

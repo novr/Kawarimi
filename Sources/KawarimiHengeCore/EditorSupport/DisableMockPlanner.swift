@@ -1,13 +1,13 @@
 import KawarimiCore
 
-enum DisableMockPlanner {
-    enum Plan: Equatable {
+package enum DisableMockPlanner {
+    package enum Plan: Equatable {
         case configureDisable(MockOverride)
         case removeThenReset(removeKey: MockOverride, cleared: MockOverride)
         case none
     }
 
-    static func plan(
+    package static func plan(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding,
         rowKey: EndpointRowKey,

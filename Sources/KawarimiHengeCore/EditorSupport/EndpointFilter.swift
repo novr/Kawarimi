@@ -1,7 +1,7 @@
 import KawarimiCore
 
-enum EndpointFilter {
-    static func filter(_ items: [SpecEndpointItem], searchText: String) -> [SpecEndpointItem] {
+package enum EndpointFilter {
+    package static func filter(_ items: [SpecEndpointItem], searchText: String) -> [SpecEndpointItem] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !q.isEmpty else { return items }
         let lower = q.lowercased()

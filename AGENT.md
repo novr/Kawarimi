@@ -41,7 +41,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 - **`main` 向け PR**: [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) の `changes`（`dorny/paths-filter`）が、次のいずれかに触れる変更があるかだけを見る: `Sources/**`, `Tests/**`, `Package.swift`, `Package.resolved`, `Example/**`, `Scripts/**`, `.github/**`。
 - **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテスト／perf ジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。
-- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`（**`BuildInfo.version` は生成しない** — スタブ **`dev`**）。**`KAWARIMI_LINUX_CI=1`** のとき `Package.swift` は Henge（および Demo の `HengeCli`）ターゲットを除外するため、Linux では Henge 系はビルドされない。**`KawarimiHengeTests` は CI に含めない**（SwiftUI）。マージ前に macOS ローカルで `swift test` 全件（Henge 含む）を実行すること。
+- **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`（**`BuildInfo.version` は生成しない** — スタブ **`dev`**）。**`KAWARIMI_LINUX_CI=1`** のとき **`KawarimiHengeCore`** と **`Tests/KawarimiCoreTests/Henge/`** を CI で実行する（SwiftUI の **`KawarimiHenge`** ライブラリ product と Demo の `HengeCli` は除外）。マージ前に macOS ローカルで `swift test` 全件（`KawarimiHenge` Views 含む）を実行すること。
 - **ビルドや CI に効く新しいパス**（上記以外に置いたツールや設定など）を追加したら、同じワークフローの `code` フィルタに追記し、該当変更でテストが走るようにする。
 
 ## CHANGELOG
@@ -70,7 +70,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 リリースは **2 段階**: (1) リリース PR で CHANGELOG を確定（必要なら integration も） → (2) マージ後にタグ push で workflow が GitHub Release を公開。
 
-- **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
+- **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHenge` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
 - **リリース PR（Phase 1）**:
   1. `CHANGELOG.md`: `[Unreleased]` を `## [X.Y.Z] - YYYY-MM-DD` へ移し、空の `[Unreleased]` を残す。フッタに `[X.Y.Z]: …/releases/tag/vX.Y.Z` を追加。
   2. **マイナー／メジャー**のみ: `docs/integration.md` と `docs/ja/integration.md` の SwiftPM pin と **直前版 → X.Y.Z** の移行メモ（破壊的変更時は必須）。**パッチ**は CHANGELOG のみ（integration は更新しない）。

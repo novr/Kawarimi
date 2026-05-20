@@ -1,4 +1,5 @@
 import KawarimiCore
+import KawarimiHengeCore
 import SwiftUI
 
 private enum OverrideDetailFocusField: Hashable {
