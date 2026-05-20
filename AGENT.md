@@ -50,11 +50,33 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 - **ユーザーまたは統合者が気づく変更**（新機能・修正・非互換・非推奨）は **`CHANGELOG.md` の `[Unreleased]`** に追記し、リリース時にバージョン見出しへ移す。
 - **破壊的変更**は **`### Breaking`**（または既存スタイルの **Breaking** セクション）で明示する。内部リファクタのみで外向きの契約が変わらない場合は CHANGELOG を必須としない判断でよいが、迷ったら追記する。
 
+### 構造（リリース workflow との契約）
+
+- **バージョン見出し（必須）**: `## [X.Y.Z] - YYYY-MM-DD`（`X.Y.Z` は SemVer、日付は ISO `YYYY-MM-DD`）。タグ `vX.Y.Z` と対応し、[`.github/workflows/release.yaml`](.github/workflows/release.yaml) の `octivi/release-notes-from-changelog` がこの形式のみをリリース節として抽出する。
+- **`[Unreleased]`**: ファイル内で **最初の `##` 見出し**として維持。リリース PR 後は空でもよいが、見出し行は削除しない（日付なしのため抽出対象外）。
+- **並び**: リリース済みバージョンは **新しい順**（現状どおり）。
+- **フッタリンク**: リリース PR で `[X.Y.Z]: https://github.com/novr/Kawarimi/releases/tag/vX.Y.Z` を `CHANGELOG.md` 末尾に追加。GitHub Release 本文には含めない（抽出範囲外）。
+- **サブセクション**: `### Added` / `### Changed` / `### Fixed` / `### Docs` / `### Breaking` / `### Migration from …` 等は既存スタイルに合わせる。
+
+## コミット
+
+- **形式**: Conventional Commits 風の `type(scope): 説明`（英語、命令形／現在形）。例: `feat(cli): …`, `fix(release): …`, `chore(release): prepare 2.2.0`。
+- **type の例**: `feat`, `fix`, `docs`, `chore`, `ci`, `perf`。**scope** は `cli`, `henge`, `server`, `jutsu`, `release`, `deps` 等。
+- **機能 PR**: ユーザー向け変更は同一 PR で **`CHANGELOG.md` の `[Unreleased]`** に追記する。
+- **リリース準備**: **`chore(release): prepare X.Y.Z`** を 1 コミットとし、CHANGELOG 確定・`docs/integration.md`（英日）の pin／移行メモ・フッタリンクをまとめる（分割しない）。
+- **タグ push 後**: Release 本文用の追加コミットは不要（workflow が CHANGELOG から設定する）。
+
 ## PR とリリース準備
 
+リリースは **2 段階**: (1) リリース PR で CHANGELOG と integration を確定 → (2) マージ後にタグ push で workflow が GitHub Release を公開。
+
 - **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
-- **リリース直前**: **`CHANGELOG.md`** の **`[Unreleased]`** を **`## [X.Y.Z] - YYYY-MM-DD`** 見出しへ移し、既存パターンに合わせて**フッタのバージョン比較リンク**（`CHANGELOG.md` 末尾）を更新する。**SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
-- **タグ**: 公開リリースは **`vX.Y.Z`**。`git push origin vX.Y.Z` で [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Generated.swift` を生成 → `swift test` → **`kawarimi-vX.Y.Z-source.tar.gz`** を GitHub Release に添付（このアーカイブをビルドすると **`--version`** がタグと一致）。GitHub 自動の **Source code (zip/tar.gz)** はスタブ **`dev`** のまま。
+- **リリース PR（Phase 1）**:
+  1. `CHANGELOG.md`: `[Unreleased]` を `## [X.Y.Z] - YYYY-MM-DD` へ移し、空の `[Unreleased]` を残す。フッタに `[X.Y.Z]: …/releases/tag/vX.Y.Z` を追加。
+  2. `docs/integration.md` と `docs/ja/integration.md`: SwiftPM pin と **直前版 → X.Y.Z** の移行メモ（破壊的変更時は必須）。
+  3. コミット: `chore(release): prepare X.Y.Z`（**1 コミット推奨**）。
+  4. **SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
+- **タグ（Phase 2）**: マージコミットに `git tag vX.Y.Z` → `git push origin vX.Y.Z`。 [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Generated.swift` を生成 → `swift test` → **`CHANGELOG.md` の該当節から Release 説明文**（見出し行 `## [X.Y.Z]` は除く）→ **`kawarimi-vX.Y.Z-source.tar.gz`** を添付。このアーカイブをビルドすると **`--version`** がタグと一致。GitHub 自動の **Source code (zip/tar.gz)** はスタブ **`dev`** のまま。**Release 本文の手動コピーは不要**。
 
 ## コードとテスト（原則）
 
