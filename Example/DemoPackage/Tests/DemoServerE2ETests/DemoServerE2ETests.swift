@@ -1,5 +1,6 @@
 #if os(macOS) || os(Linux)
 import Foundation
+import KawarimiCore
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -52,9 +53,9 @@ final class DemoServerE2ETests {
             server.kawarimiBaseURL.appending(path: "status")
         )
         #expect(statusResponse.statusCode == 200)
-        let overrides = try JSONSerialization.jsonObject(with: statusData) as? [[String: Any]]
-        #expect(overrides?.count == 1)
-        #expect(overrides?.first?["path"] as? String == greetPath)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.count == 1)
+        #expect(overrides.first?.path == greetPath)
     }
 
     @Test func hengeResetClearsOverrides() async throws {
@@ -84,8 +85,8 @@ final class DemoServerE2ETests {
             server.kawarimiBaseURL.appending(path: "status")
         )
         #expect(statusResponse.statusCode == 200)
-        let overrides = try JSONSerialization.jsonObject(with: statusData) as? [[String: Any]]
-        #expect(overrides?.isEmpty == true)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.isEmpty)
     }
 
     @Test func hengeRemoveDeletesOverrideRow() async throws {
@@ -111,8 +112,8 @@ final class DemoServerE2ETests {
             server.kawarimiBaseURL.appending(path: "status")
         )
         #expect(statusResponse.statusCode == 200)
-        let overrides = try JSONSerialization.jsonObject(with: statusData) as? [[String: Any]]
-        #expect(overrides?.isEmpty == true)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.isEmpty)
     }
 
     // MARK: - E2E-10, E2E-11 (middleware + responseMap; handler stubs throw for unconfigured ops)
@@ -222,8 +223,9 @@ final class DemoServerE2ETests {
             server.kawarimiBaseURL.appending(path: "status")
         )
         #expect(statusResponse.statusCode == 200)
-        let overrides = try JSONSerialization.jsonObject(with: statusData) as? [[String: Any]]
-        #expect(overrides?.count == 1)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.count == 1)
+        #expect(overrides.first?.isEnabled == false)
     }
 
     @Test func exampleIdHeaderSelectsOverride() async throws {
@@ -251,6 +253,13 @@ final class DemoServerE2ETests {
         #expect(formalResponse.statusCode == 200)
         #expect(try DemoServerE2EJSON.decodeGreeting(from: formalData).message == "Good day from API")
 
+        let (successResponse, successData) = try await DemoServerHTTP.get(
+            greetURL,
+            headers: [DemoServerE2EConstants.exampleIdHeader: "success"]
+        )
+        #expect(successResponse.statusCode == 200)
+        #expect(try DemoServerE2EJSON.decodeGreeting(from: successData).message == "Hello from API")
+
         let (defaultResponse, defaultData) = try await DemoServerHTTP.get(greetURL)
         #expect(defaultResponse.statusCode == 200)
         // Tie-break: exampleId "formal" sorts before "success".
@@ -272,7 +281,7 @@ final class DemoServerE2ETests {
         try await server.resetOverrides()
 
         let greetPath = DemoServerE2EPaths.greetPath
-        let oversized = String(repeating: "x", count: DemoServerE2EConstants.mockOverrideMaxBodyLength + 1)
+        let oversized = String(repeating: "x", count: MockOverride.maxBodyLength + 1)
         let configureBody = Data(
             """
             {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,\

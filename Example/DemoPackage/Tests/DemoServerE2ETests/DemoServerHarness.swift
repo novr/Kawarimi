@@ -207,9 +207,29 @@ enum HarnessError: Error, CustomStringConvertible {
 }
 
 enum DemoServerHTTP {
-    static func get(_ url: URL) async throws -> (HTTPURLResponse, Data) {
+    static func get(
+        _ url: URL,
+        headers: [String: String] = [:]
+    ) async throws -> (HTTPURLResponse, Data) {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
+        return try await data(for: request)
+    }
+
+    static func post(
+        _ url: URL,
+        body: Data,
+        contentType: String? = nil
+    ) async throws -> (HTTPURLResponse, Data) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        if let contentType {
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        }
+        request.httpBody = body
         return try await data(for: request)
     }
 

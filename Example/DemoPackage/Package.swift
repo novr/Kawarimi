@@ -43,7 +43,10 @@ var targets: [Target] = [
     ),
     .testTarget(
         name: "DemoServerE2ETests",
-        dependencies: ["DemoAPI"],
+        dependencies: [
+            "DemoAPI",
+            .product(name: "KawarimiCore", package: "Kawarimi"),
+        ],
         path: "Tests/DemoServerE2ETests"
     ),
 ]
