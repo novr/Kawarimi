@@ -17,7 +17,11 @@ package enum HTTPStatusPhrase {
         case 502: return "Bad Gateway"
         case 503: return "Service Unavailable"
         default:
+            #if canImport(Darwin)
             return HTTPURLResponse.localizedString(forStatusCode: statusCode).capitalized
+            #else
+            return "HTTP \(statusCode)"
+            #endif
         }
     }
 }
