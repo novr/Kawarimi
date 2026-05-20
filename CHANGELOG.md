@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-05-20
+
 ### Added
 
 - **Example**: `openapi.yaml` greet response adds named `examples` (`success` / `formal`).
@@ -267,6 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.2.2]: https://github.com/novr/Kawarimi/releases/tag/v2.2.2
 [2.2.1]: https://github.com/novr/Kawarimi/releases/tag/v2.2.1
 [2.2.0]: https://github.com/novr/Kawarimi/releases/tag/v2.2.0
 [2.1.0]: https://github.com/novr/Kawarimi/releases/tag/v2.1.0
