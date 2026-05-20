@@ -58,13 +58,21 @@ var targets: [Target] = [
             .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
         ]
     ),
+    .target(
+        name: "KawarimiHengeCore",
+        dependencies: [
+            "KawarimiCore",
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+        ],
+        path: "Sources/KawarimiHengeCore"
+    ),
     .testTarget(
         name: "KawarimiPluginSupportTests",
         dependencies: ["KawarimiPluginSupport"]
     ),
     .testTarget(
         name: "KawarimiCoreTests",
-        dependencies: ["KawarimiCore", "KawarimiJutsu"],
+        dependencies: ["KawarimiCore", "KawarimiJutsu", "KawarimiHengeCore"],
         resources: [.copy("Fixtures")]
     ),
     .testTarget(
@@ -85,22 +93,15 @@ var targets: [Target] = [
 if !linuxCI {
     products.append(.library(name: "KawarimiHenge", targets: ["KawarimiHenge"]))
     targets.append(
-        contentsOf: [
-            .target(
-                name: "KawarimiHenge",
-                dependencies: [
-                    "KawarimiCore",
-                    .product(name: "HTTPTypes", package: "swift-http-types"),
-                ]
-            ),
-            .testTarget(
-                name: "KawarimiHengeTests",
-                dependencies: [
-                    "KawarimiHenge",
-                    .product(name: "HTTPTypes", package: "swift-http-types"),
-                ]
-            ),
-        ]
+        .target(
+            name: "KawarimiHenge",
+            dependencies: [
+                "KawarimiCore",
+                "KawarimiHengeCore",
+                .product(name: "HTTPTypes", package: "swift-http-types"),
+            ],
+            path: "Sources/KawarimiHenge"
+        )
     )
 }
 

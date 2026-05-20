@@ -2,10 +2,10 @@ import Foundation
 import KawarimiCore
 
 /// Stateless Henge explorer queries (row matching, primary/stored rows, Save/chip rules, persistable equality, peer-disable inputs).
-enum OverrideListQueries {
+package enum OverrideListQueries {
     // MARK: - Row matching & primary
 
-    static func overrideMatchesRow(
+    package static func overrideMatchesRow(
         _ ov: MockOverride,
         rowKey: EndpointRowKey,
         pathPrefix: String,
@@ -21,7 +21,7 @@ enum OverrideListQueries {
     }
 
     /// Enabled overrides for this path + method, ordered like the interceptor tie-break (first wins).
-    static func primaryEnabledOverride(
+    package static func primaryEnabledOverride(
         for rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -37,7 +37,7 @@ enum OverrideListQueries {
     }
 
     /// Status code of the primary enabled override for the row, or nil when following spec only.
-    static func enabledStatusCode(
+    package static func enabledStatusCode(
         for rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -47,7 +47,7 @@ enum OverrideListQueries {
     }
 
     /// For **P** on spec-backed chips: when several `responseList` rows share `statusCode` + `exampleId`, picks the index whose template best matches the enabled override (same rules as template merge / save).
-    static func specResponseListIndexForPrimaryBadge(
+    package static func specResponseListIndexForPrimaryBadge(
         primary enabled: MockOverride,
         endpoint: any SpecEndpointProviding
     ) -> Int? {
@@ -70,7 +70,7 @@ enum OverrideListQueries {
     }
 
     /// All **enabled** overrides for this OpenAPI operation (path/method or `operationId`), interceptor tie-break order.
-    static func enabledOverridesForOperation(
+    package static func enabledOverridesForOperation(
         rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -86,7 +86,7 @@ enum OverrideListQueries {
     }
 
     /// More than one enabled row for the same operation (e.g. hand-edited config); interceptor uses tie-break order.
-    static func hasMultipleEnabledOverridesForOperation(
+    package static func hasMultipleEnabledOverridesForOperation(
         rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -102,17 +102,17 @@ enum OverrideListQueries {
 
     // MARK: - Spec endpoint lookup
 
-    static func endpoint(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> (any SpecEndpointProviding)? {
+    package static func endpoint(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> (any SpecEndpointProviding)? {
         endpoints.first { EndpointRowKey($0) == rowKey }
     }
 
-    static func defaultResponseStatusCode(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> Int {
+    package static func defaultResponseStatusCode(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> Int {
         endpoint(for: rowKey, in: endpoints)?.responseList.first?.statusCode ?? 200
     }
 
     // MARK: - Stored row lookup (status + example identity)
 
-    static func enabledOverride(
+    package static func enabledOverride(
         for rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -129,7 +129,7 @@ enum OverrideListQueries {
     }
 
     /// Any stored row for this operation + status + example (enabled or disabled).
-    static func storedOverride(
+    package static func storedOverride(
         for rowKey: EndpointRowKey,
         operationId: String?,
         pathPrefix: String,
@@ -144,7 +144,7 @@ enum OverrideListQueries {
         }
     }
 
-    static func hasStoredRowMatchingDraft(
+    package static func hasStoredRowMatchingDraft(
         _ draft: MockOverride,
         rowKey: EndpointRowKey,
         operationId: String?,
@@ -162,7 +162,7 @@ enum OverrideListQueries {
     }
 
     /// After refresh, re-select the same logical mock row (path string may differ from configure normalization).
-    static func pinnedEnabledOverride(
+    package static func pinnedEnabledOverride(
         matching draft: MockOverride,
         rowKey: EndpointRowKey,
         operationId: String?,
@@ -192,7 +192,7 @@ enum OverrideListQueries {
     // MARK: - Custom responses (not in OpenAPI response list)
 
     /// Overrides for this operation whose status / example pair does not appear in the OpenAPI response list (enabled **and** disabled).
-    static func customOverrides(
+    package static func customOverrides(
         for rowKey: EndpointRowKey,
         endpoint: any SpecEndpointProviding,
         operationId: String?,
@@ -209,7 +209,7 @@ enum OverrideListQueries {
         }
     }
 
-    static func specContainsResponse(
+    package static func specContainsResponse(
         _ endpoint: any SpecEndpointProviding,
         statusCode: Int,
         exampleId: String?
@@ -221,7 +221,7 @@ enum OverrideListQueries {
 
     // MARK: - Spec-shaped draft (chips & Save early exit)
 
-    static func draftRepresentsSpecOnlyRowForSave(
+    package static func draftRepresentsSpecOnlyRowForSave(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding
     ) -> Bool {
@@ -237,7 +237,7 @@ enum OverrideListQueries {
     // MARK: - Exclusive enabled row (same OpenAPI operation)
 
     /// Same `paths` entry + HTTP method (via `operationId` when both set, else aligned paths).
-    static func sameOpenAPIOperation(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
+    package static func sameOpenAPIOperation(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
         let na = a.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let nb = b.name?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !na.isEmpty, !nb.isEmpty { return na == nb }
@@ -247,7 +247,7 @@ enum OverrideListQueries {
     }
 
     /// Same persisted row identity as `configure` / `remove` (path + method + status + example id).
-    static func isSameOverrideRow(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
+    package static func isSameOverrideRow(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
         guard a.method == b.method else { return false }
         guard a.statusCode == b.statusCode else { return false }
         guard MockExamplePresentation.exampleIdsEqual(a.exampleId, b.exampleId) else { return false }
@@ -258,7 +258,7 @@ enum OverrideListQueries {
 
     /// When saving **`saved`** with **`isEnabled: true`**, each matching **other** enabled row for the same operation
     /// (including same status + different `exampleId`) should be turned off so only one mock is active.
-    static func peerShouldBeDisabledWhenSavingEnabledRow(
+    package static func peerShouldBeDisabledWhenSavingEnabledRow(
         saved: MockOverride,
         peer: MockOverride,
         pathPrefix: String
@@ -272,7 +272,7 @@ enum OverrideListQueries {
     // MARK: - Persistable mock equality (UI “server diff” vs. resync canonical)
 
     /// Compares fields that align with a server override row after ``OverrideDetailDraft/resyncMockFromServer(overrides:endpoints:pathPrefix:)`` (JSON whitespace–tolerant; content types like ``contentTypesAligned``).
-    static func persistableMockConfigurationEqual(_ a: MockOverride, _ b: MockOverride) -> Bool {
+    package static func persistableMockConfigurationEqual(_ a: MockOverride, _ b: MockOverride) -> Bool {
         guard a.method == b.method else { return false }
         guard a.path == b.path else { return false }
         guard a.isEnabled == b.isEnabled else { return false }

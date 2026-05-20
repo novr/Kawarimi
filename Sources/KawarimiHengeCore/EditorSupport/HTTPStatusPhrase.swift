@@ -1,7 +1,7 @@
 import Foundation
 
-enum HTTPStatusPhrase {
-    static func text(for statusCode: Int) -> String {
+package enum HTTPStatusPhrase {
+    package static func text(for statusCode: Int) -> String {
         switch statusCode {
         case 100: return "Continue"
         case 200: return "OK"
@@ -17,7 +17,11 @@ enum HTTPStatusPhrase {
         case 502: return "Bad Gateway"
         case 503: return "Service Unavailable"
         default:
+            #if canImport(Darwin)
             return HTTPURLResponse.localizedString(forStatusCode: statusCode).capitalized
+            #else
+            return "HTTP \(statusCode)"
+            #endif
         }
     }
 }

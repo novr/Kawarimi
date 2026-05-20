@@ -1,5 +1,6 @@
 import HTTPTypes
 import KawarimiCore
+import KawarimiHengeCore
 import SwiftUI
 
 #if canImport(UIKit)

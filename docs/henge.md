@@ -250,7 +250,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 ### Implementors (code map)
 
-**Editing rules** live under **`Sources/KawarimiHenge/EditorSupport/`** — `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`, **`OverrideListQueries`**, **`OverrideExplorerDraftBootstrap`**. **Selection + draft meta** (`validationMessage`, `isDirty`) are **`OverrideEditorStore`** / **`OverrideDetailDraft`**.
+**Editing rules** live in **`KawarimiHengeCore`** (`Sources/KawarimiHengeCore/`) — `ResponseChips`, `SavePayload`, `DisableMockPlanner`, `EndpointFilter`, **`OverrideListQueries`**, **`OverrideExplorerDraftBootstrap`**. **Selection + draft meta** (`validationMessage`, `isDirty`) are **`OverrideEditorStore`** / **`OverrideDetailDraft`**. SwiftUI is **`KawarimiHenge`** (`Sources/KawarimiHenge/`).
 
 | UI / doc term | Code | Notes |
 | --- | --- | --- |
@@ -270,7 +270,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Del** — **`DisableMockPlanner`**: active mock → `configure` **off**; off + matching stored row → **`remove`** + draft reset toward spec; else **no-op**.
 
-**Automated tests:** **`KawarimiHengeTests`** (`Tests/KawarimiHengeTests/`).
+**Automated tests:** Henge explorer logic in **`KawarimiCoreTests`** (`Tests/KawarimiCoreTests/Henge/`, module **`KawarimiHengeCore`**). Ubuntu CI runs **`KawarimiHengeCore`** only; full **`KawarimiHenge`** (SwiftUI) on macOS locally.
 
 ## Client: real server vs Kawarimi mock
 

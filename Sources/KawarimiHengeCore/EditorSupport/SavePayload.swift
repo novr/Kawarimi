@@ -1,8 +1,8 @@
 import KawarimiCore
 
-enum SavePayload {
+package enum SavePayload {
     /// Force **enabled** payload (tests / programmatic); UI uses ``build``.
-    static func buildApplyPrimary(
+    package static func buildApplyPrimary(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding
     ) -> MockOverride {
@@ -13,7 +13,7 @@ enum SavePayload {
     }
 
     /// Force **disabled** payload with body preserved (tests / programmatic); UI uses ``build``.
-    static func buildSaveInactive(
+    package static func buildSaveInactive(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding
     ) -> MockOverride {
@@ -26,7 +26,7 @@ enum SavePayload {
     /// **UI Save**: Spec-only early exit when the user is on **Spec** (not a numbered chip), else **`mock.isEnabled`** — or **`pinnedNumberedResponseChip`** — chooses enabled vs disabled.
     ///
     /// A **stored-off** OpenAPI row still copies the spec template into the draft (`mock.isEnabled == false` but ``OverrideListQueries/draftRepresentsSpecOnlyRowForSave`` is true). If the user tapped a **numbered** chip, `pinnedNumberedResponseChip` is true and Save must **enable** that row, not take the Spec-only disable path.
-    static func build(
+    package static func build(
         mock: MockOverride,
         endpoint: any SpecEndpointProviding,
         pinnedNumberedResponseChip: Bool = false

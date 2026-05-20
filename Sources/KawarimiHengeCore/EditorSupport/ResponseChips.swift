@@ -1,19 +1,19 @@
 import KawarimiCore
 
-struct ResponseChip: Identifiable {
-    static let specRowId = "spec"
+package struct ResponseChip: Identifiable {
+    package static let specRowId = "spec"
 
-    let id: String
-    let statusCode: Int
-    let exampleId: String?
-    let label: String
-    let isInactive: Bool
+    package let id: String
+    package let statusCode: Int
+    package let exampleId: String?
+    package let label: String
+    package let isInactive: Bool
     /// Index into ``SpecEndpointProviding/responseList`` for chips built from the spec picker; disambiguates duplicate status + example rows.
-    let specResponseListIndex: Int?
+    package let specResponseListIndex: Int?
 
-    var isSpec: Bool { id == Self.specRowId }
+    package var isSpec: Bool { id == Self.specRowId }
 
-    init(
+    package init(
         id: String,
         statusCode: Int,
         exampleId: String?,
@@ -30,8 +30,8 @@ struct ResponseChip: Identifiable {
     }
 }
 
-enum ResponseChips {
-    static let commonCustomHTTPStatusCodes: [Int] = [
+package enum ResponseChips {
+    package static let commonCustomHTTPStatusCodes: [Int] = [
         100, 101, 103,
         200, 201, 202, 203, 204, 205, 206, 207, 208, 226,
         300, 301, 302, 303, 304, 307, 308,
@@ -39,19 +39,19 @@ enum ResponseChips {
         500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
     ]
 
-    static func supplementalRowChipId(statusCode: Int, exampleId: String?) -> String {
+    package static func supplementalRowChipId(statusCode: Int, exampleId: String?) -> String {
         let ex = MockExamplePresentation.normalizedExampleId(exampleId).map { $0 } ?? "_default"
         return "supplemental:\(statusCode):\(ex)"
     }
 
-    static func supplementalChipLabel(statusCode: Int, exampleId: String?) -> String {
+    package static func supplementalChipLabel(statusCode: Int, exampleId: String?) -> String {
         if let ex = MockExamplePresentation.normalizedExampleId(exampleId) {
             return "\(statusCode) · \(ex)"
         }
         return "\(statusCode) \(HTTPStatusPhrase.text(for: statusCode))"
     }
 
-    static func buildChipOptions(
+    package static func buildChipOptions(
         mock: MockOverride,
         endpointItem: SpecEndpointItem,
         endpoint: any SpecEndpointProviding,
@@ -137,7 +137,7 @@ enum ResponseChips {
         return out
     }
 
-    static func responseOptionExists(
+    package static func responseOptionExists(
         statusCode: Int,
         exampleId: String?,
         options: [ResponseChip]
@@ -147,7 +147,7 @@ enum ResponseChips {
         }
     }
 
-    static func chipIsSelected(
+    package static func chipIsSelected(
         option: ResponseChip,
         mock: MockOverride,
         endpoint: any SpecEndpointProviding,
@@ -169,7 +169,7 @@ enum ResponseChips {
             && MockExamplePresentation.exampleIdsEqual(mock.exampleId, option.exampleId)
     }
 
-    static func applyChipSelection(
+    package static func applyChipSelection(
         option: ResponseChip,
         mock: inout MockOverride,
         endpointItem: SpecEndpointItem,

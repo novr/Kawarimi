@@ -1,4 +1,5 @@
 import KawarimiCore
+import KawarimiHengeCore
 import SwiftUI
 
 /// Endpoint explorer and detail editor; list/spec inputs from the parent, draft state in ``OverrideEditorStore``.
