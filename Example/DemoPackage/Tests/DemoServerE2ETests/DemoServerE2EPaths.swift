@@ -10,6 +10,14 @@ enum DemoServerE2EPaths {
         KawarimiPath.aligned(path: "/greet", pathPrefix: apiPrefix)
     }
 
+    static var itemsListPath: String {
+        KawarimiPath.aligned(path: "/items", pathPrefix: apiPrefix)
+    }
+
+    static var itemByIDPathTemplate: String {
+        KawarimiPath.aligned(path: "/items/{id}", pathPrefix: apiPrefix)
+    }
+
     static func apiBaseURL(origin: URL) -> URL {
         var url = origin
         for segment in KawarimiPath.splitPathSegments(apiPrefix) {

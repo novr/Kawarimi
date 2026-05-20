@@ -47,6 +47,16 @@ Override the listen address with `HOST` and `PORT` (default port **8080**). Use 
 
 `DemoAPITests` covers the in-process **`Kawarimi()`** transport path.
 
+### DemoServer HTTP E2E (`DemoServerE2ETests`)
+
+macOS and Linux: a shared **`DemoServer`** subprocess (`PORT=0`, `KAWARIMI_LISTEN_READY_FILE`) exercises real HTTP against **`KawarimiServerMiddleware`** and **`__kawarimi`** admin routes.
+
+```bash
+cd DemoPackage && swift test --filter DemoServerE2ETests
+```
+
+Coverage matrix and backlog: [Issue #80](https://github.com/novr/Kawarimi/issues/80) (E2E-01–04, 10–11, 20–26 implemented in-repo).
+
 ## HengeCli (macOS)
 
 **`HengeCli`** is a small SwiftPM executable in **`DemoPackage`** that runs the same **Kawarimi Henge** UI as the DemoApp tab, without Xcode.

@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Example**: `openapi.yaml` greet response adds named `examples` (`success` / `formal`).
+- **Example**: **`DemoServerE2ETests`** — E2E-10/11 (items via middleware + `responseMap`), E2E-20–26 (Henge admin API) ([#80](https://github.com/novr/Kawarimi/issues/80)).
+
 ## [2.2.1] - 2026-05-20
 
 ### Fixed
