@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **CI / structure:** Henge explorer logic in **`Sources/KawarimiHengeCore`** / target **`KawarimiHengeCore`**; SwiftUI in **`Sources/KawarimiHenge`** / **`KawarimiHenge`**. Tests in **`Tests/KawarimiCoreTests/Henge/`** run on ubuntu CI ([#83](https://github.com/novr/Kawarimi/issues/83)).
+- **CI**: drop PR **`kawarimi-perf`** job (display-only `[kawarimi-perf]` lines; use **`performance.yaml`** `workflow_dispatch` or local **`Scripts/performance/`** for measurement).
 
 ## [2.3.0] - 2026-05-20
 
