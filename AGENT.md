@@ -52,7 +52,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 
 ### 構造（リリース workflow との契約）
 
-- **バージョン見出し（必須）**: `## [X.Y.Z] - YYYY-MM-DD`（`X.Y.Z` は SemVer、日付は ISO `YYYY-MM-DD`）。タグ `vX.Y.Z` と対応し、[`.github/workflows/release.yaml`](.github/workflows/release.yaml) の `octivi/release-notes-from-changelog` がこの形式のみをリリース節として抽出する。
+- **バージョン見出し（必須）**: `## [X.Y.Z] - YYYY-MM-DD`（`X.Y.Z` は SemVer、日付は ISO `YYYY-MM-DD`）。タグ `vX.Y.Z` と対応し、[`.github/workflows/release.yaml`](.github/workflows/release.yaml) がこの形式の節だけを Release 本文に抽出する（見出し行 `## [X.Y.Z]` は除く）。
 - **`[Unreleased]`**: ファイル内で **最初の `##` 見出し**として維持。リリース PR 後は空でもよいが、見出し行は削除しない（日付なしのため抽出対象外）。
 - **並び**: リリース済みバージョンは **新しい順**（現状どおり）。
 - **フッタリンク**: リリース PR で `[X.Y.Z]: https://github.com/novr/Kawarimi/releases/tag/vX.Y.Z` を `CHANGELOG.md` 末尾に追加。GitHub Release 本文には含めない（抽出範囲外）。
