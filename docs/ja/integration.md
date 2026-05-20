@@ -57,6 +57,13 @@
 
 1. 任意: Example の追加（greet の名前付き **`examples`**、**`DemoServerE2ETests`** の拡充）を取り込む場合は pin を **`from: "2.2.2"`** に上げる。ライブラリ利用者のコード変更は不要。詳しくは CHANGELOG の **2.2.2** を参照。
 
+**2.2.2 → 2.3.0:**（追加のみ）
+
+1. パッケージ pin を **`from: "2.3.0"`** に上げる。
+2. **`SpecEndpointProviding`** や **`SpecResponse`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに任意の **`security`** が付き、OpenAPI に定義があるとき **`GET …/__kawarimi/spec`** の **`securitySchemes`** に載る ([#102](https://github.com/novr/Kawarimi/pull/102))。
+3. **Henge** / admin の spec 利用者: wire JSON から **`KawarimiSpec.securitySchemes`** とエンドポイントごとの **`security`** を読める。oauth2 の flow URL は未展開。
+4. クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は、spec エンドポイントや生成 **`KawarimiSpec`** の形に依存しない限り変更不要。CHANGELOG の **2.3.0** を参照。
+
 本パッケージの SwiftPM プロダクト:
 
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
@@ -71,7 +78,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.2"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.3.0"),
 ],
 targets: [
     .target(

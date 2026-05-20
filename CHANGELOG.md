@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-05-20
+
 ### Added
 
-- **KawarimiSpec** / **`SpecResponse`**: OpenAPI `components.securitySchemes` and per-endpoint effective `security` (global inheritance, `security: []` override, OR/AND semantics). Emits `apiKey` / `http` fields and `openIdConnectURL`; oauth2 flows are not expanded.
+- **KawarimiSpec** / **`SpecResponse`**: OpenAPI `components.securitySchemes` and per-endpoint effective `security` (global inheritance, `security: []` override, OR/AND semantics). Emits `apiKey` / `http` fields and `openIdConnectURL`; oauth2 flows are not expanded ([#102](https://github.com/novr/Kawarimi/pull/102)).
 - **KawarimiCore**: `SpecSecuritySchemeProviding`, `SpecSecurityRequirementProviding`, `SpecScopedSecuritySchemeProviding`; `SpecEndpointProviding.security`.
 - **Example**: Demo `openapi.yaml` adds sample `securitySchemes` and operation-level `security` overrides.
 
@@ -275,6 +277,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.3.0]: https://github.com/novr/Kawarimi/releases/tag/v2.3.0
 [2.2.2]: https://github.com/novr/Kawarimi/releases/tag/v2.2.2
 [2.2.1]: https://github.com/novr/Kawarimi/releases/tag/v2.2.1
 [2.2.0]: https://github.com/novr/Kawarimi/releases/tag/v2.2.0
