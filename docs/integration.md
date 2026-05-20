@@ -57,6 +57,13 @@ Client-only or in-process **`Kawarimi()`** transport users need no change unless
 
 1. Optional: bump the package pin to **`from: "2.2.2"`** for Example-only additions (named greet **`examples`**, expanded **`DemoServerE2ETests`**). Library integrators need no code changes. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.2**.
 
+**2.2.2 → 2.3.0:** (additive)
+
+1. Bump the package pin to **`from: "2.3.0"`**.
+2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or wiring **`SpecResponse`** — generated endpoints expose optional **`security`**; **`GET …/__kawarimi/spec`** includes **`securitySchemes`** when the OpenAPI document defines them ([#102](https://github.com/novr/Kawarimi/pull/102)).
+3. **Henge** / admin spec consumers: read **`KawarimiSpec.securitySchemes`** and per-endpoint **`security`** from wire JSON; oauth2 flow URLs are not expanded yet.
+4. Client-only or in-process **`Kawarimi()`** transport users need no change unless they call the spec endpoint or depend on generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.3.0**.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -71,7 +78,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.2"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.3.0"),
 ],
 targets: [
     .target(
