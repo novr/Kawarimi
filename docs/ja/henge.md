@@ -51,12 +51,15 @@ SwiftUI ホストは **`DemoApp`** や自前ターゲットを使ってくださ
 `KawarimiSpec` は API ターゲットに生成され、以下を公開します:
 
 ```swift
-KawarimiSpec.meta        // title, version, serverURL
-KawarimiSpec.endpoints   // 全エンドポイントと利用可能なレスポンス一覧
-KawarimiSpec.responseMap // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
+KawarimiSpec.meta             // title, version, serverURL
+KawarimiSpec.securitySchemes  // components.securitySchemes のカタログ（空なら nil）
+KawarimiSpec.endpoints        // 各 operation（effective security を含む場合あり）
+KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (body, contentType)]]
 ```
 
-生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠しています。
+各 **`Endpoint.security`** はその operation の **effective** OpenAPI security です（operation で省略時はグローバル `security` を継承、`security: []` は認証なし）。`security` 配列の要素間は **OR**、各 `SecurityRequirement.schemes` 内は **AND** です。apiKey は `apiKeyName` / `apiKeyIn`、`http` は `httpScheme` / `bearerFormat`、openIdConnect は `openIdConnectURL`。OAuth2 の flow URL や scopes は載せません。`ScopedSecurityScheme.name` は components のキーです。
+
+生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠し、Henge の wire JSON（`GET …/__kawarimi/spec`）用に **`securitySchemes`** も載せます。
 
 そのため **`KawarimiConfigView(client:specType:)`** が `/__kawarimi/spec` を手動クロージャなしでデコードできます。
 

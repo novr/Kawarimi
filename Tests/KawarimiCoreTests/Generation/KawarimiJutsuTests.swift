@@ -61,6 +61,22 @@ private func mockResponseBodyJSONString(operationId: String, in source: String) 
     return result.isEmpty ? nil : result
 }
 
+/// Extracts the generated `Endpoint(...)` block for the given `operationId`.
+private func endpointBlock(operationId: String, in source: String) -> String? {
+    let needle = "operationId: \"\(operationId)\""
+    guard let opRange = source.range(of: needle) else { return nil }
+    let before = source[..<opRange.lowerBound]
+    guard let endpointStart = before.range(of: "Endpoint(", options: .backwards) else { return nil }
+    let after = source[endpointStart.lowerBound...]
+    if let next = after.dropFirst("Endpoint(".count).range(of: "\n                    Endpoint(") {
+        return String(after[..<next.lowerBound])
+    }
+    if let close = after.range(of: "\n                    ),") {
+        return String(after[..<close.upperBound])
+    }
+    return String(after)
+}
+
 /// Extracts the JSON string inside `HTTPBody("...")` for the `case "<operationId>":` branch in generated `Kawarimi` transport source.
 private func transportMockBodyJSONString(operationId: String, in source: String) -> String? {
     let caseLabel = "case \"\(operationId)\":"
@@ -539,6 +555,70 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("public var tags: [String]?"))
     #expect(!source.contains("SpecParameterProviding"))
     #expect(!source.contains("parameters:"))
+}
+
+@Test func kawarimiJutsuSpecEmitsSecuritySchemesAndEffectiveSecurity() throws {
+    guard let url = fixtureURL(name: "openapi-security", extension: "yaml") else {
+        Issue.record("openapi-security.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+
+    #expect(source.contains("public struct SecurityScheme: Codable, Sendable"))
+    #expect(source.contains("public struct SecurityRequirement: Codable, Sendable"))
+    #expect(source.contains("public struct ScopedSecurityScheme: Codable, Sendable"))
+    #expect(source.contains("extension KawarimiSpec.SecurityScheme: SpecSecuritySchemeProviding"))
+    #expect(source.contains("public static let securitySchemes: [SecurityScheme]?"))
+    #expect(source.contains("apiKeyName: \"x-header-a\""))
+    #expect(source.contains("httpScheme: \"bearer\""))
+    #expect(source.contains("bearerFormat: \"JWT\""))
+    #expect(source.contains("public var securitySchemes: [KawarimiSpec.SecurityScheme]?"))
+
+    let inheritBlock = try #require(endpointBlock(operationId: "inheritSecurity", in: source))
+    #expect(inheritBlock.contains("name: \"HeaderA\""))
+    #expect(inheritBlock.contains("name: \"BearerAuth\""))
+
+    let publicBlock = try #require(endpointBlock(operationId: "publicNoSecurity", in: source))
+    #expect(publicBlock.contains("security: nil"))
+
+    let partialBlock = try #require(endpointBlock(operationId: "partialSecurity", in: source))
+    #expect(partialBlock.contains("name: \"HeaderA\""))
+    #expect(partialBlock.contains("name: \"HeaderB\""))
+    #expect(!partialBlock.contains("BearerAuth"))
+
+    let orBlock = try #require(endpointBlock(operationId: "orAlternativeSecurity", in: source))
+    let requirementCount = orBlock.components(separatedBy: "SecurityRequirement(").count - 1
+    #expect(requirementCount == 2)
+}
+
+@Test func kawarimiJutsuSpecEmitsCommonSecuritySchemeTypes() throws {
+    guard let url = fixtureURL(name: "openapi-security-schemes-catalog", extension: "yaml") else {
+        Issue.record("openapi-security-schemes-catalog.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+
+    #expect(source.contains("name: \"ApiKeyAuth\""))
+    #expect(source.contains("type: \"apiKey\""))
+    #expect(source.contains("apiKeyName: \"X-API-Key\""))
+    #expect(source.contains("apiKeyIn: \"header\""))
+
+    #expect(source.contains("name: \"BasicAuth\""))
+    #expect(source.contains("httpScheme: \"basic\""))
+
+    #expect(source.contains("name: \"BearerAuth\""))
+    #expect(source.contains("httpScheme: \"bearer\""))
+
+    #expect(source.contains("name: \"OpenID\""))
+    #expect(source.contains("type: \"openIdConnect\""))
+    #expect(source.contains("openIdConnectURL: \"https://example.com/.well-known/openid-configuration\""))
+
+    #expect(source.contains("name: \"OAuth2\""))
+    #expect(source.contains("type: \"oauth2\""))
+    #expect(!source.contains("authorizationUrl"))
+    #expect(!source.contains("authorizationCode"))
 }
 
 @Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
