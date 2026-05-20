@@ -40,7 +40,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 ### ドキュメントのみの PR と CI
 
 - **`main` 向け PR**: [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) の `changes`（`dorny/paths-filter`）が、次のいずれかに触れる変更があるかだけを見る: `Sources/**`, `Tests/**`, `Package.swift`, `Package.resolved`, `Example/**`, `Scripts/**`, `.github/**`。
-- **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテスト／perf ジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。
+- **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテストジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。**`[kawarimi-perf]`** の計測は PR CI ではなく [Scripts/performance/README.md](Scripts/performance/README.md) の手動ワークフロー／ローカルスクリプト。
 - **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`（**`BuildInfo.version` は生成しない** — スタブ **`dev`**）。**`KAWARIMI_LINUX_CI=1`** のとき **`KawarimiHengeCore`** と **`Tests/KawarimiCoreTests/Henge/`** を CI で実行する（SwiftUI の **`KawarimiHenge`** ライブラリ product と Demo の `HengeCli` は除外）。マージ前に macOS ローカルで `swift test` 全件（`KawarimiHenge` Views 含む）を実行すること。
 - **ビルドや CI に効く新しいパス**（上記以外に置いたツールや設定など）を追加したら、同じワークフローの `code` フィルタに追記し、該当変更でテストが走るようにする。
 
