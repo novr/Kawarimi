@@ -63,17 +63,17 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 - **形式**: Conventional Commits 風の `type(scope): 説明`（英語、命令形／現在形）。例: `feat(cli): …`, `fix(release): …`, `chore(release): prepare 2.2.0`。
 - **type の例**: `feat`, `fix`, `docs`, `chore`, `ci`, `perf`。**scope** は `cli`, `henge`, `server`, `jutsu`, `release`, `deps` 等。
 - **機能 PR**: ユーザー向け変更は同一 PR で **`CHANGELOG.md` の `[Unreleased]`** に追記する。
-- **リリース準備**: **`chore(release): prepare X.Y.Z`** を 1 コミットとし、CHANGELOG 確定・`docs/integration.md`（英日）の pin／移行メモ・フッタリンクをまとめる（分割しない）。
+- **リリース準備**: **`chore(release): prepare X.Y.Z`** を 1 コミットとし、CHANGELOG 確定・フッタリンクをまとめる（分割しない）。**パッチ**（`X.Y.Z` の `Z` のみ増加）では **`docs/integration.md` / `docs/ja/integration.md` は触らない**。**マイナー／メジャー**で統合者向けの移行が必要なときだけ integration の pin と移行メモを更新する。
 - **タグ push 後**: Release 本文用の追加コミットは不要（workflow が CHANGELOG から設定する）。
 
 ## PR とリリース準備
 
-リリースは **2 段階**: (1) リリース PR で CHANGELOG と integration を確定 → (2) マージ後にタグ push で workflow が GitHub Release を公開。
+リリースは **2 段階**: (1) リリース PR で CHANGELOG を確定（必要なら integration も） → (2) マージ後にタグ push で workflow が GitHub Release を公開。
 
 - **PR（マージ前）**: 変更範囲に応じて本リポジトリの CI と整合する検証が通る状態にする（**コード変更**では ubuntu CI と同様の `swift test` に加え、macOS で **`KawarimiHengeTests` を含む全テスト**を実行すること。**ドキュメントのみ**の CI 挙動は「ドキュメントのみの PR と CI」を参照）。本文に**変更の要約**と**関連 Issue** を書く。**破壊的変更**は本文または CHANGELOG でレビュアーが見落とせないように示す。差分は**レビュー可能な粒度**を優先し、無理なら分割を検討する。
 - **リリース PR（Phase 1）**:
   1. `CHANGELOG.md`: `[Unreleased]` を `## [X.Y.Z] - YYYY-MM-DD` へ移し、空の `[Unreleased]` を残す。フッタに `[X.Y.Z]: …/releases/tag/vX.Y.Z` を追加。
-  2. `docs/integration.md` と `docs/ja/integration.md`: SwiftPM pin と **直前版 → X.Y.Z** の移行メモ（破壊的変更時は必須）。
+  2. **マイナー／メジャー**のみ: `docs/integration.md` と `docs/ja/integration.md` の SwiftPM pin と **直前版 → X.Y.Z** の移行メモ（破壊的変更時は必須）。**パッチ**は CHANGELOG のみ（integration は更新しない）。
   3. コミット: `chore(release): prepare X.Y.Z`（**1 コミット推奨**）。
   4. **SemVer** で `X.Y.Z` を決める（外向きの破壊的変更はメジャーを上げる等）。
 - **タグ（Phase 2）**: マージコミットに `git tag vX.Y.Z` → `git push origin vX.Y.Z`。 [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `Generated.swift` を生成 → `swift test` → **`CHANGELOG.md` の該当節から Release 説明文**（見出し行 `## [X.Y.Z]` は除く）→ **`kawarimi-vX.Y.Z-source.tar.gz`** を添付。このアーカイブをビルドすると **`--version`** がタグと一致。GitHub 自動の **Source code (zip/tar.gz)** はスタブ **`dev`** のまま。**Release 本文の手動コピーは不要**。

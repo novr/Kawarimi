@@ -18,60 +18,36 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 ## 1. Dependencies and plugins
 
-Upgrading from **0.11.x**? See **[CHANGELOG.md](../CHANGELOG.md)** for breaking changes and migration.
+Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
-**1.0.x → 1.1.0:** **`OpenAPIPathPrefix`** was removed; use **`KawarimiPath`** (`splitPathSegments`, `joinPathPrefix`, `aligned(path:pathPrefix:)`) — see **[CHANGELOG.md](../CHANGELOG.md)** under **1.1.0**.
+**2.0.5 → 2.1.0** (additive):
 
-**1.1.x → 2.0.0:** Add **`openapi-generator-config.yaml`** or **`.yml`** next to the spec; ensure **exactly one** OpenAPI basename and **at most one** **`kawarimi-generator-config`** appear in the target’s **`sourceFiles`**. **`KawarimiJutsu.loadOpenAPISpec`** returns **`OpenAPIKit.OpenAPI.Document`**; remove **`KawarimiJutsuError.specFileInvalidEncoding`** handling; use **`try`** for **`handlerStubPolicyBesideOpenAPIYAML`**. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.0**.
+1. Bump pin to **`from: "2.1.0"`**.
+2. Server: **KawarimiServer** + **`KawarimiServerMiddleware`** in **`registerHandlers(middlewares:)`** — [henge.md](henge.md), [Example/README.md](../Example/README.md).
+3. Drop the old Vapor-global interceptor pattern for operation mocks if copied from Example.
+4. Rebuild after OpenAPI regen so **`responseMap`** matches **`KawarimiSpec`**.
 
-**2.0.2 → 2.0.3:** The **`Kawarimi`** CLI writes **`[kawarimi-perf]`** timings to stderr only when **`KAWARIMI_PERF=1`**. Malformed optional **`kawarimi-generator-config`** YAML logs one stderr warning instead of being ignored silently. Mock JSON synthesis handles components **`$ref`** cycles and shallow-merges **`allOf`** object branches — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.3**.
+**2.1.0 → 2.2.0** (additive):
 
-**2.0.3 → 2.0.4:** The **`Kawarimi`** CLI (via **`generateKawarimiHandlerSource` `warnings`**) prints **`[kawarimi] warning:`** lines for OpenAPI operations with missing or empty **`operationId`** (they are skipped from generated transport, handler, and spec) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.4**.
+1. Bump pin to **`from: "2.2.0"`**.
+2. Optional **`delayMs`** on overrides; optional **`POST …/__kawarimi/reload`** / **`KawarimiConfigStore.reloadFromDisk()`**.
+3. Custom Henge UI: **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`** ([#78](https://github.com/novr/Kawarimi/issues/78)).
 
-**2.0.4 → 2.0.5:** Optional **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) let the CLI and **KawarimiPlugin** skip individual outputs; at least one must stay enabled. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** — generated endpoints now expose optional OpenAPI **`tags`** (`nil` when absent) — see **[CHANGELOG.md](../CHANGELOG.md)** under **2.0.5**.
+**2.2.2 → 2.3.0** (additive):
 
-**2.0.5 → 2.1.0:** (additive — no public API removals in **KawarimiCore** / **KawarimiHenge**)
-
-1. Bump the package pin to **`from: "2.1.0"`**.
-2. **Server** targets that apply Henge runtime mocks on OpenAPI operations: add **`.product(name: "KawarimiServer", package: "Kawarimi")`**, `import KawarimiServer`, and pass **`KawarimiServerMiddleware(store:responseMap:)`** in **`registerHandlers(middlewares:)`** (typically `responseMap: KawarimiSpec.responseMap`). See [henge.md](henge.md) and [Example/README.md](../Example/README.md).
-3. If you copied the old Example **Vapor-global** interceptor pattern for operation mocks, **remove** it and use the middleware above instead (admin **`__kawarimi`** routes stay on Vapor as before).
-4. After OpenAPI regen, **rebuild** and construct a new middleware instance (or restart the server) so **`responseMap`** matches regenerated **`KawarimiSpec`**.
-
-Client-only or in-process **`Kawarimi()`** transport users need no change. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.1.0**.
-
-**2.1.0 → 2.2.0:** (additive)
-
-1. Bump the package pin to **`from: "2.2.0"`**.
-2. **Server** / Henge: optional **`delayMs`** on overrides is honored by **`KawarimiServerMiddleware`**; no OpenAPI regen required for existing configs.
-3. **Server** / admin: optional **`POST …/__kawarimi/reload`** (or **`KawarimiConfigStore.reloadFromDisk()`**) reloads **`kawarimi.json`** without restart — wire the route if you want remote reload (Example pattern).
-4. **Henge** explorer primary/enabled selection now matches server tie-break via Core APIs ([#78](https://github.com/novr/Kawarimi/issues/78)); custom UI that duplicated list logic should prefer **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`**.
-5. **`Kawarimi`** CLI: **`--help`** / **`--version`**; release source archives report the tag via **`--version`** (see **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.0**).
-
-Client-only or in-process **`Kawarimi()`** transport users need no change unless you call the CLI.
-
-**2.2.0 → 2.2.1:** (patch — no public API changes)
-
-1. Bump the package pin to **`from: "2.2.1"`** when you want release-workflow fixes and automated GitHub Release notes from **CHANGELOG** (maintainers: tag **`v2.2.1`** after merge; no manual Release description copy). See **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.1**.
-
-**2.2.1 → 2.2.2:** (patch — no public API changes)
-
-1. Optional: bump the package pin to **`from: "2.2.2"`** for Example-only additions (named greet **`examples`**, expanded **`DemoServerE2ETests`**). Library integrators need no code changes. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.2**.
-
-**2.2.2 → 2.3.0:** (additive)
-
-1. Bump the package pin to **`from: "2.3.0"`**.
-2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or wiring **`SpecResponse`** — generated endpoints expose optional **`security`**; **`GET …/__kawarimi/spec`** includes **`securitySchemes`** when the OpenAPI document defines them ([#102](https://github.com/novr/Kawarimi/pull/102)).
+1. Bump pin to **`from: "2.3.0"`**.
+2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or **`SpecResponse`** — endpoints expose optional **`security`**; **`GET …/__kawarimi/spec`** includes **`securitySchemes`** when defined ([#102](https://github.com/novr/Kawarimi/pull/102)).
 3. **Henge** / admin spec consumers: read **`KawarimiSpec.securitySchemes`** and per-endpoint **`security`** from wire JSON; oauth2 flow URLs are not expanded yet.
-4. Client-only or in-process **`Kawarimi()`** transport users need no change unless they call the spec endpoint or depend on generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.3.0**.
+4. Client-only or in-process **`Kawarimi()`** users need no change unless they use the spec endpoint or generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.3.0**.
 
-SwiftPM products from this package:
+SwiftPM products:
 
-- **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
-- **KawarimiJutsu** — generator API (`KawarimiJutsu.loadOpenAPISpec` → **`OpenAPIKit.OpenAPI.Document`**, OpenAPI **3.0.x / 3.1.x / 3.2.0** like **swift-openapi-generator** **YamsParser**, `OpenAPISpecDocumentURL`, YAML config loaders, …). Depends on **OpenAPIKit** (+ **OpenAPIKit30** / **OpenAPIKitCompat** internally). For CLI/tests/custom tooling, not typical app binaries.
-- **KawarimiHenge** — SwiftUI (`KawarimiConfigView`). Henge **explorer state** (snapshot, draft, bootstrap, `isDirty` vs “Not saved”): [henge.md](henge.md#henge-explorer-state); lifecycle / list `.id`: [henge.md](henge.md#henge-ui-data-flow).
-- **KawarimiServer** — OpenAPI server dynamic mocks (`KawarimiServerMiddleware` via `registerHandlers(middlewares:)`). Depends on **swift-openapi-runtime**. See [henge.md](henge.md).
+- **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …).
+- **KawarimiJutsu** — generator API (CLI/tests; OpenAPIKit).
+- **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
+- **KawarimiServer** — server dynamic mocks — [henge.md](henge.md).
 
-The target that hosts **KawarimiSpec.swift** must declare **`KawarimiCore`** and the **`HTTPTypes`** product as direct dependencies (same [swift-http-types](https://github.com/apple/swift-http-types) package). SwiftPM will not pick that up transitively from **KawarimiCore** alone.
+Targets with **KawarimiSpec.swift** need **`KawarimiCore`** and **`HTTPTypes`** as **direct** dependencies.
 
 ```swift
 dependencies: [
@@ -100,27 +76,15 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ## 2. OpenAPI spec location
 
-In the **Swift target’s root directory** (the directory SwiftPM uses for that target — the same layout [swift-openapi-generator](https://github.com/apple/swift-openapi-generator) expects), add **exactly one** OpenAPI document named **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`**. Do not place more than one of these in the same target (the build fails if SwiftPM’s file list contains zero or several matches — same rule as OpenAPIGenerator’s `PluginUtils`).
-**KawarimiPlugin** picks the document from **SwiftPM’s source file list** for that target (`SwiftSourceModuleTarget.sourceFiles`), not by scanning the directory independently.
-The build generates Types.swift, Client.swift, Server.swift (OpenAPIGenerator) and Kawarimi.swift, KawarimiHandler.swift, KawarimiSpec.swift (KawarimiPlugin).
+In the **Swift target root** (same layout as [swift-openapi-generator](https://github.com/apple/swift-openapi-generator)), add **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`**. **KawarimiPlugin** picks it from **`sourceFiles`**, not by directory scan. Build output: Types/Client/Server (OpenAPIGenerator) and Kawarimi/KawarimiHandler/KawarimiSpec (KawarimiPlugin).
 
 ## 3. Generator config (required)
 
-Add **exactly one** of **`openapi-generator-config.yaml`** or **`openapi-generator-config.yml`** in the **target root next to your OpenAPI document** (same rule as [swift-openapi-generator](https://github.com/apple/swift-openapi-generator): zero or multiple config files is an error). It controls [swift-openapi-generator options](https://github.com/apple/swift-openapi-generator#configuration).
+**Exactly one** **`openapi-generator-config.yaml`** or **`.yml`** beside the OpenAPI document ([swift-openapi-generator configuration](https://github.com/apple/swift-openapi-generator#configuration)). Kawarimi reads **`namingStrategy`** and **`accessModifier`**.
 
-Kawarimi reads **`namingStrategy`** and **`accessModifier`** from that file.
+Optional **`kawarimi-generator-config.yaml`** (at most one): **`handlerStubPolicy`** (`throw` / `fatalError`), **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**; at least one must stay enabled). Plugin: **`sourceFiles`**; CLI: directory of the spec path.
 
-Set **`handlerStubPolicy`** (`throw` / `fatalError`, default `throw`) and optionally **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (`true` by default; at least one must be `true`) in **`kawarimi-generator-config.yaml`** (or `.yml`). **At most one** of these files may exist next to the OpenAPI document (CLI) or among the target’s **`sourceFiles`** (plugin); two or more is an error.
-
-**KawarimiPlugin** resolves the OpenAPI document, **`openapi-generator-config`**, and optional **`kawarimi-generator-config`** from **SwiftPM’s `sourceFiles`** list. The **`Kawarimi`** CLI loads **`openapi-generator-config`** and optional **`kawarimi-generator-config`** from the same directory as the OpenAPI path you pass (labels in **swift-openapi-generator**–style messages use the parent directory name unless overridden).
-
-### KawarimiSpec `tags` (optional)
-
-Regenerate **`KawarimiSpec.swift`** after upgrading **KawarimiCore** when you use **`SpecEndpointProviding`**.
-
-Generated **`KawarimiSpec.Endpoint`** exposes optional **`tags`** from the OpenAPI operation (`nil` when the operation has no tags — not an empty array). Custom **`SpecEndpointProviding`** types may omit **`tags`**; the protocol extension defaults it to **`nil`**. OpenAPI order is preserved.
-
-Request **parameters** (`path` / `query` / `header`) are not emitted yet; see [#74](https://github.com/novr/Kawarimi/issues/74).
+Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** after upgrades. Endpoints expose optional OpenAPI **`tags`** (`nil` when absent). Request parameters: [#74](https://github.com/novr/Kawarimi/issues/74).
 
 ## 4. Use the mock in tests
 
@@ -133,9 +97,6 @@ let response = try await client.getGreeting(...)
 
 ## Requirements and tooling notes
 
-- Swift **6.2+** (matches `swift-tools-version` in `Package.swift`). **KawarimiPlugin** builds the `Kawarimi` tool with `-parse-as-library` (`unsafeFlags`); SwiftPM on **6.1** may **reject** that graph when depending on the plugin — use a 6.2 toolchain. CI uses [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) with **6.2**.
-- The SwiftPM sample under **`Example/`** targets **macOS 14+**; Kawarimi library products also declare **iOS 17+** (`Package.swift` `platforms`).
-- `handlerStubPolicy: throw` fails generation when **any** operation cannot get a default `KawarimiHandler` stub.
-  For example: documented success is not stubbable **HTTP 200 / 201** with `application/json` or an empty body, nor **HTTP 204**, or the generator cannot synthesize headers-only responses.
-- `handlerStubPolicy: fatalError` keeps generation successful; operations that **still** cannot be stubbed emit a `fatalError()` closure body at runtime (stderr warns with their `operationId`s).
-  JSON success responses use a literal initializer when possible, otherwise the **JSON decode fallback** described in [mock-json.md](mock-json.md#kawarimihandler-default-stubs).
+- Swift **6.2+** (`Package.swift`). **KawarimiPlugin** uses `-parse-as-library` (`unsafeFlags`); **6.1** SwiftPM may reject the graph.
+- **`Example/`**: macOS 14+; library products also **iOS 17+**.
+- **`handlerStubPolicy`**: `throw` fails generation if any operation lacks a default handler stub; `fatalError` keeps generation and fails at runtime for those operations ([mock-json.md](mock-json.md#kawarimihandler-default-stubs)).

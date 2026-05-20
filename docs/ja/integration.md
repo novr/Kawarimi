@@ -18,60 +18,36 @@
 
 ## 1. 依存とプラグイン
 
-**0.11.x からの更新**は **[CHANGELOG.md](../../CHANGELOG.md)** の破壊的変更と移行手順を参照。
+更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
-**1.0.x → 1.1.0:** **`OpenAPIPathPrefix`** を削除しました。**`KawarimiPath`**（`splitPathSegments`、`joinPathPrefix`、`aligned(path:pathPrefix:)`）に置き換えてください。詳しくは CHANGELOG の **1.1.0** を参照。
+**2.0.5 → 2.1.0**（追加のみ）:
 
-**1.1.x → 2.0.0:** 仕様の隣に **`openapi-generator-config.yaml`** または **`.yml`** を必ず置くこと。**`sourceFiles`** 上で OpenAPI の許可ファイル名は **ちょうど 1 本**、**`kawarimi-generator-config`** は **高々 1 本**。**`KawarimiJutsu.loadOpenAPISpec`** の戻りは **`OpenAPIKit.OpenAPI.Document`**。**`KawarimiJutsuError.specFileInvalidEncoding`** は削除。**`handlerStubPolicyBesideOpenAPIYAML`** は **`try`** が必要。詳しくは CHANGELOG の **2.0.0** を参照。
+1. pin を **`from: "2.1.0"`** に上げる。
+2. サーバ: **KawarimiServer** と **`registerHandlers(middlewares:)`** の **`KawarimiServerMiddleware`** — [henge.md](henge.md)、[Example/README_JA.md](../../Example/README_JA.md)。
+3. 旧 Example の Vapor グローバルインターセプタで operation モックしている場合は削除。
+4. OpenAPI 再生成後に再ビルドし、**`responseMap`** と **`KawarimiSpec`** を揃える。
 
-**2.0.2 → 2.0.3:** **`Kawarimi`** CLI の **`[kawarimi-perf]`** 行は **`KAWARIMI_PERF=1`** のときだけ stderr に出る。任意の **`kawarimi-generator-config`** が壊れた YAML なら、従来の黙殺の代わりに stderr に 1 行警告する。モック JSON 合成は components の **`$ref`** 循環に対応し、**`allOf`** のオブジェクト枝を浅くマージする。詳しくは CHANGELOG の **2.0.3** を参照。
+**2.1.0 → 2.2.0**（追加のみ）:
 
-**2.0.3 → 2.0.4:** **`Kawarimi`** CLI（**`generateKawarimiHandlerSource` の `warnings`** 経由）が、**`operationId`** が無いまたは空の OpenAPI 操作ごとに **`[kawarimi] warning:`** を stderr に出す（生成される transport / handler / spec からは除外される）。詳しくは CHANGELOG の **2.0.4** を参照。
+1. pin を **`from: "2.2.0"`** に上げる。
+2. 任意の **`delayMs`**、任意の **`POST …/__kawarimi/reload`** / **`KawarimiConfigStore.reloadFromDisk()`**。
+3. 独自 Henge UI: **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`** ([#78](https://github.com/novr/Kawarimi/issues/78))。
 
-**2.0.4 → 2.0.5:** 任意の **`kawarimi-generator-config.yaml`** で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 **`true`**）により CLI と **KawarimiPlugin** が個別の成果物をスキップできる（いずれか 1 つは **`true`** 必須）。**`SpecEndpointProviding`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに OpenAPI の任意 **`tags`**（無いとき **`nil`**）が付く。詳しくは CHANGELOG の **2.0.5** を参照。
+**2.2.2 → 2.3.0**（追加のみ）:
 
-**2.0.5 → 2.1.0:**（追加のみ — **KawarimiCore** / **KawarimiHenge** の公開 API 削除はなし）
-
-1. パッケージ pin を **`from: "2.1.0"`** に上げる。
-2. OpenAPI 登録 operation に Henge の実行時モックを載せる**サーバ**ターゲット: **`.product(name: "KawarimiServer", package: "Kawarimi")`** を追加し、`import KawarimiServer` のうえ **`registerHandlers(middlewares:)`** に **`KawarimiServerMiddleware(store:responseMap:)`** を渡す（通常 `responseMap: KawarimiSpec.responseMap`）。[henge.md](henge.md) と [Example/README_JA.md](../../Example/README_JA.md) を参照。
-3. 旧 Example の **Vapor グローバル**インターセプタをコピーして operation モックしていた場合は**削除**し、上記ミドルウェアに置き換える（admin の **`__kawarimi`** ルートは従来どおり Vapor 側）。
-4. OpenAPI 再生成後は **再ビルド**し、新しい middleware（またはサーバ再起動）で **`responseMap`** を更新した **`KawarimiSpec`** と揃える。
-
-クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は変更不要。CHANGELOG の **2.1.0** を参照。
-
-**2.1.0 → 2.2.0:**（追加のみ）
-
-1. パッケージ pin を **`from: "2.2.0"`** に上げる。
-2. **サーバ** / Henge: オーバーライドの任意 **`delayMs`** は **`KawarimiServerMiddleware`** が反映する。既存設定の OpenAPI 再生成は不要。
-3. **サーバ** / admin: 任意の **`POST …/__kawarimi/reload`**（または **`KawarimiConfigStore.reloadFromDisk()`**）で **`kawarimi.json`** を再起動なしで再読み込みできる。リモート reload が必要ならルートを配線する（Example パターン）。
-4. **Henge** の primary / enabled 選択はサーバと同じ tie-break の Core API に統一 ([#78](https://github.com/novr/Kawarimi/issues/78))。リストロジックを独自実装している UI は **`primaryEnabledOverrideForOperation`** / **`matchingEnabledOverridesForOperation`** を使う。
-5. **`Kawarimi`** CLI: **`--help`** / **`--version`**。リリース用ソースアーカイブの **`--version`** はタグを表示（CHANGELOG の **2.2.0** を参照）。
-
-クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は、CLI を使わない限り変更不要。
-
-**2.2.0 → 2.2.1:**（パッチ — 公開 API の変更なし）
-
-1. リリース workflow の修正と CHANGELOG からの GitHub Release 本文自動設定が必要なら、パッケージ pin を **`from: "2.2.1"`** に上げる（メンテナ: マージ後にタグ **`v2.2.1`** を push すればよく、Release 説明文の手動コピーは不要）。詳しくは CHANGELOG の **2.2.1** を参照。
-
-**2.2.1 → 2.2.2:**（パッチ — 公開 API の変更なし）
-
-1. 任意: Example の追加（greet の名前付き **`examples`**、**`DemoServerE2ETests`** の拡充）を取り込む場合は pin を **`from: "2.2.2"`** に上げる。ライブラリ利用者のコード変更は不要。詳しくは CHANGELOG の **2.2.2** を参照。
-
-**2.2.2 → 2.3.0:**（追加のみ）
-
-1. パッケージ pin を **`from: "2.3.0"`** に上げる。
-2. **`SpecEndpointProviding`** や **`SpecResponse`** を使う場合は **`KawarimiSpec.swift` を再生成** — 生成エンドポイントに任意の **`security`** が付き、OpenAPI に定義があるとき **`GET …/__kawarimi/spec`** の **`securitySchemes`** に載る ([#102](https://github.com/novr/Kawarimi/pull/102))。
+1. pin を **`from: "2.3.0"`** に上げる。
+2. **`SpecEndpointProviding`** や **`SpecResponse`** を使う場合は **`KawarimiSpec.swift` を再生成** — エンドポイントに任意の **`security`** が付き、OpenAPI に定義があるとき **`GET …/__kawarimi/spec`** の **`securitySchemes`** に載る ([#102](https://github.com/novr/Kawarimi/pull/102))。
 3. **Henge** / admin の spec 利用者: wire JSON から **`KawarimiSpec.securitySchemes`** とエンドポイントごとの **`security`** を読める。oauth2 の flow URL は未展開。
-4. クライアントのみ、またはプロセス内 **`Kawarimi()`** トランスポートだけの利用者は、spec エンドポイントや生成 **`KawarimiSpec`** の形に依存しない限り変更不要。CHANGELOG の **2.3.0** を参照。
+4. クライアントのみ、またはプロセス内 **`Kawarimi()`** だけの利用者は、spec エンドポイントや生成 **`KawarimiSpec`** の形に依存しない限り変更不要。CHANGELOG の **2.3.0** を参照。
 
-本パッケージの SwiftPM プロダクト:
+SwiftPM プロダクト:
 
-- **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。OpenAPIKit / Yams は含まない。
-- **KawarimiJutsu** — ジェネレータ API（`KawarimiJutsu.loadOpenAPISpec` は **OpenAPIKit** の **`OpenAPI.Document`**、OpenAPI **3.0.x / 3.1.x / 3.2.0** を **swift-openapi-generator** の **YamsParser** と同様に読み込み、`OpenAPISpecDocumentURL`、YAML 設定ローダーなど）。**OpenAPIKit** / **OpenAPIKit30** / **OpenAPIKitCompat** 依存。CLI・テスト・独自ツール向けで、通常のアプリ本体には不要。
-- **KawarimiHenge** — SwiftUI（`KawarimiConfigView`）。**エクスプローラの状態**（スナップショット・ドラフト・起動・`isDirty` と未保存）: [henge.md](henge.md#henge-explorer-state)。ライフサイクル／一覧 `.id`: [henge.md](henge.md#henge-ui-data-flow)。
-- **KawarimiServer** — OpenAPI サーバ向け動的モック（`registerHandlers(middlewares:)` の **`KawarimiServerMiddleware`**）。**swift-openapi-runtime** に依存。詳細は [henge.md](henge.md)。
+- **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。
+- **KawarimiJutsu** — ジェネレータ API（CLI・テスト向け、OpenAPIKit 依存）。
+- **KawarimiHenge** — SwiftUI 管理 UI — [henge.md](henge.md)。
+- **KawarimiServer** — サーバ動的モック — [henge.md](henge.md)。
 
-**KawarimiSpec.swift** を置くターゲットでは、**`KawarimiCore`** に加え **`HTTPTypes`** プロダクトを**直接**依存に書く（[swift-http-types](https://github.com/apple/swift-http-types)）。**KawarimiCore** 経由の推移的依存だけでは SwiftPM が解決しません。
+**KawarimiSpec.swift** を置くターゲットは **`KawarimiCore`** と **`HTTPTypes`** を**直接**依存に書く。
 
 ```swift
 dependencies: [
@@ -96,31 +72,19 @@ targets: [
 ]
 ```
 
-ダイナミックモック用 SwiftUIには **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。
+ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。
 
 ## 2. OpenAPI の置き場所
 
-**Swift ターゲットのルートディレクトリ**（SwiftPM がそのターゲットに割り当てるディレクトリ。[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ置き場所）に、**次のいずれか 1 本だけ**置く: **`openapi.yaml`**、**`openapi.yml`**、**`openapi.json`**。同じターゲットに複数置かない（SwiftPM が渡すファイル一覧上で 0 件または複数件ならエラー。OpenAPIGenerator の **`PluginUtils`** と同じルール）。
-**KawarimiPlugin** は **`SwiftSourceModuleTarget.sourceFiles`** に載るファイルから上記ファイル名だけを拾い、ディレクトリを独自に走査しません。
-ビルドで OpenAPIGenerator が Types.swift / Client.swift / Server.swift を、KawarimiPlugin が Kawarimi.swift / KawarimiHandler.swift / KawarimiSpec.swift を生成する。
+**Swift ターゲットルート**（[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ）に **`openapi.yaml`** / **`openapi.yml`** / **`openapi.json` のいずれか 1 本**。**KawarimiPlugin** は **`sourceFiles`** から選び、ディレクトリは走査しない。生成物: Types/Client/Server（OpenAPIGenerator）、Kawarimi/KawarimiHandler/KawarimiSpec（KawarimiPlugin）。
 
 ## 3. ジェネレータ設定（必須）
 
-**OpenAPI 仕様と同じディレクトリ**（ターゲットルート）に **`openapi-generator-config.yaml`** または **`openapi-generator-config.yml` をちょうど 1 つ**置く（[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ。0 個または複数はエラー）。[設定の内容](https://github.com/apple/swift-openapi-generator#configuration)は公式どおり。
+OpenAPI と同じディレクトリに **`openapi-generator-config.yaml`** または **`.yml` を 1 つ**（[設定](https://github.com/apple/swift-openapi-generator#configuration)）。Kawarimi は **`namingStrategy`** と **`accessModifier`** を読む。
 
-Kawarimi が読むキーは **`namingStrategy`** と **`accessModifier`** です。
+任意の **`kawarimi-generator-config.yaml`**（高々 1 本）: **`handlerStubPolicy`**、`generateKawarimi` / `generateHandler` / `generateSpec`（省略時 `true`、いずれか 1 つは必須）。プラグインは **`sourceFiles`**、CLI は仕様パスのディレクトリ。
 
-**`handlerStubPolicy`**（`throw` / `fatalError`、省略時 `throw`）に加え、任意で **`generateKawarimi`** / **`generateHandler`** / **`generateSpec`**（省略時 `true`、いずれか 1 つは `true` 必須）を **`kawarimi-generator-config.yaml`**（または `.yml`）に書けます（`openapi-generator-config` とは別。Kawarimi 専用キー）。**`kawarimi-generator-config` は高々 1 本**（CLI では仕様と同じディレクトリ、プラグインでは **`sourceFiles`** 上。2 本以上はエラー）。
-
-**KawarimiPlugin** は OpenAPI 仕様、**`openapi-generator-config`**、任意の **`kawarimi-generator-config`** を **`sourceFiles`** から解決します。**`Kawarimi`** CLI は仕様パスと同じディレクトリから **`openapi-generator-config`** と任意の **`kawarimi-generator-config`** を読みます（`openapi-generator-config` 系のエラー文面は swift-openapi-generator の **`FileError`** と同一。文言は **`Plugins/KawarimiPlugin/`** の **シンボリックリンク**で **KawarimiJutsu** と共有）。
-
-### KawarimiSpec の `tags`（任意）
-
-**KawarimiCore** を上げたあとは **`SpecEndpointProviding`** を使う場合、**`KawarimiSpec.swift` を再生成**してください。
-
-生成される **`KawarimiSpec.Endpoint`** の **`tags`** は OpenAPI operation の `tags` です（operation に tags が無いときは **`nil`**。空配列にはしません）。手書きの **`SpecEndpointProviding`** は **`tags`** を実装しなくてよく、プロトコル拡張の既定値は **`nil`** です。OpenAPI の並びを保持します。
-
-リクエスト **parameters**（`path` / `query` / `header`）は未対応です。予定は [#74](https://github.com/novr/Kawarimi/issues/74) を参照してください。
+**`SpecEndpointProviding`** 利用時はアップグレード後に **`KawarimiSpec.swift` を再生成**。エンドポイントの **`tags`** は OpenAPI どおり（無いとき `nil`）。parameters は [#74](https://github.com/novr/Kawarimi/issues/74)。
 
 ## 4. テストでモックを使う
 
@@ -133,9 +97,6 @@ let response = try await client.getGreeting(...)
 
 ## 要件・ツールチェーン
 
-- Swift **6.2+**（`Package.swift` の `swift-tools-version` に合わせる）。**KawarimiPlugin** は `Kawarimi` 実行ファイルを `-parse-as-library`（`unsafeFlags`）でビルドする。**6.1** の SwiftPM は、プラグイン依存時にその依存グラフを**拒否**することがある。CI は [swift-actions/setup-swift](https://github.com/swift-actions/setup-swift) で **6.2** を選択。
-- **`Example/`** 配下の SwiftPM サンプルは **macOS 14+**。Kawarimi のライブラリは **iOS 17+** も宣言（`Package.swift` の `platforms`）。
-- `handlerStubPolicy: throw` は、**いずれかの** operation で `KawarimiHandler` のデフォルトスタブが組めないときに生成を失敗させます。
-  例: ドキュメント上の成功が **HTTP 200 / 201** の `application/json` または本文なし、**HTTP 204** のパターンに合わない、ヘッダのみで本文のスタブを自動生成できない、など。
-- `handlerStubPolicy: fatalError` は生成を継続し、**なお**スタブを組めない operation だけ実行時 `fatalError()` のクロージャになります（該当 `operationId` を stderr に警告）。
-  `application/json` の成功レスポンスは、式スタブが書けるときはそのまま、無理なときは [mock-json.md](mock-json.md)（「KawarimiHandler のデフォルトスタブ」）の **JSON デコードフォールバック**を使います。
+- Swift **6.2+**（`Package.swift`）。**KawarimiPlugin** は `-parse-as-library`（`unsafeFlags`）。**6.1** の SwiftPM は依存グラフを拒否することがある。
+- **`Example/`**: macOS 14+。ライブラリは **iOS 17+** も宣言。
+- **`handlerStubPolicy`**: `throw` はスタブ不能 operation があると生成失敗、`fatalError` は生成継続・実行時失敗（[mock-json.md](mock-json.md)）。

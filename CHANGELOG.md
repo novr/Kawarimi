@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Example**: `openapi.yaml` greet response adds named `examples` (`success` / `formal`).
 - **Example**: **`DemoServerE2ETests`** — E2E-10/11 (items via middleware + `responseMap`), E2E-20–26 (Henge admin API) ([#80](https://github.com/novr/Kawarimi/issues/80)).
 
+### Docs
+
+- **`AGENT.md`**: patch releases do not update **`docs/integration.md`**; trim redundant integration migration notes.
+
 ## [2.2.1] - 2026-05-20
 
 ### Fixed
