@@ -47,6 +47,16 @@ KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
 
 **`DemoAPITests`** がプロセス内の **`Kawarimi()`** トランスポートを検証します。
 
+### DemoServer HTTP E2E（`DemoServerE2ETests`）
+
+macOS / Linux 共通: サブプロセス **`DemoServer`**（`PORT=0`、`KAWARIMI_LISTEN_READY_FILE`）で **`KawarimiServerMiddleware`** と **`__kawarimi`** 管理ルートへの実 HTTP を検証します。
+
+```bash
+cd DemoPackage && swift test --filter DemoServerE2ETests
+```
+
+カバレッジ一覧とバックログ: [Issue #80](https://github.com/novr/Kawarimi/issues/80)（リポジトリ内実装: E2E-01–04、10–11、20–26）。
+
 ## HengeCli（macOS）
 
 **`HengeCli`** は **`DemoPackage`** 内の SwiftPM 実行ファイルで、Xcode なしで **Kawarimi Henge** の UI（`KawarimiConfigView`）を起動します。
@@ -108,6 +118,12 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
 curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -H "Content-Type: application/json" \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
+```
+
+**`kawarimi.json` をディスク上で編集したあと**、サーバーへ再読込（`204`。`**X-Kawarimi-Reload**` が `applied` または `unchanged`）:
+
+```bash
+curl -i -X POST http://localhost:8080/api/__kawarimi/reload
 ```
 
 **通常の API 呼び出し**（`__kawarimi` 以外）では、参照ミドルウェア向けに **`X-Kawarimi-Example-Id`** ヘッダーを付けると、同一ルートに複数オーバーライドが有効なときに一致する例へ絞り込めます。

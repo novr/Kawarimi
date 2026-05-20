@@ -221,7 +221,7 @@ enum DemoServerHTTP {
         return try await data(for: request)
     }
 
-    private static func data(for request: URLRequest) async throws -> (HTTPURLResponse, Data) {
+    static func data(for request: URLRequest) async throws -> (HTTPURLResponse, Data) {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             let url = request.url?.absoluteString ?? "about:blank"

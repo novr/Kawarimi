@@ -32,6 +32,13 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Greeting"
+              examples:
+                success:
+                  value:
+                    message: "Hello from API"
+                formal:
+                  value:
+                    message: "Good day from API"
   /items:
     get:
       tags: ["Items"]
