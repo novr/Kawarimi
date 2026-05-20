@@ -49,6 +49,10 @@ Client-only or in-process **`Kawarimi()`** transport users need no change. See *
 
 Client-only or in-process **`Kawarimi()`** transport users need no change unless you call the CLI.
 
+**2.2.0 → 2.2.1:** (patch — no public API changes)
+
+1. Bump the package pin to **`from: "2.2.1"`** when you want release-workflow fixes and automated GitHub Release notes from **CHANGELOG** (maintainers: tag **`v2.2.1`** after merge; no manual Release description copy). See **[CHANGELOG.md](../CHANGELOG.md)** under **2.2.1**.
+
 SwiftPM products from this package:
 
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …). No OpenAPIKit/Yams.
@@ -63,7 +67,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.2.1"),
 ],
 targets: [
     .target(

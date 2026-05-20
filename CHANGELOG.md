@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-05-20
+
+### Fixed
+
+- **Release workflow** (`.github/workflows/release.yaml`): run steps with **bash** in the `swift:6.2-noble` container ([#92](https://github.com/novr/Kawarimi/pull/92)); create the source archive **before** `swift test` ([#93](https://github.com/novr/Kawarimi/pull/93)); write the archive **outside** the workspace root ([#94](https://github.com/novr/Kawarimi/pull/94)).
+
+### Changed
+
+- **Release workflow**: on tag **`v*`** push, set the GitHub Release **Description** from the matching **`CHANGELOG.md`** section via **`octivi/release-notes-from-changelog`** ([#91](https://github.com/novr/Kawarimi/issues/91)).
+
+### Docs
+
+- **`AGENT.md`** — CHANGELOG structure contract, Conventional Commits / **`chore(release)`**, and two-phase release flow ([#91](https://github.com/novr/Kawarimi/issues/91)).
+
 ## [2.2.0] - 2026-05-19
 
 ### Added
@@ -248,6 +262,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.2.1]: https://github.com/novr/Kawarimi/releases/tag/v2.2.1
 [2.2.0]: https://github.com/novr/Kawarimi/releases/tag/v2.2.0
 [2.1.0]: https://github.com/novr/Kawarimi/releases/tag/v2.1.0
 [2.0.5]: https://github.com/novr/Kawarimi/releases/tag/v2.0.5
