@@ -51,6 +51,7 @@ KAWARIMI_PERF=1 swift run --quiet Kawarimi /tmp/kw-spec/openapi.json /tmp/kw-out
 
 ## CI
 
+- **SwiftPM**: ubuntu ワークフローは `actions/cache` で `.build` と `/root/.cache/org.swift.swiftpm` を `Package.resolved` 単位で復元する。
 - **PR**: **`[kawarimi-perf]` の PR コメント投稿は行わない**（表示のみでベースライン比較がないため）。計測はローカルの上記スクリプトか、手動ワークフローを使う。
 - **手動**: **`Performance`**（`.github/workflows/performance.yaml`、`ubuntu-latest` + `swift:6.2-noble`）の **`workflow_dispatch`** — **`./Scripts/performance/incremental-build.sh --clean`**（diff 付き。数分かかることがある）。
 

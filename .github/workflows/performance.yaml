@@ -19,6 +19,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            Example/DemoPackage/.build
+            /root/.cache/org.swift.swiftpm
+          key: spm-linux-perf-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
+          restore-keys: |
+            spm-linux-perf-
+            spm-linux-
+
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
