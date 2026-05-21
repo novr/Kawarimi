@@ -37,7 +37,7 @@ Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
 1. Bump pin to **`from: "2.3.0"`**.
 2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or **`SpecResponse`** — endpoints expose optional **`security`**; **`GET …/__kawarimi/spec`** includes **`securitySchemes`** when defined ([#102](https://github.com/novr/Kawarimi/pull/102)).
-3. **Henge** / admin spec consumers: read **`KawarimiSpec.securitySchemes`** and per-endpoint **`security`** from wire JSON; oauth2 flow URLs are not expanded yet.
+3. **Henge** displays **`securitySchemes`** and per-endpoint effective **`security`** read-only in the detail column ([#108](https://github.com/novr/Kawarimi/issues/108)); oauth2 flow URLs are not expanded yet.
 4. Client-only or in-process **`Kawarimi()`** users need no change unless they use the spec endpoint or generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.3.0**.
 
 SwiftPM products:

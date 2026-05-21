@@ -37,7 +37,7 @@
 
 1. pin を **`from: "2.3.0"`** に上げる。
 2. **`SpecEndpointProviding`** や **`SpecResponse`** を使う場合は **`KawarimiSpec.swift` を再生成** — エンドポイントに任意の **`security`** が付き、OpenAPI に定義があるとき **`GET …/__kawarimi/spec`** の **`securitySchemes`** に載る ([#102](https://github.com/novr/Kawarimi/pull/102))。
-3. **Henge** / admin の spec 利用者: wire JSON から **`KawarimiSpec.securitySchemes`** とエンドポイントごとの **`security`** を読める。oauth2 の flow URL は未展開。
+3. **Henge** は詳細カラムで **`securitySchemes`** とエンドポイントごとの effective **`security`** を **表示のみ** ([#108](https://github.com/novr/Kawarimi/issues/108))。oauth2 の flow URL は未展開。
 4. クライアントのみ、またはプロセス内 **`Kawarimi()`** だけの利用者は、spec エンドポイントや生成 **`KawarimiSpec`** の形に依存しない限り変更不要。CHANGELOG の **2.3.0** を参照。
 
 SwiftPM プロダクト:

@@ -8,4 +8,10 @@ public protocol KawarimiFetchedSpec: Decodable, Sendable {
     associatedtype FetchedSpecEndpoint: SpecEndpointProviding
     var meta: FetchedSpecMeta { get }
     var endpoints: [FetchedSpecEndpoint] { get }
+    /// OpenAPI `components.securitySchemes` when the wire document includes them (`SpecResponse.securitySchemes`).
+    var securitySchemeCatalog: [any SpecSecuritySchemeProviding]? { get }
+}
+
+extension KawarimiFetchedSpec {
+    public var securitySchemeCatalog: [any SpecSecuritySchemeProviding]? { nil }
 }

@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiHenge**: read-only **Security** section in the endpoint detail column — effective OpenAPI `security` (OR across requirements, AND within) and referenced scheme definitions from `securitySchemeCatalog` ([#108](https://github.com/novr/Kawarimi/issues/108)).
+- **KawarimiHenge**: read-only **Tags** on endpoint list rows and in the detail column; explorer search matches OpenAPI operation `tags` ([#56](https://github.com/novr/Kawarimi/issues/56)).
+- **KawarimiHenge**: **`operationId`** in the endpoint detail column; **`meta.description`** under the explorer list header; **selected OpenAPI response** `summary` / `description` when a numbered chip is selected.
+
+### Changed
+
+- **`KawarimiFetchedSpec`**: optional **`securitySchemeCatalog`**; generated **`SpecResponse`** maps wire **`securitySchemes`**.
+
 ## [2.3.1] - 2026-05-21
 
 ### Changed

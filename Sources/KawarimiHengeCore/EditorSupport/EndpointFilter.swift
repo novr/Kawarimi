@@ -10,6 +10,9 @@ package enum EndpointFilter {
             if ep.path.lowercased().contains(lower) { return true }
             if ep.method.rawValue.lowercased().contains(lower) { return true }
             if ep.operationId.lowercased().contains(lower) { return true }
+            if let tags = ep.tags {
+                for tag in tags where tag.lowercased().contains(lower) { return true }
+            }
             return false
         }
     }

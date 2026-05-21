@@ -9,6 +9,7 @@ struct OverrideEditorView: View {
     private let onResetAll: () -> Void
     private let meta: (any SpecMetaProviding)?
     private let endpoints: [any SpecEndpointProviding]
+    private let securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     private let overrides: [MockOverride]
     private let isLoading: Bool
     private let specLoadID: Int
@@ -34,6 +35,7 @@ struct OverrideEditorView: View {
         onResetAll: @escaping () -> Void,
         meta: (any SpecMetaProviding)?,
         endpoints: [any SpecEndpointProviding],
+        securitySchemeCatalog: [any SpecSecuritySchemeProviding]?,
         overrides: [MockOverride],
         isLoading: Bool,
         specLoadID: Int,
@@ -47,6 +49,7 @@ struct OverrideEditorView: View {
         self.onResetAll = onResetAll
         self.meta = meta
         self.endpoints = endpoints
+        self.securitySchemeCatalog = securitySchemeCatalog
         self.overrides = overrides
         self.isLoading = isLoading
         self.specLoadID = specLoadID
@@ -384,6 +387,7 @@ struct OverrideEditorView: View {
            let item = store.specItem(for: d.endpointRowKey, endpoints: endpoints) {
             OverrideDetailColumnView(
                 endpointItem: item,
+                securitySchemeCatalog: securitySchemeCatalog,
                 overrides: overrides,
                 apiPathPrefix: specPathPrefix,
                 primaryOverride: primaryOverride(for: item),
@@ -418,6 +422,7 @@ struct OverrideEditorView: View {
         if let item = store.specItem(for: key, endpoints: endpoints) {
             OverrideDetailColumnView(
                 endpointItem: item,
+                securitySchemeCatalog: securitySchemeCatalog,
                 overrides: overrides,
                 apiPathPrefix: specPathPrefix,
                 primaryOverride: primaryOverride(for: item),
