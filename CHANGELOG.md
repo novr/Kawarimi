@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1] - 2026-05-21
+
 ### Changed
 
-- **CI:** Swift ubuntu workflows cache SwiftPM `.build` and global artifacts via `actions/cache` keyed on `Package.resolved`.
-- **CI / structure:** Henge explorer logic in **`Sources/KawarimiHengeCore`** / target **`KawarimiHengeCore`**; SwiftUI in **`Sources/KawarimiHenge`** / **`KawarimiHenge`**. Tests in **`Tests/KawarimiCoreTests/Henge/`** run on ubuntu CI ([#83](https://github.com/novr/Kawarimi/issues/83)).
-- **CI**: drop PR **`kawarimi-perf`** job (display-only `[kawarimi-perf]` lines; use **`performance.yaml`** `workflow_dispatch` or local **`Scripts/performance/`** for measurement).
+- **CI:** Swift ubuntu workflows cache SwiftPM `.build` and global artifacts via `actions/cache` keyed on `Package.resolved` ([#106](https://github.com/novr/Kawarimi/pull/106)).
+- **CI / structure:** Henge explorer logic in **`Sources/KawarimiHengeCore`** / target **`KawarimiHengeCore`**; SwiftUI in **`Sources/KawarimiHenge`** / **`KawarimiHenge`**. Tests in **`Tests/KawarimiCoreTests/Henge/`** run on ubuntu CI ([#83](https://github.com/novr/Kawarimi/issues/83), [#104](https://github.com/novr/Kawarimi/pull/104)).
+- **CI**: drop PR **`kawarimi-perf`** job (display-only `[kawarimi-perf]` lines; use **`performance.yaml`** `workflow_dispatch` or local **`Scripts/performance/`** for measurement) ([#105](https://github.com/novr/Kawarimi/pull/105)).
 
 ## [2.3.0] - 2026-05-20
 
