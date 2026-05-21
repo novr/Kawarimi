@@ -23,6 +23,13 @@ struct ExplorerListHeader: View {
             Text("API: \(meta.title) v\(meta.version)")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
+            if let overview = MetaPresentation.apiDescription(for: meta) {
+                Text(overview)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+            }
         }
         .textCase(nil)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -168,6 +175,12 @@ struct EndpointRowView: View {
                     Text(exampleCaption)
                         .font(.caption2)
                         .foregroundStyle(rowCaptionTertiaryForeground)
+                        .lineLimit(1)
+                }
+                if let tags = TagsPresentation.displayTags(for: endpoint) {
+                    Text(tags.joined(separator: " · "))
+                        .font(.caption2)
+                        .foregroundStyle(rowSecondaryForeground)
                         .lineLimit(1)
                 }
             }

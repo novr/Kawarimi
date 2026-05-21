@@ -991,7 +991,12 @@ public enum KawarimiJutsu {
                 }
             }
 
-            extension SpecResponse: KawarimiFetchedSpec {}
+            extension SpecResponse: KawarimiFetchedSpec {
+                public var securitySchemeCatalog: [any SpecSecuritySchemeProviding]? {
+                    guard let securitySchemes else { return nil }
+                    return securitySchemes.map { $0 as any SpecSecuritySchemeProviding }
+                }
+            }
             """
     }
 

@@ -6,7 +6,11 @@ import SwiftUI
 public struct KawarimiConfigView: View {
     private let serverURL: String
 
-    private let specProvider: () async throws -> (meta: any SpecMetaProviding, endpoints: [any SpecEndpointProviding])
+    private let specProvider: () async throws -> (
+        meta: any SpecMetaProviding,
+        endpoints: [any SpecEndpointProviding],
+        securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
+    )
     private let fetchOverrides: () async throws -> [MockOverride]
     private let configureOverride: (MockOverride) async throws -> Void
     private let removeOverride: (MockOverride) async throws -> Void
@@ -14,6 +18,7 @@ public struct KawarimiConfigView: View {
 
     @State private var meta: (any SpecMetaProviding)?
     @State private var endpoints: [any SpecEndpointProviding] = []
+    @State private var securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     @State private var overridesSnapshot: [MockOverride] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -29,7 +34,11 @@ public struct KawarimiConfigView: View {
         serverURL = client.baseURL.absoluteString
         specProvider = {
             let decoded = try await client.fetchSpec(as: specType)
-            return (meta: decoded.meta, endpoints: decoded.endpoints)
+            return (
+                meta: decoded.meta,
+                endpoints: decoded.endpoints,
+                securitySchemeCatalog: decoded.securitySchemeCatalog
+            )
         }
         fetchOverrides = { try await client.fetchOverrides() }
         configureOverride = { try await client.configure(override: $0) }
@@ -52,6 +61,7 @@ public struct KawarimiConfigView: View {
             },
             meta: meta,
             endpoints: endpoints,
+            securitySchemeCatalog: securitySchemeCatalog,
             overrides: overridesSnapshot,
             isLoading: isLoading,
             specLoadID: specLoadID,
@@ -83,6 +93,7 @@ public struct KawarimiConfigView: View {
             let overrides = try await fetchOverrides()
             meta = spec.meta
             endpoints = spec.endpoints
+            securitySchemeCatalog = spec.securitySchemeCatalog
             overridesSnapshot = overrides
             specLoadID += 1
         } catch {

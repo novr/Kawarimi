@@ -16,6 +16,7 @@ import AppKit
 
 struct OverrideDetailColumnView: View {
     let endpointItem: SpecEndpointItem
+    let securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     let overrides: [MockOverride]
     let apiPathPrefix: String
     /// Server-side primary enabled row for this operation (`nil` = effective Spec).
@@ -48,6 +49,22 @@ struct OverrideDetailColumnView: View {
     }
 
     private var endpoint: any SpecEndpointProviding { endpointItem.endpoint }
+
+    private var securityPresentation: EndpointSecurityPresentation {
+        SecurityPresentation.endpointPresentation(
+            endpoint: endpoint,
+            catalog: securitySchemeCatalog
+        )
+    }
+
+    private var selectedResponseDocumentation: ResponseDocumentation? {
+        ResponsePresentation.documentationForSelection(
+            options: chipOptions,
+            mock: mock,
+            endpoint: endpoint,
+            pinnedNumberedResponseChip: pinnedNumberedResponseChip
+        )
+    }
 
     private var detailTightVertical: Bool {
         #if os(iOS)
@@ -350,6 +367,138 @@ struct OverrideDetailColumnView: View {
     }
 
     @ViewBuilder
+    private var operationIdSection: some View {
+        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+            Text("OPERATION ID")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+                .tracking(0.6)
+            Text(endpoint.operationId)
+                .font(.caption.monospaced())
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+        }
+        .padding(detailTightVertical ? 10 : 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(ExplorerPalette.surfaceElevated)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                .allowsHitTesting(false)
+        )
+    }
+
+    @ViewBuilder
+    private var tagsDocumentationSection: some View {
+        if let tags = TagsPresentation.displayTags(for: endpoint) {
+            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+                Text("TAGS")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.primary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(ExplorerPalette.subtleAccentFill)
+                                )
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+            }
+            .padding(detailTightVertical ? 10 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ExplorerPalette.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var securityDocumentationSection: some View {
+        let presentation = securityPresentation
+        if presentation.hasContent {
+            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+                Text("SECURITY")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                if presentation.requirementLines.isEmpty {
+                    Text("No security requirement for this operation.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                } else if presentation.requirementLines.count == 1 {
+                    Text(presentation.requirementLines[0])
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                } else {
+                    Text("Satisfy one of:")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(presentation.requirementLines.enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.primary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                if !presentation.schemeDetails.isEmpty {
+                    DisclosureGroup("Scheme definitions") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(presentation.schemeDetails) { detail in
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(detail.name)
+                                        .font(.caption.weight(.semibold))
+                                    Text(detail.summary)
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                    if let description = detail.description, !description.isEmpty {
+                                        Text(description)
+                                            .font(.caption2)
+                                            .foregroundStyle(.tertiary)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+                    .font(.caption.weight(.medium))
+                }
+            }
+            .padding(detailTightVertical ? 10 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ExplorerPalette.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
+        }
+    }
+
+    @ViewBuilder
     private var detailTopChrome: some View {
         if hasUnsavedChanges {
             HStack {
@@ -405,6 +554,8 @@ struct OverrideDetailColumnView: View {
             responseStatusChipStrip
         }
 
+        selectedResponseDocumentationSection
+
         VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
             Text("RESPONSE DELAY")
                 .font(.caption2.weight(.bold))
@@ -421,6 +572,43 @@ struct OverrideDetailColumnView: View {
                 .keyboardType(.numberPad)
                 #endif
                 .frame(maxWidth: 120)
+        }
+    }
+
+    @ViewBuilder
+    private var selectedResponseDocumentationSection: some View {
+        if let doc = selectedResponseDocumentation {
+            VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
+                Text("SELECTED RESPONSE")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                if let summary = doc.summary {
+                    Text(summary)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+                if let description = doc.description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+            }
+            .padding(detailTightVertical ? 10 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ExplorerPalette.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
         }
     }
 
@@ -482,6 +670,9 @@ struct OverrideDetailColumnView: View {
             VStack(alignment: .leading, spacing: 0) {
                 ScrollView {
                     VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+                        operationIdSection
+                        tagsDocumentationSection
+                        securityDocumentationSection
                         detailTopChrome
                         if shouldShowResponseBodySection {
                             VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
@@ -509,6 +700,9 @@ struct OverrideDetailColumnView: View {
             #else
             ScrollView {
                 VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+                    operationIdSection
+                    tagsDocumentationSection
+                    securityDocumentationSection
                     detailTopChrome
                     if shouldShowResponseBodySection {
                         VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
