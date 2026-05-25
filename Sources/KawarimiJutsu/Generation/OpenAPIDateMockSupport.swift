@@ -119,6 +119,56 @@ enum OpenAPIDateMockSupport {
         return jsonEncodedStringFragment(fallback)
     }
 
+    static func generatedStubJSONDecoderMethodSource() -> String {
+        """
+            private static func _kawarimiStubJSONDecoder() -> JSONDecoder {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .custom { decoder in
+                    let container = try decoder.singleValueContainer()
+                    let string = try container.decode(String.self)
+                    if let data = try? JSONSerialization.data(withJSONObject: ["d": string], options: []) {
+                        let inner = JSONDecoder()
+                        inner.dateDecodingStrategy = .iso8601
+                        if let wrapped = try? inner.decode(_KawarimiStubJSONDateField.self, from: data) {
+                            return wrapped.d
+                        }
+                    }
+                    let isoBasic = ISO8601DateFormatter()
+                    isoBasic.formatOptions = [.withInternetDateTime, .withTimeZone]
+                    if let d = isoBasic.date(from: string) { return d }
+                    let isoFrac = ISO8601DateFormatter()
+                    isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
+                    if let d = isoFrac.date(from: string) { return d }
+                    let df = DateFormatter()
+                    df.locale = Locale(identifier: "en_US_POSIX")
+                    df.timeZone = TimeZone(secondsFromGMT: 0)
+                    df.calendar = Calendar(identifier: .gregorian)
+                    df.dateFormat = "yyyy-MM-dd"
+                    if let d = df.date(from: string) { return d }
+                    let patterns = [
+                        "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+                        "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+                        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+                    ]
+                    for pattern in patterns {
+                        df.dateFormat = pattern
+                        if let d = df.date(from: string) { return d }
+                    }
+                    throw DecodingError.dataCorruptedError(
+                        in: container,
+                        debugDescription: "Kawarimi stub JSONDecoder: unparseable date string"
+                    )
+                }
+                return decoder
+            }
+
+            private struct _KawarimiStubJSONDateField: Decodable {
+                let d: Date
+            }
+        """
+    }
+
     private static func jsonEncodedStringFragment(_ string: String) -> String {
         guard let data = try? JSONEncoder().encode(string),
               let s = String(data: data, encoding: .utf8)

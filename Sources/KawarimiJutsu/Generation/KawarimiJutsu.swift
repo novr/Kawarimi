@@ -240,6 +240,7 @@ public enum KawarimiJutsu {
 
             public struct KawarimiHandler: APIProtocol {
                 public init() {}
+            \(OpenAPIDateMockSupport.generatedStubJSONDecoderMethodSource())
             \(methods)
             }
             """
@@ -262,7 +263,7 @@ public enum KawarimiJutsu {
         case .okJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .ok(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .okEmpty:
@@ -272,7 +273,7 @@ public enum KawarimiJutsu {
         case .createdJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .created(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .createdEmpty:
