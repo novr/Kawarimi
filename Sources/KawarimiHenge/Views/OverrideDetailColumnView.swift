@@ -177,28 +177,46 @@ struct OverrideDetailColumnView: View {
         }
     }
 
+    private var detailColumnHeaderModel: DetailColumnHeaderModel {
+        DetailColumnHeaderModel(
+            endpointItem: endpointItem,
+            securityPresentation: securityPresentation,
+            chipOptions: chipOptions,
+            primaryOverride: primaryOverride,
+            pinnedNumberedResponseChip: pinnedNumberedResponseChip,
+            hasUnsavedChanges: hasUnsavedChanges,
+            tightVertical: detailTightVertical,
+            showResponseBodyHeading: shouldShowResponseBodySection,
+            selectedResponseDocumentation: selectedResponseDocumentation,
+            canRemoveCurrentMockRow: canRemoveCurrentMockRow
+        )
+    }
+
+    private var detailColumnHeaderActions: DetailColumnHeaderActions {
+        DetailColumnHeaderActions(
+            onApplyChip: applyResponseChip,
+            onDisableCurrentMock: onDisableCurrentMock,
+            onPresentAddCustom: presentAddCustomSheet
+        )
+    }
+
+    private var detailColumnHeaderBindings: DetailColumnHeaderBindings {
+        DetailColumnHeaderBindings(
+            mock: $mock,
+            contentTypeText: contentTypeBinding,
+            delayMsText: delayMsBinding,
+            focus: $detailFocus
+        )
+    }
+
     private var detailScrollStack: some View {
         DetailColumnScrollStack(
             showResponseBody: shouldShowResponseBodySection,
             header: {
                 DetailColumnHeaderView(
-                    endpointItem: endpointItem,
-                    securityPresentation: securityPresentation,
-                    chipOptions: chipOptions,
-                    primaryOverride: primaryOverride,
-                    mock: $mock,
-                    pinnedNumberedResponseChip: pinnedNumberedResponseChip,
-                    hasUnsavedChanges: hasUnsavedChanges,
-                    tightVertical: detailTightVertical,
-                    showResponseBodyHeading: shouldShowResponseBodySection,
-                    selectedResponseDocumentation: selectedResponseDocumentation,
-                    canRemoveCurrentMockRow: canRemoveCurrentMockRow,
-                    onApplyChip: applyResponseChip,
-                    onDisableCurrentMock: onDisableCurrentMock,
-                    onPresentAddCustom: presentAddCustomSheet,
-                    contentTypeText: contentTypeBinding,
-                    delayMsText: delayMsBinding,
-                    focus: $detailFocus
+                    model: detailColumnHeaderModel,
+                    actions: detailColumnHeaderActions,
+                    bindings: detailColumnHeaderBindings
                 )
             },
             editor: {
