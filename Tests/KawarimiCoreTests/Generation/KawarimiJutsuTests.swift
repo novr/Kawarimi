@@ -36,6 +36,10 @@ private struct DateTimeNoExamplePayload: Decodable {
     let updatedAt: Date
 }
 
+private struct DateOnlyNoExamplePayload: Decodable {
+    let day: Date
+}
+
 /// Extracts `body: "..."` from the first `MockResponse` after the matching `operationId` in generated source.
 private func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
     let needle = "operationId: \"\(operationId)\""
@@ -527,6 +531,42 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
         from: Data(transportJSON.utf8)
     )
     #expect(decoded.updatedAt == Date(timeIntervalSince1970: 0))
+}
+
+@Test func mockJSONDateOnlyWithoutExampleUses1970FallbackAndMatchesSpec() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-date-only-no-example", extension: "yaml") else {
+        Issue.record("openapi-datetime-edge-date-only-no-example.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let transportJSON = try #require(transportMockBodyJSONString(operationId: "getDateOnlyNoExample", in: transport))
+    #expect(transportJSON.contains("1970-01-01"))
+    #expect(!transportJSON.contains("1970-01-01T00:00:00Z"))
+    #expect(!transportJSON.contains("\"day\":\"\""))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "getDateOnlyNoExample", in: spec))
+    #expect(specJSON == transportJSON)
+    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+        DateOnlyNoExamplePayload.self,
+        from: Data(transportJSON.utf8)
+    )
+    #expect(decoded.day == Date(timeIntervalSince1970: 0))
+}
+
+@Test func mockJSONUnparseableDateTimeExampleUsesISO8601FallbackNotRawString() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-edge-unparseable", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let transportJSON = try #require(transportMockBodyJSONString(operationId: "getDateTimeUnparseable", in: transport))
+    #expect(transportJSON.contains("1970-01-01T00:00:00Z"))
+    #expect(!transportJSON.contains("not-a-valid-instant"))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "getDateTimeUnparseable", in: spec))
+    #expect(specJSON == transportJSON)
 }
 
 @Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {

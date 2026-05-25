@@ -1,6 +1,12 @@
 import Foundation
 import OpenAPIKit
 
+struct MockJSONSynthesisContext {
+    let operationId: String
+    let diagnosticPath: String
+    var warnings: [String] = []
+}
+
 enum OpenAPIDateMockSupport {
     static func isOpenAPIAbsoluteDateStringSchema(_ schema: JSONSchema) -> Bool {
         guard let tf = schema.jsonTypeFormat else { return false }
@@ -107,13 +113,33 @@ enum OpenAPIDateMockSupport {
         return "Date(timeIntervalSince1970: \(interval))"
     }
 
-    static func jsonFragmentForDateSchema(resolved: JSONSchema) -> String {
+    static func jsonFragmentForDateSchema(
+        resolved: JSONSchema,
+        synthesisContext: inout MockJSONSynthesisContext,
+        fieldPath: String
+    ) -> String {
         let dateOnly = openAPIAbsoluteDateStringIsDateOnly(resolved)
         let exampleStr = primaryExampleStringValue(resolved.examples.first)
-        if let s = exampleStr?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
-           parseOpenAPIDateExample(s, dateOnly: dateOnly) != nil
-        {
-            return jsonEncodedStringFragment(s)
+        let path = fieldPath.isEmpty ? synthesisContext.diagnosticPath : "\(synthesisContext.diagnosticPath) · \(fieldPath)"
+        if let s = exampleStr?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+            if parseOpenAPIDateExample(s, dateOnly: dateOnly) != nil {
+                return jsonEncodedStringFragment(s)
+            }
+            synthesisContext.warnings.append(
+                stderrWarningForDateTimeStubFallback(
+                    operationId: synthesisContext.operationId,
+                    diagnosticPath: path,
+                    reason: "parse failed for example in mock JSON"
+                )
+            )
+        } else {
+            synthesisContext.warnings.append(
+                stderrWarningForDateTimeStubFallback(
+                    operationId: synthesisContext.operationId,
+                    diagnosticPath: path,
+                    reason: "no example string in mock JSON"
+                )
+            )
         }
         let fallback = dateOnly ? "1970-01-01" : "1970-01-01T00:00:00Z"
         return jsonEncodedStringFragment(fallback)

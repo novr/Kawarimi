@@ -41,7 +41,7 @@ public enum KawarimiJutsu {
                 let operation = endpoint.operation
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
 
-                let jsonBody = defaultResponseJSON(operation: operation, components: components)
+                let jsonBody = defaultResponseJSON(operation: operation, components: components, operationId: operationId)
                 let escaped = escapeForSwiftStringLiteral(jsonBody)
                 lines.append("                    case \"\(operationId)\":")
                 lines.append("                        return (HTTPResponse(status: .ok), HTTPBody(\"\(escaped)\"))")
@@ -58,21 +58,40 @@ public enum KawarimiJutsu {
             .replacingOccurrences(of: "\t", with: "\\t")
     }
 
-    private static func defaultResponseJSON(operation: OpenAPI.Operation, components: OpenAPI.Components) -> String {
+    private static func defaultResponseJSON(
+        operation: OpenAPI.Operation,
+        components: OpenAPI.Components,
+        operationId: String
+    ) -> String {
         guard let responseEither = operation.responses[status: 200],
               let response = components[responseEither],
               let content = response.content[.json] else {
             return "{}"
         }
-        return mockJSONBodyFromJSONMediaType(content: content, components: components)
+        return mockJSONBodyFromJSONMediaType(
+            content: content,
+            components: components,
+            operationId: operationId,
+            diagnosticPath: "responses.200.content['application/json']"
+        )
     }
 
-    private static func mockJSONBodyFromJSONMediaType(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
+    private static func mockJSONBodyFromJSONMediaType(
+        content: OpenAPI.Content,
+        components: OpenAPI.Components,
+        operationId: String,
+        diagnosticPath: String
+    ) -> String {
         if let exampleJSON = exampleToJSONString(content.example) {
             return exampleJSON
         }
         guard let schemaEither = content.schema else { return "{}" }
         var refChain = Set<OpenAPI.ComponentKey>()
+        var synthesisContext = MockJSONSynthesisContext(
+            operationId: operationId,
+            diagnosticPath: "\(diagnosticPath).schema"
+        )
+        let json: String
         switch schemaEither {
         case .a(let ref):
             guard let name = ref.name,
@@ -80,10 +99,24 @@ public enum KawarimiJutsu {
                   let schema = components.schemas[key] else {
                 return "{}"
             }
-            return defaultJSONForSchema(schema, components: components, refChain: &refChain)
+            json = defaultJSONForSchema(
+                schema,
+                components: components,
+                refChain: &refChain,
+                synthesisContext: &synthesisContext
+            )
         case .b(let schema):
-            return defaultJSONForSchema(schema, components: components, refChain: &refChain)
+            json = defaultJSONForSchema(
+                schema,
+                components: components,
+                refChain: &refChain,
+                synthesisContext: &synthesisContext
+            )
         }
+        for warning in synthesisContext.warnings {
+            StandardError.write(warning)
+        }
+        return json
     }
 
     private static func schemaPrimaryExample(_ schema: JSONSchema) -> AnyCodable? {
@@ -93,7 +126,9 @@ public enum KawarimiJutsu {
     private static func defaultJSONForSchema(
         _ schema: JSONSchema,
         components: OpenAPI.Components,
-        refChain: inout Set<OpenAPI.ComponentKey>
+        refChain: inout Set<OpenAPI.ComponentKey>,
+        synthesisContext: inout MockJSONSynthesisContext,
+        fieldPath: String = ""
     ) -> String {
         if case .reference(let ref, _) = schema.value,
            let name = ref.name,
@@ -101,21 +136,49 @@ public enum KawarimiJutsu {
         {
             if refChain.contains(key) { return "{}" }
             guard let inner = components.schemas[key] else {
-                return defaultJSONForSchemaCore(schema, components: components, refChain: &refChain)
+                return defaultJSONForSchemaCore(
+                    schema,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: fieldPath
+                )
             }
             refChain.insert(key)
             defer { refChain.remove(key) }
-            return defaultJSONForSchema(inner, components: components, refChain: &refChain)
+            return defaultJSONForSchema(
+                inner,
+                components: components,
+                refChain: &refChain,
+                synthesisContext: &synthesisContext,
+                fieldPath: fieldPath
+            )
         }
-        return defaultJSONForSchemaCore(schema, components: components, refChain: &refChain)
+        return defaultJSONForSchemaCore(
+            schema,
+            components: components,
+            refChain: &refChain,
+            synthesisContext: &synthesisContext,
+            fieldPath: fieldPath
+        )
     }
 
     private static func defaultJSONForSchemaCore(
         _ schema: JSONSchema,
         components: OpenAPI.Components,
-        refChain: inout Set<OpenAPI.ComponentKey>
+        refChain: inout Set<OpenAPI.ComponentKey>,
+        synthesisContext: inout MockJSONSynthesisContext,
+        fieldPath: String
     ) -> String {
         let resolved = schema
+
+        if OpenAPIDateMockSupport.isOpenAPIAbsoluteDateStringSchema(resolved) {
+            return OpenAPIDateMockSupport.jsonFragmentForDateSchema(
+                resolved: resolved,
+                synthesisContext: &synthesisContext,
+                fieldPath: fieldPath
+            )
+        }
 
         if let exampleJSON = exampleToJSONString(schemaPrimaryExample(resolved)) {
             return exampleJSON
@@ -124,13 +187,16 @@ public enum KawarimiJutsu {
             return defaultJSON
         }
 
-        if OpenAPIDateMockSupport.isOpenAPIAbsoluteDateStringSchema(resolved) {
-            return OpenAPIDateMockSupport.jsonFragmentForDateSchema(resolved: resolved)
-        }
-
         if let objectContext = resolved.objectContext {
             let pairs = objectContext.properties.map { name, propSchema -> String in
-                let value = defaultJSONForSchema(propSchema, components: components, refChain: &refChain)
+                let childPath = fieldPath.isEmpty ? "properties.\(name)" : "\(fieldPath).properties.\(name)"
+                let value = defaultJSONForSchema(
+                    propSchema,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: childPath
+                )
                 return "\"\(name)\": \(value)"
             }
             return "{\(pairs.joined(separator: ", "))}"
@@ -140,24 +206,49 @@ public enum KawarimiJutsu {
             guard let itemsSchema = arrayContext.items else {
                 return "[]"
             }
-            let itemJSON = defaultJSONForSchema(itemsSchema, components: components, refChain: &refChain)
+            let itemsPath = fieldPath.isEmpty ? "items" : "\(fieldPath).items"
+            let itemJSON = defaultJSONForSchema(
+                itemsSchema,
+                components: components,
+                refChain: &refChain,
+                synthesisContext: &synthesisContext,
+                fieldPath: itemsPath
+            )
             return "[\(itemJSON)]"
         }
 
         switch resolved.value {
         case .one(of: let schemas, core: _), .any(of: let schemas, core: _):
             for sub in schemas {
-                let j = defaultJSONForSchema(sub, components: components, refChain: &refChain)
+                let j = defaultJSONForSchema(
+                    sub,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: fieldPath
+                )
                 if !isVacuousJSONMock(j) { return j }
             }
             if let first = schemas.first {
-                return defaultJSONForSchema(first, components: components, refChain: &refChain)
+                return defaultJSONForSchema(
+                    first,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: fieldPath
+                )
             }
             return "{}"
         case .all(of: let schemas, core: _):
             var merged: [String: Any] = [:]
             for sub in schemas {
-                let j = defaultJSONForSchema(sub, components: components, refChain: &refChain)
+                let j = defaultJSONForSchema(
+                    sub,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: fieldPath
+                )
                 guard let data = j.data(using: .utf8),
                       let obj = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) as? [String: Any]
                 else { continue }
@@ -173,7 +264,13 @@ public enum KawarimiJutsu {
                 }
             }
             if let first = schemas.first {
-                return defaultJSONForSchema(first, components: components, refChain: &refChain)
+                return defaultJSONForSchema(
+                    first,
+                    components: components,
+                    refChain: &refChain,
+                    synthesisContext: &synthesisContext,
+                    fieldPath: fieldPath
+                )
             }
             return "{}"
         case .not:
@@ -435,7 +532,13 @@ public enum KawarimiJutsu {
                 if let expr = initializerExpr {
                     return code == 200 ? .okJSON(expr) : .createdJSON(expr)
                 }
-                let json = mockJSONBodyFromJSONMediaType(content: content, components: components)
+                let json = mockJSONBodyFromJSONMediaType(
+                    content: content,
+                    components: components,
+                    operationId: operationId,
+                    diagnosticPath:
+                        "\(operationContext)responses.\(code).content['application/json']"
+                )
                 let escaped = escapeForSwiftStringLiteral(json)
                 let payloadType = handlerStubJSONPayloadSwiftType(
                     operationSwiftTypeName: operationSwiftTypeName,
@@ -739,7 +842,8 @@ public enum KawarimiJutsu {
         statusCode: Int,
         jsonContent: OpenAPI.Content,
         responseDescription: String?,
-        components: OpenAPI.Components
+        components: OpenAPI.Components,
+        operationId: String
     ) -> [SpecResponseRow] {
         if let named = namedJSONExamples(from: jsonContent, components: components), !named.isEmpty {
             return named.map { item in
@@ -756,7 +860,12 @@ public enum KawarimiJutsu {
                 )
             }
         }
-        let body = responseBodyJSON(content: jsonContent, components: components)
+        let body = responseBodyJSON(
+            content: jsonContent,
+            components: components,
+            operationId: operationId,
+            statusCode: statusCode
+        )
         return [SpecResponseRow(
             statusCode: statusCode,
             responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
@@ -814,7 +923,8 @@ public enum KawarimiJutsu {
                                 statusCode: code,
                                 jsonContent: jsonContent,
                                 responseDescription: response.description,
-                                components: components
+                                components: components,
+                                operationId: operationId
                             )
                         )
                     } else {
@@ -1005,8 +1115,18 @@ public enum KawarimiJutsu {
             """
     }
 
-    private static func responseBodyJSON(content: OpenAPI.Content, components: OpenAPI.Components) -> String {
-        mockJSONBodyFromJSONMediaType(content: content, components: components)
+    private static func responseBodyJSON(
+        content: OpenAPI.Content,
+        components: OpenAPI.Components,
+        operationId: String,
+        statusCode: Int
+    ) -> String {
+        mockJSONBodyFromJSONMediaType(
+            content: content,
+            components: components,
+            operationId: operationId,
+            diagnosticPath: "responses.\(statusCode).content['application/json']"
+        )
     }
 
     private static func swiftInitializerForSchema(
