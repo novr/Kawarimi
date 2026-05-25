@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-05-25
+
 ### Fixed
 
 - **KawarimiJutsu**: unify OpenAPI `date-time` / `date` mock JSON (ISO8601 strings, no empty `""` fallback) and `KawarimiHandler` decode stubs via shared `_kawarimiStubJSONDecoder()` ([#112](https://github.com/novr/Kawarimi/issues/112)). Mock JSON date synthesis emits the same stderr fallback warnings as handler literals when examples are missing or unparseable.
@@ -303,6 +305,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.4.0]: https://github.com/novr/Kawarimi/releases/tag/v2.4.0
+[2.3.1]: https://github.com/novr/Kawarimi/releases/tag/v2.3.1
 [2.3.0]: https://github.com/novr/Kawarimi/releases/tag/v2.3.0
 [2.2.2]: https://github.com/novr/Kawarimi/releases/tag/v2.2.2
 [2.2.1]: https://github.com/novr/Kawarimi/releases/tag/v2.2.1
