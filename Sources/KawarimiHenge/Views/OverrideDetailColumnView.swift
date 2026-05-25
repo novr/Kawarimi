@@ -7,6 +7,22 @@ private enum OverrideDetailFocusField: Hashable {
     case jsonBody
 }
 
+// Bottom actions stay in safeAreaInset; header and JSON editor split the remaining height.
+// Tall JSON scrolls inside the editor chrome (min height only); header scrolls in its own ScrollView.
+// Never apply layoutPriority(0) to the header pane alone—it collapses to zero height.
+private enum DetailColumnLayout {
+    static func bottomToolbarHeight(tightVertical: Bool) -> CGFloat {
+        tightVertical ? 76 : 92
+    }
+
+    static func jsonEditorMinBodyHeight(tightVertical: Bool) -> CGFloat {
+        let minLines: CGFloat = tightVertical ? 4 : 8
+        let lineHeight: CGFloat = 18
+        let verticalPad: CGFloat = tightVertical ? 16 : 24
+        return minLines * lineHeight + verticalPad
+    }
+}
+
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -664,63 +680,46 @@ struct OverrideDetailColumnView: View {
         }
     }
 
+    private var detailHeaderScrollContent: some View {
+        VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
+            operationIdSection
+            tagsDocumentationSection
+            securityDocumentationSection
+            detailTopChrome
+            if shouldShowResponseBodySection {
+                responseBodyHeading
+            }
+        }
+        .padding(detailTightVertical ? 10 : 16)
+        .padding(.bottom, 12)
+    }
+
+    private var responseBodyEditorColumn: some View {
+        VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
+            darkJsonEditorChrome
+            if let msg = validationMessage {
+                Text(msg)
+                    .font(.caption)
+                    .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
+            }
+        }
+        .padding(.horizontal, detailTightVertical ? 10 : 16)
+        .padding(.bottom, 8)
+    }
+
     private var detailScrollStack: some View {
-        Group {
-            #if os(macOS)
-            VStack(alignment: .leading, spacing: 0) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
-                        operationIdSection
-                        tagsDocumentationSection
-                        securityDocumentationSection
-                        detailTopChrome
-                        if shouldShowResponseBodySection {
-                            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                                responseBodyHeading
-                            }
-                        }
-                    }
-                    .padding(detailTightVertical ? 10 : 16)
-                    .padding(.bottom, 12)
-                }
-                if shouldShowResponseBodySection {
-                    VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                        darkJsonEditorChrome
-                        if let msg = validationMessage {
-                            Text(msg)
-                                .font(.caption)
-                                .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
-                        }
-                    }
-                    .padding(.horizontal, detailTightVertical ? 10 : 16)
-                    .padding(.bottom, 8)
-                }
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollView {
+                detailHeaderScrollContent
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            #else
-            ScrollView {
-                VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
-                    operationIdSection
-                    tagsDocumentationSection
-                    securityDocumentationSection
-                    detailTopChrome
-                    if shouldShowResponseBodySection {
-                        VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                            responseBodyHeading
-                            darkJsonEditorChrome
-                            if let msg = validationMessage {
-                                Text(msg)
-                                    .font(.caption)
-                                    .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
-                            }
-                        }
-                    }
-                }
-                .padding(detailTightVertical ? 10 : 16)
-                .padding(.bottom, detailTightVertical ? 72 : 96)
+
+            if shouldShowResponseBodySection {
+                responseBodyEditorColumn
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
-            #endif
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(ExplorerPalette.surface)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomToolbar
@@ -802,9 +801,11 @@ struct OverrideDetailColumnView: View {
     }
 
     private var darkJsonEditorChrome: some View {
-        let lineCount = jsonLineCount
         let minLines = detailTightVertical ? 4 : 8
-        let editorMinHeight = CGFloat(max(lineCount, minLines)) * 18 + (detailTightVertical ? 16 : 24)
+        let lineCount = max(jsonLineCount, minLines)
+        let lineHeight: CGFloat = 18
+        let minBodyHeight = DetailColumnLayout.jsonEditorMinBodyHeight(tightVertical: detailTightVertical)
+        let contentHeight = CGFloat(lineCount) * lineHeight + 8.0
         let editorFill = Color(red: 0.1, green: 0.11, blue: 0.13)
 
         return VStack(alignment: .leading, spacing: 0) {
@@ -827,30 +828,34 @@ struct OverrideDetailColumnView: View {
             .frame(maxWidth: .infinity)
             .background(Color(red: 0.07, green: 0.075, blue: 0.09))
 
-            HStack(alignment: .top, spacing: 0) {
-                VStack(alignment: .trailing, spacing: 0) {
-                    ForEach(1...lineCount, id: \.self) { n in
-                        Text("\(n)")
-                            .font(.system(size: 13, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.45))
-                            .frame(height: 18, alignment: .top)
+            ScrollView {
+                HStack(alignment: .top, spacing: 0) {
+                    VStack(alignment: .trailing, spacing: 0) {
+                        ForEach(1...lineCount, id: \.self) { n in
+                            Text("\(n)")
+                                .font(.system(size: 13, design: .monospaced))
+                                .foregroundStyle(Color.white.opacity(0.45))
+                                .frame(height: lineHeight, alignment: .top)
+                        }
                     }
-                }
-                .frame(width: 36)
-                .padding(.vertical, detailTightVertical ? 6 : 8)
+                    .frame(width: 36)
+                    .padding(.vertical, detailTightVertical ? 6 : 8)
 
-                TextEditor(text: bodyTextBinding)
-                    .font(.system(size: 13, design: .monospaced))
-                    .scrollContentBackground(.hidden)
-                    .background(editorFill)
-                    .foregroundStyle(Color.white.opacity(0.92))
-                    .frame(minHeight: editorMinHeight)
-                    .padding(.vertical, 4)
-                    .padding(.trailing, 8)
-                    .focused($detailFocus, equals: .jsonBody)
+                    TextEditor(text: bodyTextBinding)
+                        .font(.system(size: 13, design: .monospaced))
+                        .scrollContentBackground(.hidden)
+                        .background(editorFill)
+                        .foregroundStyle(Color.white.opacity(0.92))
+                        .frame(minHeight: contentHeight)
+                        .padding(.vertical, 4)
+                        .padding(.trailing, 8)
+                        .focused($detailFocus, equals: .jsonBody)
+                }
             }
+            .frame(maxWidth: .infinity, minHeight: minBodyHeight, maxHeight: .infinity)
             .background(editorFill)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -871,6 +876,7 @@ struct OverrideDetailColumnView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, detailTightVertical ? 8 : 12)
         .padding(.horizontal, 8)
+        .frame(height: DetailColumnLayout.bottomToolbarHeight(tightVertical: detailTightVertical))
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) {
             Divider()
