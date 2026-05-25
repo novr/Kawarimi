@@ -7,6 +7,9 @@ private enum OverrideDetailFocusField: Hashable {
     case jsonBody
 }
 
+// Bottom actions stay in safeAreaInset; header and JSON editor split the remaining height.
+// Tall JSON scrolls inside the editor chrome (min height only); header scrolls in its own ScrollView.
+// Never apply layoutPriority(0) to the header pane alone—it collapses to zero height.
 private enum DetailColumnLayout {
     static func bottomToolbarHeight(tightVertical: Bool) -> CGFloat {
         tightVertical ? 76 : 92
