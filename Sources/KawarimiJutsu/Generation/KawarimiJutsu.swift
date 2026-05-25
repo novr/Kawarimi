@@ -124,6 +124,10 @@ public enum KawarimiJutsu {
             return defaultJSON
         }
 
+        if OpenAPIDateMockSupport.isOpenAPIAbsoluteDateStringSchema(resolved) {
+            return OpenAPIDateMockSupport.jsonFragmentForDateSchema(resolved: resolved)
+        }
+
         if let objectContext = resolved.objectContext {
             let pairs = objectContext.properties.map { name, propSchema -> String in
                 let value = defaultJSONForSchema(propSchema, components: components, refChain: &refChain)
@@ -258,7 +262,7 @@ public enum KawarimiJutsu {
         case .okJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .ok(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .okEmpty:
@@ -268,7 +272,7 @@ public enum KawarimiJutsu {
         case .createdJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .created(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .createdEmpty:

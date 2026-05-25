@@ -107,6 +107,30 @@ enum OpenAPIDateMockSupport {
         return "Date(timeIntervalSince1970: \(interval))"
     }
 
+    static func jsonFragmentForDateSchema(resolved: JSONSchema) -> String {
+        let dateOnly = openAPIAbsoluteDateStringIsDateOnly(resolved)
+        let exampleStr = primaryExampleStringValue(resolved.examples.first)
+        if let s = exampleStr?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty,
+           parseOpenAPIDateExample(s, dateOnly: dateOnly) != nil
+        {
+            return jsonEncodedStringFragment(s)
+        }
+        let fallback = dateOnly ? "1970-01-01" : "1970-01-01T00:00:00Z"
+        return jsonEncodedStringFragment(fallback)
+    }
+
+    private static func jsonEncodedStringFragment(_ string: String) -> String {
+        guard let data = try? JSONEncoder().encode(string),
+              let s = String(data: data, encoding: .utf8)
+        else {
+            let escaped = string
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"\(escaped)\""
+        }
+        return s
+    }
+
     private struct _KawarimiJSONDateField: Decodable {
         let d: Date
     }
