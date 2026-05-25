@@ -258,7 +258,7 @@ public enum KawarimiJutsu {
         case .okJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .ok(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .okEmpty:
@@ -268,7 +268,7 @@ public enum KawarimiJutsu {
         case .createdJSONDecoded(let payloadTypeName, let jsonLiteralEscaped):
             return [
                 "        let _kawarimiStubData = Data(\"\(jsonLiteralEscaped)\".utf8)",
-                "        let _kawarimiDecodedBody = try JSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
+                "        let _kawarimiDecodedBody = try Self._kawarimiStubJSONDecoder().decode(\(payloadTypeName).self, from: _kawarimiStubData)",
                 "        return .created(.init(body: .json(_kawarimiDecodedBody)))",
             ]
         case .createdEmpty:
@@ -1088,8 +1088,8 @@ public enum KawarimiJutsu {
             return "[\(itemExpr)]"
         }
 
-        if isOpenAPIAbsoluteDateStringSchema(resolved) {
-            return swiftDateLiteralForOpenAPIDateStringSchema(
+        if OpenAPIDateMockSupport.isOpenAPIAbsoluteDateStringSchema(resolved) {
+            return OpenAPIDateMockSupport.swiftDateLiteralForDateSchema(
                 resolved: resolved,
                 operationId: operationId,
                 diagnosticPath: diagnosticPath,
@@ -1107,117 +1107,6 @@ public enum KawarimiJutsu {
         case .some(.boolean): return "false"
         default: return "\"\""
         }
-    }
-
-    // MARK: - OpenAPI date-time / date stub literals (Issue #35)
-
-    private static func isOpenAPIAbsoluteDateStringSchema(_ schema: JSONSchema) -> Bool {
-        guard let tf = schema.jsonTypeFormat else { return false }
-        guard case .string(let fmt) = tf else { return false }
-        switch fmt {
-        case .dateTime, .date: return true
-        default: return false
-        }
-    }
-
-    private static func openAPIAbsoluteDateStringIsDateOnly(_ schema: JSONSchema) -> Bool {
-        guard let tf = schema.jsonTypeFormat else { return false }
-        guard case .string(let fmt) = tf else { return false }
-        return fmt == .date
-    }
-
-    private static func primaryExampleStringValue(_ example: AnyCodable?) -> String? {
-        guard let example else { return nil }
-        guard let data = try? JSONEncoder().encode(example) else { return nil }
-        return try? JSONDecoder().decode(String.self, from: data)
-    }
-
-    private static func stderrWarningForDateTimeStubFallback(
-        operationId: String,
-        diagnosticPath: String,
-        reason: String
-    ) -> String {
-        let op = sanitizeForSourceCommentLine(operationId)
-        let path = sanitizeForSourceCommentLine(diagnosticPath)
-        let r = sanitizeForSourceCommentLine(reason)
-        return "Kawarimi warning: KawarimiHandler stub: date-time (or date) field uses epoch 0 (\(r)); operationId \(op); \(path)"
-    }
-
-    private struct _KawarimiJSONDateField: Decodable {
-        let d: Date
-    }
-
-    private static func parseOpenAPIDateExampleAtCodegen(_ string: String, dateOnly: Bool) -> Date? {
-        if !dateOnly {
-            if let data = try? JSONSerialization.data(withJSONObject: ["d": string], options: []) {
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                if let wrapped = try? decoder.decode(_KawarimiJSONDateField.self, from: data) {
-                    return wrapped.d
-                }
-            }
-        }
-
-        let isoBasic = ISO8601DateFormatter()
-        isoBasic.formatOptions = [.withInternetDateTime, .withTimeZone]
-        if let d = isoBasic.date(from: string) { return d }
-
-        let isoFrac = ISO8601DateFormatter()
-        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
-        if let d = isoFrac.date(from: string) { return d }
-
-        let df = DateFormatter()
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.timeZone = TimeZone(secondsFromGMT: 0)
-        if dateOnly {
-            df.calendar = Calendar(identifier: .gregorian)
-            df.dateFormat = "yyyy-MM-dd"
-            if let d = df.date(from: string) { return d }
-            return nil
-        }
-        let patterns = [
-            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-        ]
-        for pattern in patterns {
-            df.dateFormat = pattern
-            if let d = df.date(from: string) { return d }
-        }
-        return nil
-    }
-
-    private static func swiftDateLiteralForOpenAPIDateStringSchema(
-        resolved: JSONSchema,
-        operationId: String,
-        diagnosticPath: String,
-        handlerStubWarnings: inout [String]
-    ) -> String {
-        let dateOnly = openAPIAbsoluteDateStringIsDateOnly(resolved)
-        let exampleStr = primaryExampleStringValue(schemaPrimaryExample(resolved))
-        guard let s = exampleStr?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else {
-            handlerStubWarnings.append(
-                stderrWarningForDateTimeStubFallback(
-                    operationId: operationId,
-                    diagnosticPath: diagnosticPath,
-                    reason: "no example string"
-                )
-            )
-            return "Date(timeIntervalSince1970: 0)"
-        }
-        guard let date = parseOpenAPIDateExampleAtCodegen(s, dateOnly: dateOnly) else {
-            handlerStubWarnings.append(
-                stderrWarningForDateTimeStubFallback(
-                    operationId: operationId,
-                    diagnosticPath: diagnosticPath,
-                    reason: "parse failed for example"
-                )
-            )
-            return "Date(timeIntervalSince1970: 0)"
-        }
-        let interval = date.timeIntervalSince1970
-        return "Date(timeIntervalSince1970: \(interval))"
     }
 
     private static func exampleToSwiftLiteral(_ example: AnyCodable?, jsonType: JSONType?) -> String? {
