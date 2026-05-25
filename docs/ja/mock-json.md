@@ -30,9 +30,19 @@
 6. **`enum`（`allowedValues`）** — 先頭値を JSON としてエンコード。
 7. **プリミティブ** — 文字列 `""`、数値 `0` など。型が取れない場合は `{}`。
 
+### Date（`format: date-time` / `date`）
+
+| 経路 | ワイヤ JSON | Swift スタブ |
+| --- | --- | --- |
+| **モック JSON**（`KawarimiSpec`、トランスポート、decode 用文字列） | JSON **文字列**（`example` があればそれを使用；なければ **`1970-01-01T00:00:00Z`** または `date` のみ **`1970-01-01`** — `""` は出さない） | — |
+| **Handler リテラル**（initializer 経路） | — | codegen 時に `example` をパースした `Date(timeIntervalSince1970:…)` |
+| **Handler decode**（`allOf` / enum など） | モック JSON と同じ合成文字列 | `Self._kawarimiStubJSONDecoder()`（`.iso8601` + date-only 等のフォールバック） |
+
+**モック JSON** では `format: date-time` / `date` を、汎用のスキーマ `example` エンコードより**先に**処理するため、パース不能な date の `example` がそのままワイヤに出ることはない。フォールバック時（example なし、または example 文字列のパース失敗）は、handler リテラル経路と同じ **`Kawarimi warning: … epoch 0 …`** を **stderr** に出す（`operationId` と OpenAPI パス付き）。
+
 ## KawarimiHandler のデフォルトスタブ
 
-`KawarimiHandler` は、**`application/json` 本文用のリテラル式**（手書きの `.init(...)` に相当）が生成できないとき、上記と**同じ合成 JSON 文字列**（`mockJSONBodyFromJSONMediaType` とトランスポートモックと同じルール）を **`JSONDecoder`** で **swift-openapi-generator が出した型**にデコードして返すスタブを出します。
+`KawarimiHandler` は、**`application/json` 本文用のリテラル式**（手書きの `.init(...)` に相当）が生成できないとき、上記と**同じ合成 JSON 文字列**（`mockJSONBodyFromJSONMediaType` とトランスポートモックと同じルール）を **`Self._kawarimiStubJSONDecoder()`**（ISO8601 互換の文字列日付、`format: date` 含む）で **swift-openapi-generator が出した型**にデコードして返すスタブを出します。
 レスポンスが **`$ref`** なら `Components.Schemas.*`、インラインなら `Operations.<操作>.Output.(Ok|Created).Body.jsonPayload` をデコード先にします。
 
 **リテラル式が書ける場合はそちらを優先**し、実行時デコードは使いません。

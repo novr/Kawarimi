@@ -1,0 +1,23 @@
+openapi: 3.0.3
+info:
+  title: DateTimeHandlerDecode
+  version: "1"
+paths:
+  /snapshot:
+    get:
+      operationId: getSnapshotDecode
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - type: object
+                    required:
+                      - updatedAt
+                    properties:
+                      updatedAt:
+                        type: string
+                        format: date-time
+                        example: "2025-02-14T00:30:00Z"

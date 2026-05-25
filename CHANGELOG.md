@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **KawarimiJutsu**: unify OpenAPI `date-time` / `date` mock JSON (ISO8601 strings, no empty `""` fallback) and `KawarimiHandler` decode stubs via shared `_kawarimiStubJSONDecoder()` ([#112](https://github.com/novr/Kawarimi/issues/112)). Mock JSON date synthesis emits the same stderr fallback warnings as handler literals when examples are missing or unparseable.
+
 ### Added
 
 - **KawarimiHenge**: read-only **Security** section in the endpoint detail column — effective OpenAPI `security` (OR across requirements, AND within) and referenced scheme definitions from `securitySchemeCatalog` ([#108](https://github.com/novr/Kawarimi/issues/108)).

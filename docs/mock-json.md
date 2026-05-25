@@ -30,10 +30,20 @@ The string is chosen in this order:
 6. **`enum` (`allowedValues`)** — first value, encoded as JSON.
 7. **Primitives** — string `""`, number `0`, etc.; unknown shapes fall back to `{}`.
 
+### Date (`format: date-time` / `date`)
+
+| Path | Wire JSON | Swift stub |
+| --- | --- | --- |
+| **Mock JSON** (`KawarimiSpec`, transport, decode stub string) | JSON **string** (schema `example` when present and parseable; otherwise **`1970-01-01T00:00:00Z`** or **`1970-01-01`** for `date` only — never `""`) | — |
+| **Handler literal** (initializer path) | — | `Date(timeIntervalSince1970:…)` from parsed `example` at codegen |
+| **Handler decode** (`allOf` / enum / etc.) | Same synthesized JSON string as mock JSON | `Self._kawarimiStubJSONDecoder()` (`.iso8601` + date-only / pattern fallback) |
+
+For **mock JSON**, `format: date-time` / `date` is resolved **before** generic schema `example` encoding so unparseable date examples do not leak into the wire JSON. When the mock JSON path falls back (missing example, or example string that does not parse), Kawarimi emits the same **`Kawarimi warning: … epoch 0 …`** line to **stderr** as the handler literal path (with `operationId` and OpenAPI path context).
+
 ## KawarimiHandler default stubs
 
 `KawarimiHandler` reuses the **same JSON synthesis** as the transport mock when a **literal Swift initializer** for the `application/json` body cannot be generated (for example string `enum` / `allowedValues`, or `allOf` / `oneOf` / `anyOf` shapes the initializer path rejects).
-In that case the emitted stub decodes the synthesized string with **`JSONDecoder`** into the type **swift-openapi-generator** produced: `Components.Schemas.*` when the response schema is a **`$ref`**, otherwise `Operations.<Operation>.Output.(Ok|Created).Body.jsonPayload`.
+In that case the emitted stub decodes the synthesized string with **`Self._kawarimiStubJSONDecoder()`** (ISO8601-compatible string dates, including `format: date`) into the type **swift-openapi-generator** produced: `Components.Schemas.*` when the response schema is a **`$ref`**, otherwise `Operations.<Operation>.Output.(Ok|Created).Body.jsonPayload`.
 
 When a **literal initializer can be emitted**, that path is preferred (no decode at runtime).
 
