@@ -28,6 +28,14 @@ private struct AllOfMergePayload: Codable {
     let b: Int
 }
 
+private struct DateTimeDecodePayload: Decodable {
+    let updatedAt: Date
+}
+
+private struct DateTimeNoExamplePayload: Decodable {
+    let updatedAt: Date
+}
+
 /// Extracts `body: "..."` from the first `MockResponse` after the matching `operationId` in generated source.
 private func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
     let needle = "operationId: \"\(operationId)\""
@@ -108,6 +116,83 @@ private func transportMockBodyJSONString(operationId: String, in source: String)
         i = afterCase.index(after: i)
     }
     return result.isEmpty ? nil : result
+}
+
+/// Extracts the JSON string inside `_kawarimiStubData = Data("...")` for the given handler witness (`on…`).
+private func handlerDecodeStubJSONString(witnessName: String, in source: String) -> String? {
+    let needle = "var \(witnessName):"
+    guard let witnessRange = source.range(of: needle) else { return nil }
+    let after = source[witnessRange.lowerBound...]
+    guard let dataLabel = after.range(of: "_kawarimiStubData = Data(\"") else { return nil }
+    var i = dataLabel.upperBound
+    var result = ""
+    var escaped = false
+    while i < after.endIndex {
+        let ch = after[i]
+        if escaped {
+            switch ch {
+            case "\"": result.append("\"")
+            case "\\": result.append("\\")
+            case "n": result.append("\n")
+            case "r": result.append("\r")
+            case "t": result.append("\t")
+            default: result.append(ch)
+            }
+            escaped = false
+        } else if ch == "\\" {
+            escaped = true
+        } else if ch == "\"" {
+            break
+        } else {
+            result.append(ch)
+        }
+        i = after.index(after: i)
+    }
+    return result.isEmpty ? nil : result
+}
+
+/// Mirrors generated `KawarimiHandler._kawarimiStubJSONDecoder()` date strategy for decode-path tests.
+private func kawarimiStubJSONDecoderForTests() -> JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.dateDecodingStrategy = .custom { decoder in
+        let container = try decoder.singleValueContainer()
+        let string = try container.decode(String.self)
+        if let data = try? JSONSerialization.data(withJSONObject: ["d": string], options: []) {
+            let inner = JSONDecoder()
+            inner.dateDecodingStrategy = .iso8601
+            struct Wrap: Decodable { let d: Date }
+            if let wrapped = try? inner.decode(Wrap.self, from: data) {
+                return wrapped.d
+            }
+        }
+        let isoBasic = ISO8601DateFormatter()
+        isoBasic.formatOptions = [.withInternetDateTime, .withTimeZone]
+        if let d = isoBasic.date(from: string) { return d }
+        let isoFrac = ISO8601DateFormatter()
+        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
+        if let d = isoFrac.date(from: string) { return d }
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "en_US_POSIX")
+        df.timeZone = TimeZone(secondsFromGMT: 0)
+        df.calendar = Calendar(identifier: .gregorian)
+        df.dateFormat = "yyyy-MM-dd"
+        if let d = df.date(from: string) { return d }
+        let patterns = [
+            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        ]
+        for pattern in patterns {
+            df.dateFormat = pattern
+            if let d = df.date(from: string) { return d }
+        }
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "unparseable date string in test decoder"
+        )
+    }
+    return decoder
 }
 
 private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
@@ -386,7 +471,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
         handlerStubPolicy: .fatalError
     )
     #expect(source.contains("onCreateItem"))
-    #expect(source.contains("JSONDecoder"))
+    #expect(source.contains("_kawarimiStubJSONDecoder()"))
     #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
     #expect(!source.contains("fatalError("))
     #expect(!source.contains("// Kawarimi: handlerStubPolicy fatalError"))
@@ -406,7 +491,7 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
         handlerStubPolicy: .fatalError
     )
     #expect(source.contains("internal var onCreateItem:"))
-    #expect(source.contains("JSONDecoder"))
+    #expect(source.contains("_kawarimiStubJSONDecoder()"))
     #expect(!source.contains("fatalError("))
     #expect(warnings.isEmpty)
 }
@@ -419,8 +504,66 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
     #expect(warnings.isEmpty)
-    #expect(source.contains("JSONDecoder"))
+    #expect(source.contains("_kawarimiStubJSONDecoder()"))
     #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
+}
+
+@Test func mockJSONDateTimeWithoutExampleUsesISO8601FallbackNotEmptyString() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-no-example", extension: "yaml") else {
+        Issue.record("openapi-datetime-no-example.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let transportJSON = try #require(transportMockBodyJSONString(operationId: "getSnapshotNoExample", in: transport))
+    #expect(transportJSON.contains("1970-01-01T00:00:00Z"))
+    #expect(!transportJSON.contains("\"updatedAt\":\"\""))
+    #expect(!transportJSON.contains("\"updatedAt\": \"\""))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "getSnapshotNoExample", in: spec))
+    #expect(specJSON == transportJSON)
+    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+        DateTimeNoExamplePayload.self,
+        from: Data(transportJSON.utf8)
+    )
+    #expect(decoded.updatedAt == Date(timeIntervalSince1970: 0))
+}
+
+@Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
+        Issue.record("openapi-datetime-handler-decode.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    #expect(source.contains("_kawarimiStubJSONDecoder()"))
+    #expect(source.contains("onGetSnapshotDecode"))
+    #expect(source.contains("_kawarimiStubData = Data(\""))
+    #expect(!source.contains("Date(timeIntervalSince1970:"))
+    let stubJSON = try #require(handlerDecodeStubJSONString(witnessName: "onGetSnapshotDecode", in: source))
+    #expect(stubJSON.contains("2025-02-14T00:30:00Z"))
+    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+        DateTimeDecodePayload.self,
+        from: Data(stubJSON.utf8)
+    )
+    #expect(decoded.updatedAt.timeIntervalSince1970 > 0)
+}
+
+@Test func specMockJSONMatchesHandlerDecodeStubForAllOfDateTime() throws {
+    guard let url = fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
+        Issue.record("openapi-datetime-handler-decode.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "getSnapshotDecode", in: spec))
+    let transport = KawarimiJutsu.generateSwiftSource(document: document)
+    let transportJSON = try #require(transportMockBodyJSONString(operationId: "getSnapshotDecode", in: transport))
+    #expect(specJSON == transportJSON)
+    let (handlerSource, _) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onGetSnapshotDecode", in: handlerSource))
+    #expect(handlerJSON == specJSON)
 }
 
 @Test func kawarimiHandlerUsesFatalErrorStubForNonJsonSuccessWhenPolicyIsFatalError() throws {
