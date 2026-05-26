@@ -12,7 +12,7 @@ Build with **DemoApp** scheme (`Example/DemoApp.xcodeproj`).
 |----------|------|
 | `Example/DemoApp/DemoAppUI/DetailColumnPreviewFixtures.swift` | Fake endpoints + mocks (`KawarimiCore` only) |
 | `Example/DemoApp/DemoAppUI/DetailColumnPreviews.swift` | `#Preview` macros |
-| `KawarimiHenge` `DetailColumnPreviewCanvas` (`DEBUG`) | Composes internal column views; no fixtures |
+| `KawarimiHenge` `DetailColumnPreviewCanvas` (`DEBUG`, `@_spi(Preview)`) | Composes internal column views; not part of the library’s default public API |
 
 | ID | `#Preview` name | What to verify |
 |----|-----------------|----------------|

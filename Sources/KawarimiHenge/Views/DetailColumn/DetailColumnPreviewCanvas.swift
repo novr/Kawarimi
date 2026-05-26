@@ -3,7 +3,8 @@ import KawarimiCore
 import KawarimiHengeCore
 import SwiftUI
 
-/// Minimal DEBUG entry for DemoApp `#Preview` (fixtures live in the app target).
+/// DEBUG-only; import with `@_spi(Preview) import KawarimiHenge` (Example DemoApp).
+@_spi(Preview)
 public enum DetailColumnPreviewCanvas {
     @MainActor
     public static func chrome(

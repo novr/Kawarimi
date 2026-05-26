@@ -1,5 +1,5 @@
 #if DEBUG
-import KawarimiHenge
+@_spi(Preview) import KawarimiHenge
 import SwiftUI
 
 #Preview("Detail column — sparse metadata") {
