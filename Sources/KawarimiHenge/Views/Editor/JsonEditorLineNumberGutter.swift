@@ -1,10 +1,6 @@
+import Foundation
 import KawarimiHengeCore
 import SwiftUI
-#if os(macOS)
-import AppKit
-#elseif canImport(UIKit)
-import UIKit
-#endif
 
 public struct JsonEditorLineNumberGutter: View {
     public let lineCount: Int
@@ -31,28 +27,31 @@ public struct JsonEditorLineNumberGutter: View {
     }
 
     public var body: some View {
-        Text(DetailColumnLayoutCore.editorLineNumbersText(lineCount: lineCount))
-            .font(.system(size: fontSize, design: .monospaced))
-            .lineSpacing(extraLineSpacing)
-            .foregroundStyle(Color.white.opacity(foregroundOpacity))
-            .multilineTextAlignment(.trailing)
-            .frame(width: gutterWidth, alignment: .trailing)
+        Text(attributedLineNumbers)
+            .frame(
+                width: resolvedGutterWidth,
+                height: CGFloat(max(lineCount, 1)) * lineHeight,
+                alignment: .topTrailing
+            )
             .padding(.vertical, verticalPadding)
+            .fixedSize(horizontal: true, vertical: true)
     }
 
-    private var extraLineSpacing: CGFloat {
-        max(0, lineHeight - monospacedFontLineHeight)
+    private var resolvedGutterWidth: CGFloat {
+        let digits = lineCount < 10 ? 1 : Int(log10(Double(lineCount))) + 1
+        return max(gutterWidth, CGFloat(digits) * 9 + 6)
     }
 
-    private var monospacedFontLineHeight: CGFloat {
-        #if os(macOS)
-        let font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        return ceil(font.ascender - font.descender + font.leading)
-        #elseif canImport(UIKit)
-        let font = UIFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-        return ceil(font.lineHeight)
-        #else
-        return fontSize
-        #endif
+    private var attributedLineNumbers: AttributedString {
+        var text = AttributedString(DetailColumnLayoutCore.editorLineNumbersText(lineCount: lineCount))
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
+        paragraph.lineBreakMode = .byClipping
+        paragraph.alignment = .right
+        text.paragraphStyle = paragraph
+        text.font = .system(size: fontSize, design: .monospaced)
+        text.foregroundColor = Color.white.opacity(foregroundOpacity)
+        return text
     }
 }

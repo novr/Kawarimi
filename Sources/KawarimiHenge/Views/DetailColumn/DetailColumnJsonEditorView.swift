@@ -51,7 +51,7 @@ struct DetailColumnJsonEditorView: View {
                 HStack(alignment: .top, spacing: 0) {
                     JsonEditorLineNumberGutter(
                         lineCount: lineCount,
-                        verticalPadding: tightVertical ? 6 : 8
+                        verticalPadding: 4
                     )
 
                     TextEditor(text: $bodyText)

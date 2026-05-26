@@ -447,7 +447,7 @@ struct OpenAPIExecuteView: View {
                     lineCount: lineCount,
                     gutterWidth: 32,
                     foregroundOpacity: 0.4,
-                    verticalPadding: 8
+                    verticalPadding: 4
                 )
 
                 TextEditor(text: $bodyText)
