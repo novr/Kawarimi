@@ -736,8 +736,41 @@ private func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     #expect(source.contains("tags: [\"Items\"]"))
     #expect(source.contains("tags: [\"Greetings\"]"))
     #expect(source.contains("public var tags: [String]?"))
-    #expect(!source.contains("SpecParameterProviding"))
-    #expect(!source.contains("parameters:"))
+    #expect(source.contains("public var parameters: [SpecParameter]?"))
+
+    let greetingBlock = try #require(endpointBlock(operationId: "getGreeting", in: source))
+    #expect(greetingBlock.contains("name: \"name\""))
+    #expect(greetingBlock.contains("location: .query"))
+    #expect(greetingBlock.contains("schemaType: \"string\""))
+
+    let itemBlock = try #require(endpointBlock(operationId: "getItem", in: source))
+    #expect(itemBlock.contains("name: \"id\""))
+    #expect(itemBlock.contains("location: .path"))
+    #expect(itemBlock.contains("required: true"))
+
+    let createBlock = try #require(endpointBlock(operationId: "createItem", in: source))
+    #expect(createBlock.contains("parameters: nil"))
+}
+
+@Test func kawarimiJutsuSpecEmitsMergedParameters() throws {
+    guard let url = fixtureURL(name: "openapi-parameters-merge", extension: "yaml") else {
+        Issue.record("openapi-parameters-merge.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "mergeParameters", in: source))
+
+    #expect(block.contains("name: \"limit\""))
+    #expect(block.contains("description: \"operation limit\""))
+    #expect(block.contains("schemaType: \"string\""))
+    #expect(block.contains("required: true"))
+    #expect(block.contains("name: \"X-Shared\""))
+    #expect(block.contains("location: .header"))
+    #expect(!block.contains("session"))
+    #expect(!block.contains("cookie"))
+    #expect(block.contains("name: \"filter\""))
+    #expect(block.contains("schemaType: nil"))
 }
 
 @Test func kawarimiJutsuSpecEmitsSecuritySchemesAndEffectiveSecurity() throws {

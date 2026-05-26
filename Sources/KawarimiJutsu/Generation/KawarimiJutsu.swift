@@ -786,10 +786,34 @@ public enum KawarimiJutsu {
     }
 
     private static func endpointSecurityLiteral(_ requirements: [SpecSecurityRequirementEntry]?) -> String {
-        guard let requirements, !requirements.isEmpty else { return "security: nil," }
+        guard let requirements, !requirements.isEmpty else { return "security: nil,\n" }
         let block = requirements.map(securityRequirementStructLiteral).joined()
         return """
                         security: [
+            \(block)
+                        ],
+"""
+    }
+
+    private static func specParameterStructLiteral(_ parameter: SpecParameter) -> String {
+        let descriptionLiteral = parameter.description.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+        let schemaTypeLiteral = parameter.schemaType.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+        return """
+                        SpecParameter(
+                            location: .\(parameter.location.rawValue),
+                            name: "\(escapeForSwiftStringLiteral(parameter.name))",
+                            required: \(parameter.required),
+                            description: \(descriptionLiteral),
+                            schemaType: \(schemaTypeLiteral)
+                        ),
+"""
+    }
+
+    private static func endpointParametersLiteral(_ parameters: [SpecParameter]?) -> String {
+        guard let parameters, !parameters.isEmpty else { return "parameters: nil,\n" }
+        let block = parameters.map(specParameterStructLiteral).joined()
+        return """
+                        parameters: [
             \(block)
                         ],
 """
@@ -895,6 +919,7 @@ public enum KawarimiJutsu {
             var operationId: String
             var tags: [String]
             var security: [SpecSecurityRequirementEntry]?
+            var parameters: [SpecParameter]?
             var responses: [SpecResponseRow]
         }
 
@@ -942,6 +967,11 @@ public enum KawarimiJutsu {
 
                 let tags = operation.tags ?? []
                 let security = effectiveSecurityRequirementEntries(operation: operation, document: document)
+                let parameters = OpenAPIParameterSpecSupport.specParameters(
+                    pathItem: route.pathItem.parameters,
+                    operation: operation.parameters,
+                    components: components
+                )
 
                 endpointEntries.append(EndpointEntry(
                     method: method,
@@ -949,6 +979,7 @@ public enum KawarimiJutsu {
                     operationId: operationId,
                     tags: tags,
                     security: security,
+                    parameters: parameters,
                     responses: responseRows
                 ))
             }
@@ -981,13 +1012,14 @@ public enum KawarimiJutsu {
                 tagsLiteral = "[\(tagStrings)]"
             }
             let securityLiteral = endpointSecurityLiteral(entry.security)
+            let parametersLiteral = endpointParametersLiteral(entry.parameters)
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
                         method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
                         tags: \(tagsLiteral),
-            \(securityLiteral)                        responses: [
+            \(securityLiteral)\(parametersLiteral)                        responses: [
             \(responsesBlock)
                         ]
                     ),
@@ -1050,6 +1082,7 @@ public enum KawarimiJutsu {
                     public var operationId: String
                     public var tags: [String]?
                     public var security: [SecurityRequirement]?
+                    public var parameters: [SpecParameter]?
                     public var responses: [MockResponse]
                 }
                 public struct MockResponse: Codable, Sendable {

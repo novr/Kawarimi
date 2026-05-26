@@ -5,7 +5,7 @@ Guards against regressions in the override **detail column** (header, JSON edito
 | Failure | Pass when |
 |---------|-----------|
 | Bottom toolbar missing | Validate / Format / Save / Reset stay visible with the editor |
-| Header crushed or hidden | Operation ID, tags, and status chips remain readable |
+| Header crushed or hidden | Operation ID, tags, parameters (when present), and status chips remain readable |
 | Long JSON hides chrome | Toolbar stays fixed; only the JSON area scrolls |
 
 Numeric layout: `DetailColumnLayoutCoreTests` (#118). **Preview** covers stateless layout only; **manual** checks below cover the rest.
@@ -17,6 +17,7 @@ Open `Example/DemoApp/DemoAppUI/DetailColumnPreviews.swift` (DemoApp scheme).
 | | Pass when |
 |---|-----------|
 | Sparse metadata | Header + toolbar visible together (`getGreeting`-like) |
+| Parameters | PARAMETERS lines visible (path / query / header) |
 | Security heavy | Long SECURITY scrolls in the header area; toolbar still visible |
 | Long JSON | Toolbar visible; JSON scrolls inside the editor |
 
