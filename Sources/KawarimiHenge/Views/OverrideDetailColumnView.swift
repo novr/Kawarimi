@@ -2,34 +2,6 @@ import KawarimiCore
 import KawarimiHengeCore
 import SwiftUI
 
-private enum OverrideDetailFocusField: Hashable {
-    case contentType
-    case jsonBody
-}
-
-// Bottom actions stay in safeAreaInset; header and JSON editor split the remaining height.
-// Tall JSON scrolls inside the editor chrome (min height only); header scrolls in its own ScrollView.
-// Never apply layoutPriority(0) to the header pane alone—it collapses to zero height.
-private enum DetailColumnLayout {
-    static func bottomToolbarHeight(tightVertical: Bool) -> CGFloat {
-        tightVertical ? 76 : 92
-    }
-
-    static func jsonEditorMinBodyHeight(tightVertical: Bool) -> CGFloat {
-        let minLines: CGFloat = tightVertical ? 4 : 8
-        let lineHeight: CGFloat = 18
-        let verticalPad: CGFloat = tightVertical ? 16 : 24
-        return minLines * lineHeight + verticalPad
-    }
-}
-
-#if canImport(UIKit)
-import UIKit
-#endif
-#if canImport(AppKit) && !os(iOS)
-import AppKit
-#endif
-
 struct OverrideDetailColumnView: View {
     let endpointItem: SpecEndpointItem
     let securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
@@ -58,7 +30,7 @@ struct OverrideDetailColumnView: View {
     @State private var addCustomSelectedStatus: Int = 503
     @State private var addCustomFormError: String?
     @State private var addCustomScratchExampleId: String = ""
-    @FocusState private var detailFocus: OverrideDetailFocusField?
+    @FocusState private var detailFocus: DetailColumnFocusField?
 
     private var addCustomStatusPickerCandidates: [Int] {
         ResponseChips.commonCustomHTTPStatusCodes
@@ -102,15 +74,6 @@ struct OverrideDetailColumnView: View {
 
     private func responseOptionExists(statusCode: Int, exampleId: String?) -> Bool {
         ResponseChips.responseOptionExists(statusCode: statusCode, exampleId: exampleId, options: chipOptions)
-    }
-
-    private func responseChipIsSelected(_ opt: ResponseChip) -> Bool {
-        ResponseChips.chipIsSelected(
-            option: opt,
-            mock: mock,
-            endpoint: endpoint,
-            pinnedNumberedResponseChip: pinnedNumberedResponseChip
-        )
     }
 
     private func applyResponseChip(_ opt: ResponseChip) {
@@ -181,12 +144,6 @@ struct OverrideDetailColumnView: View {
         )
     }
 
-    private var jsonLineCount: Int {
-        let text = mock.body ?? ""
-        if text.isEmpty { return 1 }
-        return max(1, text.split(separator: "\n", omittingEmptySubsequences: false).count)
-    }
-
     var body: some View {
         Group {
             if embedNavigationStack {
@@ -218,6 +175,68 @@ struct OverrideDetailColumnView: View {
         .sheet(isPresented: $addCustomResponsePresented) {
             addCustomResponseSheet
         }
+    }
+
+    private var detailColumnHeaderModel: DetailColumnHeaderModel {
+        DetailColumnHeaderModel(
+            endpointItem: endpointItem,
+            securityPresentation: securityPresentation,
+            chipOptions: chipOptions,
+            primaryOverride: primaryOverride,
+            pinnedNumberedResponseChip: pinnedNumberedResponseChip,
+            hasUnsavedChanges: hasUnsavedChanges,
+            tightVertical: detailTightVertical,
+            showResponseBodyHeading: shouldShowResponseBodySection,
+            selectedResponseDocumentation: selectedResponseDocumentation,
+            canRemoveCurrentMockRow: canRemoveCurrentMockRow
+        )
+    }
+
+    private var detailColumnHeaderActions: DetailColumnHeaderActions {
+        DetailColumnHeaderActions(
+            onApplyChip: applyResponseChip,
+            onDisableCurrentMock: onDisableCurrentMock,
+            onPresentAddCustom: presentAddCustomSheet
+        )
+    }
+
+    private var detailColumnHeaderBindings: DetailColumnHeaderBindings {
+        DetailColumnHeaderBindings(
+            mock: $mock,
+            contentTypeText: contentTypeBinding,
+            delayMsText: delayMsBinding,
+            focus: $detailFocus
+        )
+    }
+
+    private var detailScrollStack: some View {
+        DetailColumnScrollStack(
+            showResponseBody: shouldShowResponseBodySection,
+            header: {
+                DetailColumnHeaderView(
+                    model: detailColumnHeaderModel,
+                    actions: detailColumnHeaderActions,
+                    bindings: detailColumnHeaderBindings
+                )
+            },
+            editor: {
+                DetailColumnJsonEditorView(
+                    bodyText: bodyTextBinding,
+                    validationMessage: validationMessage,
+                    tightVertical: detailTightVertical,
+                    focus: $detailFocus
+                )
+            },
+            toolbar: {
+                DetailColumnBottomToolbarView(
+                    tightVertical: detailTightVertical,
+                    onValidate: onValidate,
+                    onFormat: onFormat,
+                    onSave: onSave,
+                    confirmResetEndpoint: $confirmResetEndpoint
+                )
+            }
+        )
     }
 
     private func presentAddCustomSheet() {
@@ -380,547 +399,5 @@ struct OverrideDetailColumnView: View {
         )
         mock = m
         addCustomResponsePresented = false
-    }
-
-    @ViewBuilder
-    private var operationIdSection: some View {
-        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-            Text("OPERATION ID")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.secondary)
-                .tracking(0.6)
-            Text(endpoint.operationId)
-                .font(.caption.monospaced())
-                .foregroundStyle(.primary)
-                .textSelection(.enabled)
-        }
-        .padding(detailTightVertical ? 10 : 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(ExplorerPalette.surfaceElevated)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
-                .allowsHitTesting(false)
-        )
-    }
-
-    @ViewBuilder
-    private var tagsDocumentationSection: some View {
-        if let tags = TagsPresentation.displayTags(for: endpoint) {
-            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                Text("TAGS")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.6)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.primary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(ExplorerPalette.subtleAccentFill)
-                                )
-                                .textSelection(.enabled)
-                        }
-                    }
-                }
-            }
-            .padding(detailTightVertical ? 10 : 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(ExplorerPalette.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
-                    .allowsHitTesting(false)
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var securityDocumentationSection: some View {
-        let presentation = securityPresentation
-        if presentation.hasContent {
-            VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-                Text("SECURITY")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.6)
-                if presentation.requirementLines.isEmpty {
-                    Text("No security requirement for this operation.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                } else if presentation.requirementLines.count == 1 {
-                    Text(presentation.requirementLines[0])
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.primary)
-                        .textSelection(.enabled)
-                } else {
-                    Text("Satisfy one of:")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                    VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(presentation.requirementLines.enumerated()), id: \.offset) { _, line in
-                            Text(line)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.primary)
-                                .textSelection(.enabled)
-                        }
-                    }
-                }
-                if !presentation.schemeDetails.isEmpty {
-                    DisclosureGroup("Scheme definitions") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            ForEach(presentation.schemeDetails) { detail in
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(detail.name)
-                                        .font(.caption.weight(.semibold))
-                                    Text(detail.summary)
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                    if let description = detail.description, !description.isEmpty {
-                                        Text(description)
-                                            .font(.caption2)
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.top, 4)
-                    }
-                    .font(.caption.weight(.medium))
-                }
-            }
-            .padding(detailTightVertical ? 10 : 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(ExplorerPalette.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
-                    .allowsHitTesting(false)
-            )
-        }
-    }
-
-    @ViewBuilder
-    private var detailTopChrome: some View {
-        if hasUnsavedChanges {
-            HStack {
-                Text("Not saved")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.orange.opacity(0.15), in: Capsule())
-                Spacer(minLength: 0)
-            }
-        }
-
-        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-            HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: detailTightVertical ? 4 : 6) {
-                    Text("RESPONSE STATUS")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(.secondary)
-                        .tracking(0.6)
-                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Save sends the current chip: enabled rows become primary; disabled rows stay off and still persist JSON. Add creates another row. Long-press a chip to copy example id. Del turns off an active mock or removes an inactive row.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(detailTightVertical ? 4 : nil)
-                }
-                Spacer(minLength: 0)
-                HStack(spacing: 10) {
-                    Button {
-                        presentAddCustomSheet()
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(Color.accentColor)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add response row")
-
-                    Button {
-                        onDisableCurrentMock()
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title3)
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(canRemoveCurrentMockRow ? Color.orange : Color.secondary.opacity(0.35))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!canRemoveCurrentMockRow)
-                    .accessibilityLabel("Turn off mock, or delete row if already off")
-                }
-                .padding(.top, 2)
-            }
-            responseStatusChipStrip
-        }
-
-        selectedResponseDocumentationSection
-
-        VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-            Text("RESPONSE DELAY")
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.secondary)
-                .tracking(0.6)
-            Text("Optional delay in milliseconds before the mock response is returned. Leave empty for no delay.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-                .lineLimit(detailTightVertical ? 2 : nil)
-            TextField("ms", text: delayMsBinding)
-                .font(.body.monospacedDigit())
-                .textFieldStyle(.roundedBorder)
-                #if os(iOS)
-                .keyboardType(.numberPad)
-                #endif
-                .frame(maxWidth: 120)
-        }
-    }
-
-    @ViewBuilder
-    private var selectedResponseDocumentationSection: some View {
-        if let doc = selectedResponseDocumentation {
-            VStack(alignment: .leading, spacing: detailTightVertical ? 6 : 8) {
-                Text("SELECTED RESPONSE")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.6)
-                if let summary = doc.summary {
-                    Text(summary)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
-                if let description = doc.description {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                }
-            }
-            .padding(detailTightVertical ? 10 : 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(ExplorerPalette.surfaceElevated)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
-                    .allowsHitTesting(false)
-            )
-        }
-    }
-
-    private func chipMatchesServerPrimary(_ opt: ResponseChip) -> Bool {
-        guard !opt.isSpec, let p = primaryOverride else { return false }
-        guard opt.statusCode == p.statusCode,
-              MockExamplePresentation.exampleIdsEqual(opt.exampleId, p.exampleId) else { return false }
-
-        // Several OpenAPI rows can share status + example id (e.g. two default `200`s). Match **P** to the row whose
-        // template matches the server primary body, not always the first chip.
-        if let chipIdx = opt.specResponseListIndex,
-           let wantIdx = OverrideListQueries.specResponseListIndexForPrimaryBadge(primary: p, endpoint: endpoint) {
-            return chipIdx == wantIdx
-        }
-        return true
-    }
-
-    private var specChipIsServerEffective: Bool {
-        primaryOverride == nil
-    }
-
-    @ViewBuilder
-    private var responseBodyHeading: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("RESPONSE BODY")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
-                    .tracking(0.6)
-                Text("JSON payload to be returned.")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(detailTightVertical ? 2 : nil)
-            }
-            Spacer(minLength: 8)
-            HStack(spacing: 4) {
-                Image(systemName: "curlybraces")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(ExplorerPalette.linkAccent)
-                TextField("application/json", text: contentTypeBinding)
-                    .font(.caption.monospaced())
-                    .multilineTextAlignment(.trailing)
-                    .textFieldStyle(.plain)
-                    .frame(maxWidth: 140)
-                    .focused($detailFocus, equals: .contentType)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                Capsule(style: .continuous)
-                    .fill(ExplorerPalette.subtleAccentFill)
-            )
-        }
-    }
-
-    private var detailHeaderScrollContent: some View {
-        VStack(alignment: .leading, spacing: detailTightVertical ? 12 : 20) {
-            operationIdSection
-            tagsDocumentationSection
-            securityDocumentationSection
-            detailTopChrome
-            if shouldShowResponseBodySection {
-                responseBodyHeading
-            }
-        }
-        .padding(detailTightVertical ? 10 : 16)
-        .padding(.bottom, 12)
-    }
-
-    private var responseBodyEditorColumn: some View {
-        VStack(alignment: .leading, spacing: detailTightVertical ? 8 : 10) {
-            darkJsonEditorChrome
-            if let msg = validationMessage {
-                Text(msg)
-                    .font(.caption)
-                    .foregroundStyle(EditorValidation.isJsonErrorMessage(msg) ? .red : .secondary)
-            }
-        }
-        .padding(.horizontal, detailTightVertical ? 10 : 16)
-        .padding(.bottom, 8)
-    }
-
-    private var detailScrollStack: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ScrollView {
-                detailHeaderScrollContent
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-
-            if shouldShowResponseBodySection {
-                responseBodyEditorColumn
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(ExplorerPalette.surface)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomToolbar
-        }
-    }
-
-    private var responseStatusChipStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(chipOptions) { opt in
-                    let selected = responseChipIsSelected(opt)
-                    let primaryHere = chipMatchesServerPrimary(opt)
-                    let specEffective = opt.isSpec && specChipIsServerEffective
-                    Button {
-                        applyResponseChip(opt)
-                    } label: {
-                        HStack(spacing: 6) {
-                            if primaryHere {
-                                Text("P")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(Color.green)
-                                    .accessibilityLabel("Primary on server")
-                            }
-                            Text(opt.label)
-                                .font(.subheadline.weight(selected ? .semibold : .regular))
-                                .foregroundStyle(
-                                    selected
-                                        ? ExplorerPalette.chipSelectedLabel
-                                        : (opt.isInactive ? Color.secondary.opacity(0.75) : Color.secondary)
-                                )
-                        }
-                        .padding(.horizontal, detailTightVertical ? 10 : 14)
-                        .padding(.vertical, detailTightVertical ? 7 : 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(selected ? ExplorerPalette.chipSelectedFill : Color.clear)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .strokeBorder(
-                                    specEffective ? Color.accentColor.opacity(0.85) : ExplorerPalette.groupedFieldStroke,
-                                    lineWidth: specEffective ? 2 : 1
-                                )
-                                .allowsHitTesting(false)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityHint(primaryHere ? "Primary mock on server" : "")
-                    .contextMenu {
-                        Button {
-                            copyChipExampleIdToPasteboard(opt)
-                        } label: {
-                            Label("Copy example ID", systemImage: "doc.on.doc")
-                        }
-                    }
-                }
-            }
-            .padding(detailTightVertical ? 6 : 10)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(ExplorerPalette.chipStripTray)
-        )
-    }
-
-    private func copyChipExampleIdToPasteboard(_ opt: ResponseChip) {
-        let text: String
-        if opt.isSpec {
-            text = KawarimiExampleIds.defaultResponseMapKey
-        } else {
-            text = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: opt.exampleId)
-        }
-        #if canImport(UIKit) && !os(watchOS)
-        UIPasteboard.general.string = text
-        #elseif canImport(AppKit) && !os(iOS)
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-        #endif
-    }
-
-    private var darkJsonEditorChrome: some View {
-        let minLines = detailTightVertical ? 4 : 8
-        let lineCount = max(jsonLineCount, minLines)
-        let lineHeight: CGFloat = 18
-        let minBodyHeight = DetailColumnLayout.jsonEditorMinBodyHeight(tightVertical: detailTightVertical)
-        let contentHeight = CGFloat(lineCount) * lineHeight + 8.0
-        let editorFill = Color(red: 0.1, green: 0.11, blue: 0.13)
-
-        return VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(Color.red.opacity(0.85))
-                        .frame(width: 8, height: 8)
-                    Circle()
-                        .fill(Color.green.opacity(0.85))
-                        .frame(width: 8, height: 8)
-                }
-                Spacer(minLength: 0)
-                Text("HENGE-EDITOR-V1")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color.white.opacity(0.42))
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, detailTightVertical ? 6 : 8)
-            .frame(maxWidth: .infinity)
-            .background(Color(red: 0.07, green: 0.075, blue: 0.09))
-
-            ScrollView {
-                HStack(alignment: .top, spacing: 0) {
-                    VStack(alignment: .trailing, spacing: 0) {
-                        ForEach(1...lineCount, id: \.self) { n in
-                            Text("\(n)")
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(Color.white.opacity(0.45))
-                                .frame(height: lineHeight, alignment: .top)
-                        }
-                    }
-                    .frame(width: 36)
-                    .padding(.vertical, detailTightVertical ? 6 : 8)
-
-                    TextEditor(text: bodyTextBinding)
-                        .font(.system(size: 13, design: .monospaced))
-                        .scrollContentBackground(.hidden)
-                        .background(editorFill)
-                        .foregroundStyle(Color.white.opacity(0.92))
-                        .frame(minHeight: contentHeight)
-                        .padding(.vertical, 4)
-                        .padding(.trailing, 8)
-                        .focused($detailFocus, equals: .jsonBody)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: minBodyHeight, maxHeight: .infinity)
-            .background(editorFill)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-                .allowsHitTesting(false)
-        )
-    }
-
-    private var bottomToolbar: some View {
-        HStack(spacing: 4) {
-            toolbarPlainButton(title: "Validate", systemImage: "checkmark.circle", action: onValidate)
-            toolbarPlainButton(title: "Format", systemImage: "text.alignleft", action: onFormat)
-            saveCapsuleButton
-            toolbarPlainButton(title: "Reset", systemImage: "arrow.counterclockwise", foreground: .red) {
-                confirmResetEndpoint = true
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, detailTightVertical ? 8 : 12)
-        .padding(.horizontal, 8)
-        .frame(height: DetailColumnLayout.bottomToolbarHeight(tightVertical: detailTightVertical))
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .top) {
-            Divider()
-                .allowsHitTesting(false)
-        }
-    }
-
-    private var saveCapsuleButton: some View {
-        Button(action: onSave) {
-            VStack(spacing: 4) {
-                Image(systemName: "square.and.arrow.down")
-                    .font(.system(size: 20))
-                Text("Save")
-                    .font(.caption2.weight(.semibold))
-                    .lineLimit(1)
-            }
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, detailTightVertical ? 6 : 8)
-            .padding(.horizontal, 6)
-            .background(Capsule(style: .continuous).fill(Color.accentColor))
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel("Save mock — enabled row becomes primary; disabled row stays off and keeps JSON")
-    }
-
-    private func toolbarPlainButton(
-        title: String,
-        systemImage: String,
-        foreground: Color = Color.secondary,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 20))
-                Text(title)
-                    .font(.caption2.weight(.medium))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 4)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(foreground)
     }
 }
