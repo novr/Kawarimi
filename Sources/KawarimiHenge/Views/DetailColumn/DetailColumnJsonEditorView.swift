@@ -23,7 +23,6 @@ struct DetailColumnJsonEditorView: View {
     private var darkJsonEditorChrome: some View {
         let bodyLineCount = DetailColumnLayoutCore.jsonLineCount(body: bodyText.isEmpty ? nil : bodyText)
         let lineCount = DetailColumnLayoutCore.editorLineCount(bodyLineCount: bodyLineCount, tightVertical: tightVertical)
-        let lineHeight = CGFloat(DetailColumnLayoutCore.editorLineHeight)
         let minBodyHeight = CGFloat(DetailColumnLayoutCore.jsonEditorMinBodyHeight(tightVertical: tightVertical))
         let contentHeight = CGFloat(DetailColumnLayoutCore.editorContentHeight(lineCount: lineCount))
         let editorFill = Color(red: 0.1, green: 0.11, blue: 0.13)
@@ -50,20 +49,15 @@ struct DetailColumnJsonEditorView: View {
 
             ScrollView {
                 HStack(alignment: .top, spacing: 0) {
-                    VStack(alignment: .trailing, spacing: 0) {
-                        ForEach(1...lineCount, id: \.self) { n in
-                            Text("\(n)")
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(Color.white.opacity(0.45))
-                                .frame(height: lineHeight, alignment: .top)
-                        }
-                    }
-                    .frame(width: 36)
-                    .padding(.vertical, tightVertical ? 6 : 8)
+                    JsonEditorLineNumberGutter(
+                        lineCount: lineCount,
+                        verticalPadding: 4
+                    )
 
                     TextEditor(text: $bodyText)
                         .font(.system(size: 13, design: .monospaced))
                         .scrollContentBackground(.hidden)
+                        .scrollDisabled(true)
                         .background(editorFill)
                         .foregroundStyle(Color.white.opacity(0.92))
                         .frame(minHeight: contentHeight)

@@ -40,4 +40,16 @@ package enum DetailColumnLayoutCore {
     ) -> Double {
         Double(lineCount) * lineHeight + verticalPadding
     }
+
+    package static func editorLineNumbersText(lineCount: Int) -> String {
+        let n = max(lineCount, 1)
+        guard n > 1 else { return "1" }
+        var text = ""
+        text.reserveCapacity(n * (Int(log10(Double(n))) + 2))
+        for i in 1...n {
+            if i > 1 { text.append("\n") }
+            text.append(String(i))
+        }
+        return text
+    }
 }
