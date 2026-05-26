@@ -7,6 +7,7 @@ import DemoAPI
 import Foundation
 import HTTPTypes
 import KawarimiCore
+import KawarimiHenge
 import SwiftUI
 
 // MARK: - OpenAPI execute UI
@@ -442,16 +443,12 @@ struct OpenAPIExecuteView: View {
             .background(Color(red: 0.07, green: 0.075, blue: 0.09))
 
             HStack(alignment: .top, spacing: 0) {
-                VStack(alignment: .trailing, spacing: 0) {
-                    ForEach(1...lineCount, id: \.self) { n in
-                        Text("\(n)")
-                            .font(.system(size: 13, design: .monospaced))
-                            .foregroundStyle(Color.white.opacity(0.4))
-                            .frame(height: 18, alignment: .top)
-                    }
-                }
-                .frame(width: 32)
-                .padding(.vertical, 8)
+                JsonEditorLineNumberGutter(
+                    lineCount: lineCount,
+                    gutterWidth: 32,
+                    foregroundOpacity: 0.4,
+                    verticalPadding: 8
+                )
 
                 TextEditor(text: $bodyText)
                     .font(.system(size: 13, design: .monospaced))

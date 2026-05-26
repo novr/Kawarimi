@@ -40,3 +40,25 @@ import Testing
     #expect(DetailColumnLayoutCore.editorContentHeight(lineCount: 8) == 8 * 18 + 8)
     #expect(DetailColumnLayoutCore.editorContentHeight(lineCount: 1) == 18 + 8)
 }
+
+@Test func detailColumnEditorLineNumbersTextSingleLine() {
+    #expect(DetailColumnLayoutCore.editorLineNumbersText(lineCount: 0) == "1")
+    #expect(DetailColumnLayoutCore.editorLineNumbersText(lineCount: 1) == "1")
+}
+
+@Test func detailColumnEditorLineNumbersTextMultiline() {
+    #expect(DetailColumnLayoutCore.editorLineNumbersText(lineCount: 3) == "1\n2\n3")
+    let parts = DetailColumnLayoutCore.editorLineNumbersText(lineCount: 3).split(
+        separator: "\n",
+        omittingEmptySubsequences: false
+    )
+    #expect(parts.count == 3)
+}
+
+@Test func detailColumnEditorLineNumbersTextLong() {
+    let text = DetailColumnLayoutCore.editorLineNumbersText(lineCount: 500)
+    let parts = text.split(separator: "\n", omittingEmptySubsequences: false)
+    #expect(parts.count == 500)
+    #expect(parts.first == "1")
+    #expect(parts.last == "500")
+}
