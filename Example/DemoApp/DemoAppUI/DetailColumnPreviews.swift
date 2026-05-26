@@ -29,26 +29,8 @@ import SwiftUI
     )
 }
 
-#Preview("Detail column — parameters") {
-    let fixture = DetailColumnPreviewFixtures.parametersDocumentation
-    DetailColumnPreviewCanvas.chrome(
-        endpoint: fixture.endpoint,
-        initialMock: fixture.initialMock,
-        securityCatalog: fixture.securityCatalog
-    )
-}
-
 #Preview("Detail column header — sparse") {
     let fixture = DetailColumnPreviewFixtures.sparseHeader
-    DetailColumnPreviewCanvas.header(
-        endpoint: fixture.endpoint,
-        initialMock: fixture.initialMock,
-        securityCatalog: fixture.securityCatalog
-    )
-}
-
-#Preview("Detail column header — parameters") {
-    let fixture = DetailColumnPreviewFixtures.parametersDocumentation
     DetailColumnPreviewCanvas.header(
         endpoint: fixture.endpoint,
         initialMock: fixture.initialMock,

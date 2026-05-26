@@ -16,9 +16,8 @@ Open `Example/DemoApp/DemoAppUI/DetailColumnPreviews.swift` (DemoApp scheme).
 
 | | Pass when |
 |---|-----------|
-| Sparse metadata | Header + toolbar visible together (`getGreeting`-like) |
-| Parameters | PARAMETERS lines visible (path / query / header) |
-| Security heavy | Long SECURITY scrolls in the header area; toolbar still visible |
+| Sparse metadata | Header + toolbar visible together; PARAMETERS with query (`getGreeting`-like) |
+| Security heavy | PARAMETERS (path / query / header), long SECURITY; toolbar still visible |
 | Long JSON | Toolbar visible; JSON scrolls inside the editor |
 
 Not in Preview: mock off, dirty/save errors, chip apply, sheets — exercise in Henge manually.

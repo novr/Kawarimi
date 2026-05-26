@@ -13,7 +13,6 @@ enum DetailColumnPreviewFixtures {
         case sparseMetadata
         case securityHeavy
         case longJSON
-        case parametersDocumentation
     }
 
     private struct PreviewFakeResponse: SpecMockResponseProviding {
@@ -104,10 +103,6 @@ enum DetailColumnPreviewFixtures {
         sparseChrome
     }
 
-    static var parametersDocumentation: DetailColumnChromeFixture {
-        chromeFixture(for: .parametersDocumentation)
-    }
-
     private static func chromeFixture(for kind: Kind) -> DetailColumnChromeFixture {
         let endpoint = endpoint(for: kind)
         return DetailColumnChromeFixture(
@@ -126,6 +121,9 @@ enum DetailColumnPreviewFixtures {
                 operationId: "getGreeting",
                 tags: ["Greetings"],
                 security: [],
+                parameters: [
+                    SpecParameter(location: .query, name: "name", required: false, description: "name", schemaType: "string"),
+                ],
                 responseList: [
                     PreviewFakeResponse(
                         statusCode: 200,
@@ -139,10 +137,15 @@ enum DetailColumnPreviewFixtures {
             )
         case .securityHeavy:
             return PreviewFakeEndpoint(
-                path: "/items",
+                path: "/items/{id}",
                 method: .get,
-                operationId: "listItems",
+                operationId: "getItem",
                 tags: ["Items"],
+                parameters: [
+                    SpecParameter(location: .path, name: "id", required: true, schemaType: "string"),
+                    SpecParameter(location: .query, name: "fields", required: false, description: "Sparse field mask", schemaType: "string"),
+                    SpecParameter(location: .header, name: "Accept-Language", required: false, schemaType: "string"),
+                ],
                 security: [
                     PreviewFakeSecurityRequirement(schemeList: [
                         PreviewFakeScopedScheme(name: "HeaderA", scopes: nil),
@@ -160,31 +163,6 @@ enum DetailColumnPreviewFixtures {
                     PreviewFakeResponse(
                         statusCode: 200,
                         contentType: "application/json",
-                        body: "[]",
-                        exampleId: nil,
-                        summary: "List all items",
-                        description: nil
-                    ),
-                ]
-            )
-        case .longJSON:
-            return endpoint(for: .sparseMetadata)
-        case .parametersDocumentation:
-            return PreviewFakeEndpoint(
-                path: "/items/{id}",
-                method: .get,
-                operationId: "getItem",
-                tags: ["Items"],
-                security: nil,
-                parameters: [
-                    SpecParameter(location: .path, name: "id", required: true, schemaType: "string"),
-                    SpecParameter(location: .query, name: "fields", required: false, description: "Sparse field mask", schemaType: "string"),
-                    SpecParameter(location: .header, name: "Accept-Language", required: false, schemaType: "string"),
-                ],
-                responseList: [
-                    PreviewFakeResponse(
-                        statusCode: 200,
-                        contentType: "application/json",
                         body: #"{"id":"1"}"#,
                         exampleId: nil,
                         summary: "Found",
@@ -192,6 +170,8 @@ enum DetailColumnPreviewFixtures {
                     ),
                 ]
             )
+        case .longJSON:
+            return endpoint(for: .sparseMetadata)
         }
     }
 
@@ -210,13 +190,13 @@ enum DetailColumnPreviewFixtures {
             )
         case .securityHeavy:
             return MockOverride(
-                name: "listItems",
+                name: "getItem",
                 path: endpoint.path,
                 method: endpoint.method,
                 statusCode: 200,
                 exampleId: nil,
                 isEnabled: true,
-                body: "[]",
+                body: #"{"id":"1"}"#,
                 contentType: "application/json"
             )
         case .longJSON:
@@ -228,17 +208,6 @@ enum DetailColumnPreviewFixtures {
                 exampleId: "success",
                 isEnabled: true,
                 body: longJsonBody,
-                contentType: "application/json"
-            )
-        case .parametersDocumentation:
-            return MockOverride(
-                name: "getItem",
-                path: endpoint.path,
-                method: endpoint.method,
-                statusCode: 200,
-                exampleId: nil,
-                isEnabled: true,
-                body: #"{"id":"1"}"#,
                 contentType: "application/json"
             )
         }
