@@ -3,15 +3,15 @@ import KawarimiHenge
 import SwiftUI
 
 #Preview("Detail column — sparse metadata") {
-    DetailColumnChromePreviewRoot(.sparseMetadata)
+    DetailColumnSparseChromePreviewRoot()
 }
 
 #Preview("Detail column — security heavy") {
-    DetailColumnChromePreviewRoot(.securityHeavy)
+    DetailColumnSecurityHeavyChromePreviewRoot()
 }
 
 #Preview("Detail column — long JSON") {
-    DetailColumnChromePreviewRoot(.longJSON)
+    DetailColumnLongJSONChromePreviewRoot()
 }
 
 #Preview("Detail column header — sparse") {

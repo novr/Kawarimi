@@ -3,13 +3,20 @@ import HTTPTypes
 import KawarimiCore
 import KawarimiHengeCore
 
-public enum DetailColumnPreviewScenario: String, Sendable {
-    case sparseMetadata
-    case securityHeavy
-    case longJSON
+package struct DetailColumnChromePreviewData: Sendable {
+    package let endpointItem: SpecEndpointItem
+    package let securityPresentation: EndpointSecurityPresentation
+    package let chipOptions: [ResponseChip]
+    package let initialMock: MockOverride
 }
 
 package enum DetailColumnPreviewFixtures {
+    private enum Kind {
+        case sparseMetadata
+        case securityHeavy
+        case longJSON
+    }
+
     private struct PreviewFakeResponse: SpecMockResponseProviding {
         var statusCode: Int
         var contentType: String
@@ -81,8 +88,45 @@ package enum DetailColumnPreviewFixtures {
         ),
     ]
 
-    private static func endpoint(for scenario: DetailColumnPreviewScenario) -> PreviewFakeEndpoint {
-        switch scenario {
+    package static var sparseChromeData: DetailColumnChromePreviewData {
+        chromeData(for: .sparseMetadata)
+    }
+
+    package static var securityHeavyChromeData: DetailColumnChromePreviewData {
+        chromeData(for: .securityHeavy)
+    }
+
+    package static var longJSONChromeData: DetailColumnChromePreviewData {
+        chromeData(for: .longJSON)
+    }
+
+    package static var sparseHeaderMock: MockOverride {
+        mock(for: .sparseMetadata)
+    }
+
+    package static var sparseHeaderEndpointItem: SpecEndpointItem {
+        endpointItem(for: .sparseMetadata)
+    }
+
+    package static var sparseHeaderSecurityPresentation: EndpointSecurityPresentation {
+        securityPresentation(for: .sparseMetadata)
+    }
+
+    package static var sparseHeaderChipOptions: [ResponseChip] {
+        chipOptions(for: .sparseMetadata)
+    }
+
+    private static func chromeData(for kind: Kind) -> DetailColumnChromePreviewData {
+        DetailColumnChromePreviewData(
+            endpointItem: endpointItem(for: kind),
+            securityPresentation: securityPresentation(for: kind),
+            chipOptions: chipOptions(for: kind),
+            initialMock: mock(for: kind)
+        )
+    }
+
+    private static func endpoint(for kind: Kind) -> PreviewFakeEndpoint {
+        switch kind {
         case .sparseMetadata:
             return PreviewFakeEndpoint(
                 path: "/greet",
@@ -136,19 +180,19 @@ package enum DetailColumnPreviewFixtures {
         }
     }
 
-    package static func endpointItem(for scenario: DetailColumnPreviewScenario) -> SpecEndpointItem {
-        SpecEndpointItem(endpoint(for: scenario))
+    private static func endpointItem(for kind: Kind) -> SpecEndpointItem {
+        SpecEndpointItem(endpoint(for: kind))
     }
 
-    package static func securityPresentation(for scenario: DetailColumnPreviewScenario) -> EndpointSecurityPresentation {
-        let endpoint = endpoint(for: scenario)
+    private static func securityPresentation(for kind: Kind) -> EndpointSecurityPresentation {
+        let endpoint = endpoint(for: kind)
         return SecurityPresentation.endpointPresentation(endpoint: endpoint, catalog: securityCatalog)
     }
 
-    package static func chipOptions(for scenario: DetailColumnPreviewScenario) -> [ResponseChip] {
-        let endpoint = endpoint(for: scenario)
+    private static func chipOptions(for kind: Kind) -> [ResponseChip] {
+        let endpoint = endpoint(for: kind)
         let item = SpecEndpointItem(endpoint)
-        let mock = mock(for: scenario)
+        let mock = mock(for: kind)
         return ResponseChips.buildChipOptions(
             mock: mock,
             endpointItem: item,
@@ -158,9 +202,9 @@ package enum DetailColumnPreviewFixtures {
         )
     }
 
-    package static func mock(for scenario: DetailColumnPreviewScenario) -> MockOverride {
-        let endpoint = endpoint(for: scenario)
-        switch scenario {
+    private static func mock(for kind: Kind) -> MockOverride {
+        let endpoint = endpoint(for: kind)
+        switch kind {
         case .sparseMetadata:
             return MockOverride(
                 name: "getGreeting",

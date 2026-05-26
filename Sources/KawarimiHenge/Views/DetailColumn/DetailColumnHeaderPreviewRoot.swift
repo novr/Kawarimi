@@ -14,18 +14,17 @@ public struct DetailColumnHeaderPreviewRoot: View {
 }
 
 private struct DetailColumnHeaderPreviewContent: View {
-    @State private var mock = DetailColumnPreviewFixtures.mock(for: .sparseMetadata)
+    @State private var mock = DetailColumnPreviewFixtures.sparseHeaderMock
     @State private var contentTypeText = "application/json"
     @State private var delayMsText = ""
     @FocusState private var focus: DetailColumnFocusField?
 
     var body: some View {
-        let scenario = DetailColumnPreviewScenario.sparseMetadata
         DetailColumnHeaderView(
             model: DetailColumnHeaderModel(
-                endpointItem: DetailColumnPreviewFixtures.endpointItem(for: scenario),
-                securityPresentation: DetailColumnPreviewFixtures.securityPresentation(for: scenario),
-                chipOptions: DetailColumnPreviewFixtures.chipOptions(for: scenario),
+                endpointItem: DetailColumnPreviewFixtures.sparseHeaderEndpointItem,
+                securityPresentation: DetailColumnPreviewFixtures.sparseHeaderSecurityPresentation,
+                chipOptions: DetailColumnPreviewFixtures.sparseHeaderChipOptions,
                 primaryOverride: nil,
                 pinnedNumberedResponseChip: false,
                 hasUnsavedChanges: false,
