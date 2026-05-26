@@ -46,6 +46,8 @@ public protocol SpecEndpointProviding: Identifiable, Sendable {
     var tags: [String]? { get }
     /// Effective OpenAPI `security` for this operation; `nil` when none applies.
     var security: [any SpecSecurityRequirementProviding]? { get }
+    /// Merged path-item and operation parameters (path, query, header); `nil` when none.
+    var parameters: [SpecParameter]? { get }
     var responseList: [any SpecMockResponseProviding] { get }
 }
 
@@ -64,4 +66,5 @@ extension SpecEndpointProviding {
     public var id: String { operationId }
     public var tags: [String]? { nil }
     public var security: [any SpecSecurityRequirementProviding]? { nil }
+    public var parameters: [SpecParameter]? { nil }
 }

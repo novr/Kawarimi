@@ -84,7 +84,7 @@ In the **Swift target root** (same layout as [swift-openapi-generator](https://g
 
 Optional **`kawarimi-generator-config.yaml`** (at most one): **`handlerStubPolicy`** (`throw` / `fatalError`), **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**; at least one must stay enabled). Plugin: **`sourceFiles`**; CLI: directory of the spec path.
 
-Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** after upgrades. Endpoints expose optional OpenAPI **`tags`** (`nil` when absent). Request parameters: [#74](https://github.com/novr/Kawarimi/issues/74).
+Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** after upgrades. Endpoints expose optional OpenAPI **`tags`** and **`parameters`** (`nil` when absent). Parameters merge path-item and operation lists (operation overrides); cookie and content-style parameters are omitted from generated spec.
 
 ## 4. Use the mock in tests
 

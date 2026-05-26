@@ -1,0 +1,46 @@
+openapi: "3.0.4"
+info:
+  title: ParametersMergeFixture
+  version: "1.0.0"
+paths:
+  /merge:
+    parameters:
+      - name: limit
+        in: query
+        required: false
+        description: path-item limit
+        schema:
+          type: integer
+      - name: X-Shared
+        in: header
+        required: false
+        schema:
+          type: string
+    get:
+      operationId: mergeParameters
+      parameters:
+        - name: limit
+          in: query
+          required: true
+          description: operation limit
+          schema:
+            type: string
+        - name: session
+          in: cookie
+          required: false
+          schema:
+            type: string
+        - name: filter
+          in: query
+          required: false
+          schema:
+            allOf:
+              - type: string
+              - maxLength: 10
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object

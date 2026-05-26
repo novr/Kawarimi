@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **parameters** (path, query, header) on generated endpoints — merged path-item + operation, operation wins; `schemaType` when a single primary JSON Schema type applies ([#74](https://github.com/novr/Kawarimi/issues/74)).
+- **KawarimiHenge**: read-only **PARAMETERS** section in the endpoint detail column.
+
+### Changed
+
+- **KawarimiCore**: `SpecParameter`, `SpecParameterLocation`, and `SpecParameter.merge` for shared generation and UI.
+
 ## [2.4.0] - 2026-05-25
 
 ### Fixed
@@ -102,7 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **KawarimiJutsu** / **KawarimiPlugin**: **`kawarimi-generator-config.yaml`** flags **`generateKawarimi`**, **`generateHandler`**, **`generateSpec`** (default **`true`**) for selective codegen ([#54](https://github.com/novr/Kawarimi/issues/54), [#68](https://github.com/novr/Kawarimi/pull/68)).
-- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **`tags`** on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56), [#69](https://github.com/novr/Kawarimi/pull/69)). Omitted when the operation has no tags (`nil`, not `[]`). Request **parameters**: [#74](https://github.com/novr/Kawarimi/issues/74).
+- **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **`tags`** on generated endpoints ([#56](https://github.com/novr/Kawarimi/issues/56), [#69](https://github.com/novr/Kawarimi/pull/69)). Omitted when the operation has no tags (`nil`, not `[]`).
 
 ## [2.0.4] - 2026-05-14
 
