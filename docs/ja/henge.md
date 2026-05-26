@@ -46,6 +46,8 @@ iOS など他プラットフォーム向けビルドでは **スタブの `main`
 
 SwiftUI ホストは **`DemoApp`** や自前ターゲットを使ってください。
 
+詳細列 UI 回帰（`#Preview` パターン・手動チェック・PR 用 RenderPreview）: [henge-detail-column-regression.md](../henge-detail-column-regression.md)。
+
 ## 生成ファイル: `KawarimiSpec.swift`
 
 `KawarimiSpec` は API ターゲットに生成され、以下を公開します:
