@@ -141,11 +141,6 @@ enum DetailColumnPreviewFixtures {
                 method: .get,
                 operationId: "getItem",
                 tags: ["Items"],
-                parameters: [
-                    SpecParameter(location: .path, name: "id", required: true, schemaType: "string"),
-                    SpecParameter(location: .query, name: "fields", required: false, description: "Sparse field mask", schemaType: "string"),
-                    SpecParameter(location: .header, name: "Accept-Language", required: false, schemaType: "string"),
-                ],
                 security: [
                     PreviewFakeSecurityRequirement(schemeList: [
                         PreviewFakeScopedScheme(name: "HeaderA", scopes: nil),
@@ -158,6 +153,11 @@ enum DetailColumnPreviewFixtures {
                     PreviewFakeSecurityRequirement(schemeList: [
                         PreviewFakeScopedScheme(name: "BearerAuth", scopes: ["read", "write"]),
                     ]),
+                ],
+                parameters: [
+                    SpecParameter(location: .path, name: "id", required: true, schemaType: "string"),
+                    SpecParameter(location: .query, name: "fields", required: false, description: "Sparse field mask", schemaType: "string"),
+                    SpecParameter(location: .header, name: "Accept-Language", required: false, schemaType: "string"),
                 ],
                 responseList: [
                     PreviewFakeResponse(
