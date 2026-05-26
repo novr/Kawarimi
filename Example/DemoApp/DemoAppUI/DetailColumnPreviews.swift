@@ -3,22 +3,42 @@ import KawarimiHenge
 import SwiftUI
 
 #Preview("Detail column — sparse metadata") {
-    DetailColumnSparseChromePreviewRoot()
+    let fixture = DetailColumnPreviewFixtures.sparseChrome
+    DetailColumnPreviewCanvas.chrome(
+        endpoint: fixture.endpoint,
+        initialMock: fixture.initialMock,
+        securityCatalog: fixture.securityCatalog
+    )
 }
 
 #Preview("Detail column — security heavy") {
-    DetailColumnSecurityHeavyChromePreviewRoot()
+    let fixture = DetailColumnPreviewFixtures.securityHeavyChrome
+    DetailColumnPreviewCanvas.chrome(
+        endpoint: fixture.endpoint,
+        initialMock: fixture.initialMock,
+        securityCatalog: fixture.securityCatalog
+    )
 }
 
 #Preview("Detail column — long JSON") {
-    DetailColumnLongJSONChromePreviewRoot()
+    let fixture = DetailColumnPreviewFixtures.longJSONChrome
+    DetailColumnPreviewCanvas.chrome(
+        endpoint: fixture.endpoint,
+        initialMock: fixture.initialMock,
+        securityCatalog: fixture.securityCatalog
+    )
 }
 
 #Preview("Detail column header — sparse") {
-    DetailColumnHeaderPreviewRoot()
+    let fixture = DetailColumnPreviewFixtures.sparseHeader
+    DetailColumnPreviewCanvas.header(
+        endpoint: fixture.endpoint,
+        initialMock: fixture.initialMock,
+        securityCatalog: fixture.securityCatalog
+    )
 }
 
 #Preview("Detail column toolbar — tight") {
-    DetailColumnToolbarPreviewRoot()
+    DetailColumnPreviewCanvas.toolbarTight()
 }
 #endif

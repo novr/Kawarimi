@@ -1,16 +1,14 @@
 #if DEBUG
 import HTTPTypes
 import KawarimiCore
-import KawarimiHengeCore
 
-package struct DetailColumnChromePreviewData: Sendable {
-    package let endpointItem: SpecEndpointItem
-    package let securityPresentation: EndpointSecurityPresentation
-    package let chipOptions: [ResponseChip]
-    package let initialMock: MockOverride
+struct DetailColumnChromeFixture {
+    let endpoint: any SpecEndpointProviding
+    let initialMock: MockOverride
+    let securityCatalog: [any SpecSecuritySchemeProviding]?
 }
 
-package enum DetailColumnPreviewFixtures {
+enum DetailColumnPreviewFixtures {
     private enum Kind {
         case sparseMetadata
         case securityHeavy
@@ -55,7 +53,7 @@ package enum DetailColumnPreviewFixtures {
         var responseList: [any SpecMockResponseProviding]
     }
 
-    package static let securityCatalog: [any SpecSecuritySchemeProviding] = [
+    private static let securityCatalog: [any SpecSecuritySchemeProviding] = [
         PreviewFakeSecurityScheme(
             name: "HeaderA",
             type: "apiKey",
@@ -88,40 +86,28 @@ package enum DetailColumnPreviewFixtures {
         ),
     ]
 
-    package static var sparseChromeData: DetailColumnChromePreviewData {
-        chromeData(for: .sparseMetadata)
+    static var sparseChrome: DetailColumnChromeFixture {
+        chromeFixture(for: .sparseMetadata)
     }
 
-    package static var securityHeavyChromeData: DetailColumnChromePreviewData {
-        chromeData(for: .securityHeavy)
+    static var securityHeavyChrome: DetailColumnChromeFixture {
+        chromeFixture(for: .securityHeavy)
     }
 
-    package static var longJSONChromeData: DetailColumnChromePreviewData {
-        chromeData(for: .longJSON)
+    static var longJSONChrome: DetailColumnChromeFixture {
+        chromeFixture(for: .longJSON)
     }
 
-    package static var sparseHeaderMock: MockOverride {
-        mock(for: .sparseMetadata)
+    static var sparseHeader: DetailColumnChromeFixture {
+        sparseChrome
     }
 
-    package static var sparseHeaderEndpointItem: SpecEndpointItem {
-        endpointItem(for: .sparseMetadata)
-    }
-
-    package static var sparseHeaderSecurityPresentation: EndpointSecurityPresentation {
-        securityPresentation(for: .sparseMetadata)
-    }
-
-    package static var sparseHeaderChipOptions: [ResponseChip] {
-        chipOptions(for: .sparseMetadata)
-    }
-
-    private static func chromeData(for kind: Kind) -> DetailColumnChromePreviewData {
-        DetailColumnChromePreviewData(
-            endpointItem: endpointItem(for: kind),
-            securityPresentation: securityPresentation(for: kind),
-            chipOptions: chipOptions(for: kind),
-            initialMock: mock(for: kind)
+    private static func chromeFixture(for kind: Kind) -> DetailColumnChromeFixture {
+        let endpoint = endpoint(for: kind)
+        return DetailColumnChromeFixture(
+            endpoint: endpoint,
+            initialMock: mock(for: kind, endpoint: endpoint),
+            securityCatalog: kind == .securityHeavy ? securityCatalog : nil
         )
     }
 
@@ -180,30 +166,7 @@ package enum DetailColumnPreviewFixtures {
         }
     }
 
-    private static func endpointItem(for kind: Kind) -> SpecEndpointItem {
-        SpecEndpointItem(endpoint(for: kind))
-    }
-
-    private static func securityPresentation(for kind: Kind) -> EndpointSecurityPresentation {
-        let endpoint = endpoint(for: kind)
-        return SecurityPresentation.endpointPresentation(endpoint: endpoint, catalog: securityCatalog)
-    }
-
-    private static func chipOptions(for kind: Kind) -> [ResponseChip] {
-        let endpoint = endpoint(for: kind)
-        let item = SpecEndpointItem(endpoint)
-        let mock = mock(for: kind)
-        return ResponseChips.buildChipOptions(
-            mock: mock,
-            endpointItem: item,
-            endpoint: endpoint,
-            overrides: [],
-            pathPrefix: ""
-        )
-    }
-
-    private static func mock(for kind: Kind) -> MockOverride {
-        let endpoint = endpoint(for: kind)
+    private static func mock(for kind: Kind, endpoint: PreviewFakeEndpoint) -> MockOverride {
         switch kind {
         case .sparseMetadata:
             return MockOverride(
@@ -241,7 +204,7 @@ package enum DetailColumnPreviewFixtures {
         }
     }
 
-    package static var longJsonBody: String {
+    private static var longJsonBody: String {
         let line = "  \"line\": 1,\n"
         return "{\n" + String(repeating: line, count: 500) + "  \"end\": true\n}"
     }
