@@ -46,7 +46,7 @@ iOS and other platforms compile a **stub** `main` that exits with an error messa
 
 Use **`DemoApp`** or your own target for those platforms.
 
-Detail-column UI regression (`#Preview` patterns, manual checklist, RenderPreview for PRs): [henge-detail-column-regression.md](henge-detail-column-regression.md).
+Detail-column layout regression (DemoApp Preview + manual checks): [henge-detail-column-regression.md](henge-detail-column-regression.md).
 
 ## Generated file: `KawarimiSpec.swift`
 
