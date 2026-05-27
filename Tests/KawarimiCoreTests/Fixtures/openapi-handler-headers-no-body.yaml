@@ -1,0 +1,15 @@
+openapi: 3.0.3
+info:
+  title: HandlerHeadersNoBody
+  version: "1"
+paths:
+  /headers:
+    get:
+      operationId: getHeadersNoBody
+      responses:
+        "200":
+          description: ok
+          headers:
+            X-Trace-Id:
+              schema:
+                type: string

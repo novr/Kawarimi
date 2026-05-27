@@ -51,3 +51,37 @@ import Testing
         Issue.record("expected .ok but got \(response)")
     }
 }
+
+@Test func clientWithKawarimiCreateItemReturnsCreated() async throws {
+    let serverURL = URL(string: "http://localhost/api")!
+    let client = Client(serverURL: serverURL, transport: Kawarimi())
+    let response = try await client.createItem(.init(body: .json(.init(name: "Widget"))))
+
+    switch response {
+    case .created(let created):
+        if case .json(let body) = created.body {
+            #expect(!body.id.isEmpty)
+            #expect(!body.name.isEmpty)
+        } else {
+            Issue.record("response body is not .json")
+        }
+    default:
+        Issue.record("expected .created but got \(response)")
+    }
+}
+
+@Test func kawarimiHandlerCreateItemDefaultStubDecodes() async throws {
+    let handler = KawarimiHandler()
+    let response = try await handler.createItem(.init(body: .json(.init(name: "FromHandler"))))
+    switch response {
+    case .created(let created):
+        if case .json(let body) = created.body {
+            #expect(!body.id.isEmpty)
+            #expect(!body.name.isEmpty)
+        } else {
+            Issue.record("response body is not .json")
+        }
+    default:
+        Issue.record("expected .created but got \(response)")
+    }
+}
