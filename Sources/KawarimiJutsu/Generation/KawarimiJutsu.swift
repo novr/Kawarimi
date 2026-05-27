@@ -105,10 +105,28 @@ public enum KawarimiJutsu {
         operationId: String,
         diagnosticPath: String
     ) -> String {
-        if let exampleJSON = exampleToJSONString(content.example) {
-            return exampleJSON
+        let (json, warnings) = mockJSONBodyFromJSONMediaTypeWithWarnings(
+            content: content,
+            components: components,
+            operationId: operationId,
+            diagnosticPath: diagnosticPath
+        )
+        for warning in warnings {
+            StandardError.write(warning)
         }
-        guard let schemaEither = content.schema else { return "{}" }
+        return json
+    }
+
+    private static func mockJSONBodyFromJSONMediaTypeWithWarnings(
+        content: OpenAPI.Content,
+        components: OpenAPI.Components,
+        operationId: String,
+        diagnosticPath: String
+    ) -> (json: String, warnings: [String]) {
+        if let exampleJSON = exampleToJSONString(content.example) {
+            return (exampleJSON, [])
+        }
+        guard let schemaEither = content.schema else { return ("{}", []) }
         var refChain = Set<OpenAPI.ComponentKey>()
         var synthesisContext = MockJSONSynthesisContext(
             operationId: operationId,
@@ -120,7 +138,7 @@ public enum KawarimiJutsu {
             guard let name = ref.name,
                   let key = OpenAPI.ComponentKey(rawValue: name),
                   let schema = components.schemas[key] else {
-                return "{}"
+                return ("{}", [])
             }
             json = defaultJSONForSchema(
                 schema,
@@ -136,10 +154,32 @@ public enum KawarimiJutsu {
                 synthesisContext: &synthesisContext
             )
         }
-        for warning in synthesisContext.warnings {
-            StandardError.write(warning)
+        return (json, synthesisContext.warnings)
+    }
+
+    internal static func testingMockJSONBody(
+        document: OpenAPI.Document,
+        operationId: String,
+        statusCode: Int
+    ) -> (body: String, warnings: [String])? {
+        let status = OpenAPI.Response.StatusCode.status(code: statusCode)
+        for route in document.routes {
+            for endpoint in route.pathItem.endpoints {
+                guard endpoint.operation.operationId == operationId else { continue }
+                guard let responseEither = endpoint.operation.responses[status: status],
+                      let response = document.components[responseEither],
+                      let content = response.content[.json]
+                else { return nil }
+                let result = mockJSONBodyFromJSONMediaTypeWithWarnings(
+                    content: content,
+                    components: document.components,
+                    operationId: operationId,
+                    diagnosticPath: "responses.\(statusCode).content['application/json']"
+                )
+                return (body: result.json, warnings: result.warnings)
+            }
         }
-        return json
+        return nil
     }
 
     private static func schemaPrimaryExample(_ schema: JSONSchema) -> AnyCodable? {

@@ -8,13 +8,6 @@ import Testing
         return
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    #expect(throws: KawarimiJutsuError.self) {
-        _ = try KawarimiJutsu.generateKawarimiHandlerSource(
-            document: document,
-            namingStrategy: .defensive,
-            handlerStubPolicy: .throw
-        )
-    }
     do {
         _ = try KawarimiJutsu.generateKawarimiHandlerSource(
             document: document,

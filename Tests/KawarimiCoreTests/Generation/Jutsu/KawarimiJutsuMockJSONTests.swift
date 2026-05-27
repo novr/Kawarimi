@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiJutsu
+@testable import KawarimiJutsu
 import Testing
 
 private struct AllOfMergePayload: Codable {
@@ -21,7 +21,7 @@ private struct AllOfMergePayload: Codable {
     let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
     let specJSON = try #require(mockResponseBodyJSONString(operationId: "getSnapshotNoExample", in: spec))
     #expect(specJSON == transportJSON)
-    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+    let decoded = try OpenAPIDateMockSupport.stubJSONDecoder().decode(
         DateTimeNoExamplePayload.self,
         from: Data(transportJSON.utf8)
     )
@@ -42,7 +42,7 @@ private struct AllOfMergePayload: Codable {
     let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
     let specJSON = try #require(mockResponseBodyJSONString(operationId: "getDateOnlyNoExample", in: spec))
     #expect(specJSON == transportJSON)
-    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+    let decoded = try OpenAPIDateMockSupport.stubJSONDecoder().decode(
         DateOnlyNoExamplePayload.self,
         from: Data(transportJSON.utf8)
     )
@@ -113,6 +113,5 @@ private struct AllOfMergePayload: Codable {
     let decoded = try JSONDecoder().decode(AllOfMergePayload.self, from: Data(json.utf8))
     #expect(decoded.a == "")
     #expect(decoded.b == 0)
-    let expected = try KawarimiJutsuTestSupport.normalizedJSONString(#"{"a":"","b":0}"#)
-    #expect(try KawarimiJutsuTestSupport.normalizedJSONString(json) == expected)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getMerged", actual: json)
 }

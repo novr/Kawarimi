@@ -21,9 +21,7 @@ private struct CreatedItemPayload: Decodable {
     let json = try #require(transportMockBodyJSONString(operationId: "createItem", in: transport))
     #expect(json != "{}")
     try assertJSONDecoderAcceptsMockBody(json)
-    let object = try KawarimiJutsuTestSupport.parseJSONObject(json) as? [String: Any]
-    #expect(object?["id"] != nil)
-    #expect(object?["name"] != nil)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "createItem", actual: json)
 
     let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
     let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
@@ -58,6 +56,7 @@ private struct CreatedItemPayload: Decodable {
     let decoded = try JSONDecoder().decode(CreatedItemPayload.self, from: Data(json.utf8))
     #expect(decoded.id == "")
     #expect(decoded.name == "")
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "createItem", actual: json)
 }
 @Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {

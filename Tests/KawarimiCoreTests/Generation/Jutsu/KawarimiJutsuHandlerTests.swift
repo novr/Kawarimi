@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiJutsu
+@testable import KawarimiJutsu
 import Testing
 
 @Test func generateKawarimiHandlerSourceEmitsMissingOperationIdSkipWarning() throws {
@@ -236,9 +236,10 @@ import Testing
         namingStrategy: .defensive,
         handlerStubPolicy: .fatalError
     )
-    #expect(source.contains("onCreateItem"))
-    #expect(source.contains("_kawarimiStubJSONDecoder()"))
-    #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
+    let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onCreateItem", in: source))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
+    try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(handlerJSON, specJSON)
     #expect(!source.contains("fatalError("))
     #expect(!source.contains("// Kawarimi: handlerStubPolicy fatalError"))
     #expect(warnings.isEmpty)
@@ -257,7 +258,8 @@ import Testing
         handlerStubPolicy: .fatalError
     )
     #expect(source.contains("internal var onCreateItem:"))
-    #expect(source.contains("_kawarimiStubJSONDecoder()"))
+    let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onCreateItem", in: source))
+    #expect(!handlerJSON.isEmpty)
     #expect(!source.contains("fatalError("))
     #expect(warnings.isEmpty)
 }
@@ -270,8 +272,10 @@ import Testing
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
     #expect(warnings.isEmpty)
-    #expect(source.contains("_kawarimiStubJSONDecoder()"))
-    #expect(source.contains("decode(Operations.createItem.Output.Created.Body.jsonPayload.self"))
+    let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onCreateItem", in: source))
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
+    try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(handlerJSON, specJSON)
 }
 
 @Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
@@ -282,13 +286,11 @@ import Testing
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
     #expect(warnings.isEmpty)
-    #expect(source.contains("_kawarimiStubJSONDecoder()"))
     #expect(source.contains("onGetSnapshotDecode"))
-    #expect(source.contains("_kawarimiStubData = Data(\""))
     #expect(!source.contains("Date(timeIntervalSince1970:"))
     let stubJSON = try #require(handlerDecodeStubJSONString(witnessName: "onGetSnapshotDecode", in: source))
     #expect(stubJSON.contains("2025-02-14T00:30:00Z"))
-    let decoded = try kawarimiStubJSONDecoderForTests().decode(
+    let decoded = try OpenAPIDateMockSupport.stubJSONDecoder().decode(
         DateTimeDecodePayload.self,
         from: Data(stubJSON.utf8)
     )

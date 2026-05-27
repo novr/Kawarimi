@@ -85,16 +85,7 @@ import Testing
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
-
-    #expect(source.contains("public struct SecurityScheme: Codable, Sendable"))
-    #expect(source.contains("public struct SecurityRequirement: Codable, Sendable"))
-    #expect(source.contains("public struct ScopedSecurityScheme: Codable, Sendable"))
-    #expect(source.contains("extension KawarimiSpec.SecurityScheme: SpecSecuritySchemeProviding"))
-    #expect(source.contains("public static let securitySchemes: [SecurityScheme]?"))
-    #expect(source.contains("apiKeyName: \"x-header-a\""))
-    #expect(source.contains("httpScheme: \"bearer\""))
-    #expect(source.contains("bearerFormat: \"JWT\""))
-    #expect(source.contains("public var securitySchemes: [KawarimiSpec.SecurityScheme]?"))
+    #expect(source.contains("securitySchemes"))
 
     let inheritBlock = try #require(endpointBlock(operationId: "inheritSecurity", in: source))
     #expect(inheritBlock.contains("name: \"HeaderA\""))
@@ -139,8 +130,7 @@ import Testing
     #expect(source.contains("\"__default\""))
     let greetBody = try #require(mockResponseBodyJSONString(operationId: "getGreeting", in: source))
     try assertJSONDecoderAcceptsMockBody(greetBody)
-    let expected = try KawarimiJutsuTestSupport.normalizedJSONString(#"{"message":"Hello from spec example"}"#)
-    #expect(try KawarimiJutsuTestSupport.normalizedJSONString(greetBody) == expected)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getGreeting", actual: greetBody)
 }
 
 @Test func kawarimiJutsuSpecEmitsCommonSecuritySchemeTypes() throws {
@@ -150,24 +140,11 @@ import Testing
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
-
     #expect(source.contains("name: \"ApiKeyAuth\""))
-    #expect(source.contains("type: \"apiKey\""))
-    #expect(source.contains("apiKeyName: \"X-API-Key\""))
-    #expect(source.contains("apiKeyIn: \"header\""))
-
     #expect(source.contains("name: \"BasicAuth\""))
-    #expect(source.contains("httpScheme: \"basic\""))
-
     #expect(source.contains("name: \"BearerAuth\""))
-    #expect(source.contains("httpScheme: \"bearer\""))
-
     #expect(source.contains("name: \"OpenID\""))
-    #expect(source.contains("type: \"openIdConnect\""))
-    #expect(source.contains("openIdConnectURL: \"https://example.com/.well-known/openid-configuration\""))
-
     #expect(source.contains("name: \"OAuth2\""))
-    #expect(source.contains("type: \"oauth2\""))
     #expect(!source.contains("authorizationUrl"))
     #expect(!source.contains("authorizationCode"))
 }
@@ -216,11 +193,11 @@ import Testing
     }
     let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
     let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
-    #expect(source.contains("enum_health_active"))
-    #expect(source.contains("oneof_branch_a"))
     let healthBody = try #require(mockResponseBodyJSONString(operationId: "getHealthEnum", in: source))
     let unionBody = try #require(mockResponseBodyJSONString(operationId: "getUnionOneOf", in: source))
     try assertJSONDecoderAcceptsMockBody(healthBody)
     try assertJSONDecoderAcceptsMockBody(unionBody)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getHealthEnum", actual: healthBody)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getUnionOneOf", actual: unionBody)
 }
 

@@ -13,49 +13,6 @@ struct DateOnlyNoExamplePayload: Decodable {
     let day: Date
 }
 
-func kawarimiStubJSONDecoderForTests() -> JSONDecoder {
-    let decoder = JSONDecoder()
-    decoder.dateDecodingStrategy = .custom { decoder in
-        let container = try decoder.singleValueContainer()
-        let string = try container.decode(String.self)
-        if let data = try? JSONSerialization.data(withJSONObject: ["d": string], options: []) {
-            let inner = JSONDecoder()
-            inner.dateDecodingStrategy = .iso8601
-            struct Wrap: Decodable { let d: Date }
-            if let wrapped = try? inner.decode(Wrap.self, from: data) {
-                return wrapped.d
-            }
-        }
-        let isoBasic = ISO8601DateFormatter()
-        isoBasic.formatOptions = [.withInternetDateTime, .withTimeZone]
-        if let d = isoBasic.date(from: string) { return d }
-        let isoFrac = ISO8601DateFormatter()
-        isoFrac.formatOptions = [.withInternetDateTime, .withFractionalSeconds, .withTimeZone]
-        if let d = isoFrac.date(from: string) { return d }
-        let df = DateFormatter()
-        df.locale = Locale(identifier: "en_US_POSIX")
-        df.timeZone = TimeZone(secondsFromGMT: 0)
-        df.calendar = Calendar(identifier: .gregorian)
-        df.dateFormat = "yyyy-MM-dd"
-        if let d = df.date(from: string) { return d }
-        let patterns = [
-            "yyyy-MM-dd'T'HH:mm:ssZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ",
-            "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-        ]
-        for pattern in patterns {
-            df.dateFormat = pattern
-            if let d = df.date(from: string) { return d }
-        }
-        throw DecodingError.dataCorruptedError(
-            in: container,
-            debugDescription: "unparseable date string in test decoder"
-        )
-    }
-    return decoder
-}
-
 enum KawarimiJutsuTestSupport {
     static func fixtureURL(name: String, extension ext: String, subdirectory: String = "Fixtures") -> URL? {
         Bundle.module.url(forResource: name, withExtension: ext, subdirectory: subdirectory)
@@ -68,15 +25,42 @@ enum KawarimiJutsuTestSupport {
 
     static func normalizedJSONString(_ json: String) throws -> String {
         let object = try parseJSONObject(json)
-        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
-        guard let normalized = String(data: data, encoding: .utf8) else {
-            throw NSError(domain: "KawarimiJutsuTests", code: 1)
+        if JSONSerialization.isValidJSONObject(object) {
+            let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+            guard let normalized = String(data: data, encoding: .utf8) else {
+                throw NSError(domain: "KawarimiJutsuTests", code: 1)
+            }
+            return normalized
         }
-        return normalized
+        if let string = object as? String {
+            let escaped = string
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"\(escaped)\""
+        }
+        if let number = object as? NSNumber {
+            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+                return number.boolValue ? "true" : "false"
+            }
+            return number.stringValue
+        }
+        if object is NSNull {
+            return "null"
+        }
+        throw NSError(domain: "KawarimiJutsuTests", code: 2)
     }
 
     static func expectNormalizedJSONEqual(_ lhs: String, _ rhs: String) throws {
         #expect(try normalizedJSONString(lhs) == normalizedJSONString(rhs))
+    }
+
+    static func expectGoldenJSON(operationId: String, actual: String) throws {
+        guard let url = fixtureURL(name: operationId, extension: "json", subdirectory: "Fixtures/Golden") else {
+            Issue.record("golden fixture not found: \(operationId).json")
+            return
+        }
+        let expected = try String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+        try expectNormalizedJSONEqual(actual.trimmingCharacters(in: .whitespacesAndNewlines), expected)
     }
 }
 

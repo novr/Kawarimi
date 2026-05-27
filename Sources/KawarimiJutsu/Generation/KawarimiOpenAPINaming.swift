@@ -404,3 +404,9 @@ private struct IdiomaticSafeNameGenerator: SafeNameGenerator {
 
     private static let wordSeparators: Set<Character> = ["_", "-", " ", "/", "+"]
 }
+
+extension KawarimiNamingStrategy {
+    internal static func testingForceIdiomaticInvariantViolation(documentedName: String) throws {
+        throw KawarimiJutsuError.idiomaticNamingInvariantViolated(documentedName: documentedName)
+    }
+}

@@ -30,15 +30,12 @@ import Testing
     defer { try? FileManager.default.removeItem(at: tmp) }
     let path = tmp.appendingPathComponent("openapi.yaml").path
     try "openapi: [ not: valid".write(toFile: path, atomically: true, encoding: .utf8)
-    #expect(throws: KawarimiJutsuError.self) {
-        _ = try KawarimiJutsu.loadOpenAPISpec(path: path)
-    }
     do {
         _ = try KawarimiJutsu.loadOpenAPISpec(path: path)
         Issue.record("expected specParseError")
     } catch let error as KawarimiJutsuError {
-        if case .specParseError = error {
-            #expect(Bool(true))
+        if case .specParseError(let message) = error {
+            #expect(!message.isEmpty)
         } else {
             Issue.record("unexpected error: \(error)")
         }
