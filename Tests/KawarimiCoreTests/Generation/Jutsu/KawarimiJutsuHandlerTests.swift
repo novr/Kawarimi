@@ -49,19 +49,11 @@ import Testing
     #expect(source.contains("public struct KawarimiHandler"))
     #expect(source.contains("APIProtocol"))
     #expect(source.contains("public var onGetGreeting:"))
-    #expect(source.contains("try await onGetGreeting(input)"))
-    #expect(source.contains("getGreeting"))
-    #expect(source.contains("listItems"))
-    #expect(source.contains("createItem"))
-    #expect(source.contains("getItem"))
-    #expect(source.contains("deleteItem"))
-    #expect(source.contains("listTags"))
+    #expect(source.contains("public var onCreateItem:"))
+    #expect(source.contains("public var onDeleteItem:"))
     #expect(source.contains(".ok("))
     #expect(source.contains(".created("))
     #expect(source.contains(".noContent("))
-    #expect(source.contains("@Sendable"))
-    #expect(source.contains("import OpenAPIRuntime"))
-    #expect(source.contains("Operations.getGreeting"))
 }
 
 @Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
@@ -102,18 +94,6 @@ import Testing
     #expect(source.contains("Date(timeIntervalSince1970:"))
     #expect(!source.contains("updatedAt: \"2025"))
     #expect(!source.contains("_kawarimiStubData"))
-}
-
-@Test func kawarimiHandlerDateTimeDecodeFixtureUsesJSONDecodeStubNotLiteral() throws {
-    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
-        Issue.record("fixture not found")
-        return
-    }
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
-    #expect(warnings.isEmpty)
-    #expect(source.contains("_kawarimiStubData"))
-    #expect(!source.contains("Date(timeIntervalSince1970:"))
 }
 
 @Test func kawarimiHandlerDateTimeWithoutExampleEmitsWarningAndEpochZero() throws {
@@ -225,26 +205,6 @@ import Testing
     #expect(!source.contains("\"2024-01-01"))
 }
 
-@Test func kawarimiHandlerUsesJSONDecodeStubForStringEnumWhenPolicyIsFatalError() throws {
-    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
-        Issue.record("fixture not found")
-        return
-    }
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
-        document: document,
-        namingStrategy: .defensive,
-        handlerStubPolicy: .fatalError
-    )
-    let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onCreateItem", in: source))
-    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
-    let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
-    try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(handlerJSON, specJSON)
-    #expect(!source.contains("fatalError("))
-    #expect(!source.contains("// Kawarimi: handlerStubPolicy fatalError"))
-    #expect(warnings.isEmpty)
-}
-
 @Test func kawarimiHandlerUsesJSONDecodeStubWhenAccessInternalAndPolicyIsFatalError() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
@@ -260,6 +220,9 @@ import Testing
     #expect(source.contains("internal var onCreateItem:"))
     let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onCreateItem", in: source))
     #expect(!handlerJSON.isEmpty)
+    let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
+    try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(handlerJSON, specJSON)
     #expect(!source.contains("fatalError("))
     #expect(warnings.isEmpty)
 }

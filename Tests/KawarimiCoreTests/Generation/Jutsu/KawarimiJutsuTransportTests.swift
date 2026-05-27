@@ -2,11 +2,6 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-private struct CreatedItemPayload: Decodable {
-    let id: String
-    let name: String
-}
-
 @Test func kawarimiTransportUsesCreatedStatusFor201JsonResponse() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found")
@@ -22,6 +17,9 @@ private struct CreatedItemPayload: Decodable {
     #expect(json != "{}")
     try assertJSONDecoderAcceptsMockBody(json)
     try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "createItem", actual: json)
+    let decoded = try JSONDecoder().decode([String: String].self, from: Data(json.utf8))
+    #expect(decoded["id"] == "")
+    #expect(decoded["name"] == "")
 
     let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
     let specJSON = try #require(mockResponseBodyJSONString(operationId: "createItem", in: spec))
@@ -42,21 +40,6 @@ private struct CreatedItemPayload: Decodable {
     let slice = transport[deleteCase.lowerBound...]
     #expect(slice.contains("HTTPResponse(status: .noContent)"))
     #expect(slice.contains("nil)"))
-}
-
-@Test func kawarimiTransport201BodyMatchesOpenAPISchemaShape() throws {
-    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
-        Issue.record("openapi.yaml not found")
-        return
-    }
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
-    let json = try #require(
-        transportMockBodyJSONString(operationId: "createItem", in: KawarimiJutsu.generateSwiftSource(document: document))
-    )
-    let decoded = try JSONDecoder().decode(CreatedItemPayload.self, from: Data(json.utf8))
-    #expect(decoded.id == "")
-    #expect(decoded.name == "")
-    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "createItem", actual: json)
 }
 @Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
