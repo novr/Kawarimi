@@ -38,11 +38,16 @@ enum KawarimiJutsuTestSupport {
                 .replacingOccurrences(of: "\"", with: "\\\"")
             return "\"\(escaped)\""
         }
+        if let bool = object as? Bool {
+            return bool ? "true" : "false"
+        }
         if let number = object as? NSNumber {
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+            switch String(cString: number.objCType) {
+            case "c", "B":
                 return number.boolValue ? "true" : "false"
+            default:
+                return number.stringValue
             }
-            return number.stringValue
         }
         if object is NSNull {
             return "null"
