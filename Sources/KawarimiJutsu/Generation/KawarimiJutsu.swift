@@ -32,6 +32,11 @@ public enum KawarimiJutsu {
 
     // MARK: - Mock transport generation
 
+    private enum TransportMockResponse {
+        case json(statusSwiftName: String, body: String)
+        case noContent
+    }
+
     private static func generateTransportCases(document: OpenAPI.Document) -> String {
         var lines: [String] = []
         let components = document.components
@@ -41,10 +46,21 @@ public enum KawarimiJutsu {
                 let operation = endpoint.operation
                 guard let operationId = operation.operationId, !operationId.isEmpty else { continue }
 
-                let jsonBody = defaultResponseJSON(operation: operation, components: components, operationId: operationId)
-                let escaped = escapeForSwiftStringLiteral(jsonBody)
+                let mock = defaultTransportResponse(
+                    operation: operation,
+                    components: components,
+                    operationId: operationId
+                )
                 lines.append("                    case \"\(operationId)\":")
-                lines.append("                        return (HTTPResponse(status: .ok), HTTPBody(\"\(escaped)\"))")
+                switch mock {
+                case .json(let statusSwiftName, let jsonBody):
+                    let escaped = escapeForSwiftStringLiteral(jsonBody)
+                    lines.append(
+                        "                        return (HTTPResponse(status: .\(statusSwiftName)), HTTPBody(\"\(escaped)\"))"
+                    )
+                case .noContent:
+                    lines.append("                        return (HTTPResponse(status: .noContent), nil)")
+                }
             }
         }
         return lines.joined(separator: "\n")
@@ -58,22 +74,29 @@ public enum KawarimiJutsu {
             .replacingOccurrences(of: "\t", with: "\\t")
     }
 
-    private static func defaultResponseJSON(
+    private static func defaultTransportResponse(
         operation: OpenAPI.Operation,
         components: OpenAPI.Components,
         operationId: String
-    ) -> String {
-        guard let responseEither = operation.responses[status: 200],
-              let response = components[responseEither],
-              let content = response.content[.json] else {
-            return "{}"
+    ) -> TransportMockResponse {
+        for code in [200, 201] {
+            let statusCode = OpenAPI.Response.StatusCode.status(code: code)
+            guard let responseEither = operation.responses[status: statusCode],
+                  let response = components[responseEither],
+                  let content = response.content[.json] else { continue }
+            let json = mockJSONBodyFromJSONMediaType(
+                content: content,
+                components: components,
+                operationId: operationId,
+                diagnosticPath: "responses.\(code).content['application/json']"
+            )
+            let statusSwiftName = code == 200 ? "ok" : "created"
+            return .json(statusSwiftName: statusSwiftName, body: json)
         }
-        return mockJSONBodyFromJSONMediaType(
-            content: content,
-            components: components,
-            operationId: operationId,
-            diagnosticPath: "responses.200.content['application/json']"
-        )
+        if operation.responses[status: OpenAPI.Response.StatusCode.status(code: 204)] != nil {
+            return .noContent
+        }
+        return .json(statusSwiftName: "ok", body: "{}")
     }
 
     private static func mockJSONBodyFromJSONMediaType(
