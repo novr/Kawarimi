@@ -20,6 +20,13 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
+**2.4.0 → 2.5.0**（追加のみ）:
+
+1. pin を **`from: "2.5.0"`** に上げる。
+2. **`SpecEndpointProviding`** や **`SpecResponse`** を使う場合は **`KawarimiSpec.swift` を再生成** — エンドポイントに任意の **`parameters`**（path / query / header）が載る場合がある ([#74](https://github.com/novr/Kawarimi/issues/74), [#123](https://github.com/novr/Kawarimi/pull/123))。
+3. **Henge** はエンドポイント詳細カラムに read-only の **PARAMETERS** を表示する。
+4. クライアントのみ、またはプロセス内 **`Kawarimi()`** だけの利用者は、spec エンドポイントや生成 **`KawarimiSpec`** の形に依存しない限り変更不要。CHANGELOG の **2.5.0** を参照。
+
 **2.0.5 → 2.1.0**（追加のみ）:
 
 1. pin を **`from: "2.1.0"`** に上げる。
@@ -54,7 +61,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.3.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.5.0"),
 ],
 targets: [
     .target(

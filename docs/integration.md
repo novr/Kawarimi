@@ -20,6 +20,13 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
+**2.4.0 → 2.5.0** (additive):
+
+1. Bump pin to **`from: "2.5.0"`**.
+2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or **`SpecResponse`** — endpoints may expose optional **`parameters`** (path, query, header) ([#74](https://github.com/novr/Kawarimi/issues/74), [#123](https://github.com/novr/Kawarimi/pull/123)).
+3. **Henge** shows read-only **PARAMETERS** in the endpoint detail column.
+4. Client-only or in-process **`Kawarimi()`** users need no change unless they use the spec endpoint or generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.5.0**.
+
 **2.0.5 → 2.1.0** (additive):
 
 1. Bump pin to **`from: "2.1.0"`**.
@@ -54,7 +61,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.3.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.5.0"),
 ],
 targets: [
     .target(
