@@ -89,11 +89,14 @@ enum KawarimiJutsuTestSupport {
         witnessName: String,
         forbiddenSubstrings: [String] = []
     ) {
-        #expect(source.contains("var \(witnessName):"))
-        #expect(source.contains("Date(timeIntervalSince1970:"))
-        #expect(!source.contains("_kawarimiStubData = Data(\""))
+        guard let witnessBlock = handlerWitnessBlock(witnessName: witnessName, in: source) else {
+            Issue.record("handler witness block not found: \(witnessName)")
+            return
+        }
+        #expect(witnessBlock.contains("Date(timeIntervalSince1970:"))
+        #expect(!witnessBlock.contains("_kawarimiStubData = Data(\""))
         for forbidden in forbiddenSubstrings {
-            #expect(!source.contains(forbidden))
+            #expect(!witnessBlock.contains(forbidden))
         }
     }
 }
@@ -178,11 +181,20 @@ func endpointBlock(operationId: String, in source: String) -> String? {
 
 /// Extracts the JSON string inside `_kawarimiStubData = Data("...")` for the given handler witness (`on…`).
 func handlerDecodeStubJSONString(witnessName: String, in source: String) -> String? {
+    guard let after = handlerWitnessBlock(witnessName: witnessName, in: source) else { return nil }
+    guard let dataLabel = after.range(of: "_kawarimiStubData = Data(\"") else { return nil }
+    return extractSwiftStringLiteral(startingAt: dataLabel.upperBound, in: after[...])
+}
+
+/// Extracts the generated witness closure block for `var on...` in `KawarimiHandler`.
+func handlerWitnessBlock(witnessName: String, in source: String) -> String? {
     let needle = "var \(witnessName):"
     guard let witnessRange = source.range(of: needle) else { return nil }
-    let after = source[witnessRange.lowerBound...]
-    guard let dataLabel = after.range(of: "_kawarimiStubData = Data(\"") else { return nil }
-    return extractSwiftStringLiteral(startingAt: dataLabel.upperBound, in: after)
+    let afterWitness = source[witnessRange.lowerBound...]
+    if let nextWitness = afterWitness.dropFirst(needle.count).range(of: "\n    var on") {
+        return String(afterWitness[..<nextWitness.lowerBound])
+    }
+    return String(afterWitness)
 }
 
 private func extractSwiftStringLiteral<S: StringProtocol>(startingAt start: S.Index, in text: S) -> String? {

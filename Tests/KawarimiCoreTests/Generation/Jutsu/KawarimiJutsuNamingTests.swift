@@ -8,18 +8,27 @@ struct IdiomaticNamingCase: Sendable {
     let expectedMethod: String
 }
 
+// SOG basis:
+// - swift-openapi-generator PR #679 SafeNameGenerator tests:
+//   https://github.com/apple/swift-openapi-generator/pull/679
+// - vectors include: Hello world, hello-world, Retry-After, HELLO_WORLD,
+//   HTTPProxy, HTTP_Proxy, HTTP_proxy, version 2.0, V1.2Release, get/pets/{petId}/notifications
+// - dot handling for idiomatic naming is specified by SafeNameGenerator behavior where "." is mapped to "_"
+//   before defensive sanitization; therefore foo.bar.baz is fixed to foo_bar_baz / Foo_bar_baz.
 private let idiomaticNamingCases: [IdiomaticNamingCase] = [
-    IdiomaticNamingCase(operationId: "getGreeting", expectedType: "GetGreeting", expectedMethod: "getGreeting"),
-    IdiomaticNamingCase(operationId: "create_item", expectedType: "CreateItem", expectedMethod: "createItem"),
-    IdiomaticNamingCase(operationId: "get-user-profile", expectedType: "GetUserProfile", expectedMethod: "getUserProfile"),
-    IdiomaticNamingCase(operationId: "get_user_profile", expectedType: "GetUserProfile", expectedMethod: "getUserProfile"),
-    IdiomaticNamingCase(operationId: "", expectedType: "_Empty_", expectedMethod: "_empty_"),
-    IdiomaticNamingCase(operationId: "enum", expectedType: "Enum", expectedMethod: "_enum"),
-    IdiomaticNamingCase(operationId: "GET", expectedType: "Get", expectedMethod: "get"),
-    IdiomaticNamingCase(operationId: "GET_ALL", expectedType: "GetAll", expectedMethod: "getAll"),
-    IdiomaticNamingCase(operationId: "listItems", expectedType: "ListItems", expectedMethod: "listItems"),
-    IdiomaticNamingCase(operationId: "HTTPResponse", expectedType: "HTTPResponse", expectedMethod: "httpResponse"),
+    IdiomaticNamingCase(operationId: "Hello world", expectedType: "HelloWorld", expectedMethod: "helloWorld"),
+    IdiomaticNamingCase(operationId: "hello-world", expectedType: "HelloWorld", expectedMethod: "helloWorld"),
+    IdiomaticNamingCase(operationId: "Retry-After", expectedType: "RetryAfter", expectedMethod: "retryAfter"),
+    IdiomaticNamingCase(operationId: "HELLO_WORLD", expectedType: "HelloWorld", expectedMethod: "helloWorld"),
+    IdiomaticNamingCase(operationId: "HELLO", expectedType: "Hello", expectedMethod: "hello"),
+    IdiomaticNamingCase(operationId: "HTTPProxy", expectedType: "HTTPProxy", expectedMethod: "httpProxy"),
+    IdiomaticNamingCase(operationId: "HTTP_Proxy", expectedType: "HTTPProxy", expectedMethod: "httpProxy"),
+    IdiomaticNamingCase(operationId: "HTTP_proxy", expectedType: "HTTPProxy", expectedMethod: "httpProxy"),
+    IdiomaticNamingCase(operationId: "version 2.0", expectedType: "Version2_0", expectedMethod: "version2_0"),
+    IdiomaticNamingCase(operationId: "V1.2Release", expectedType: "V1_2Release", expectedMethod: "v1_2Release"),
+    IdiomaticNamingCase(operationId: "get/pets/{petId}/notifications", expectedType: "GetPetsPetIdNotifications", expectedMethod: "getPetsPetIdNotifications"),
     IdiomaticNamingCase(operationId: "foo.bar.baz", expectedType: "Foo_bar_baz", expectedMethod: "foo_bar_baz"),
+    IdiomaticNamingCase(operationId: "", expectedType: "_Empty_", expectedMethod: "_empty_"),
     IdiomaticNamingCase(operationId: "123start", expectedType: "_123start", expectedMethod: "_123start"),
 ]
 

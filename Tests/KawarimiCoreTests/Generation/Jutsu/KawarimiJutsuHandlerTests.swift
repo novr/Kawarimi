@@ -104,6 +104,8 @@ func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGene
         document: document,
         source: source,
         decode: { data in
+            let actualJSON = String(decoding: data, as: UTF8.self)
+            try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(actualJSON, #"{"status":"active"}"#)
             let decoded = try JSONDecoder().decode(EnumCreateItemBody.self, from: data)
             #expect(decoded.status == "active")
         }
