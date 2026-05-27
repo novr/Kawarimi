@@ -1,4 +1,6 @@
 import Foundation
+import KawarimiJutsu
+import OpenAPIKit
 import Testing
 
 struct DateTimeDecodePayload: Decodable {
@@ -66,6 +68,33 @@ enum KawarimiJutsuTestSupport {
         }
         let expected = try String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
         try expectNormalizedJSONEqual(actual.trimmingCharacters(in: .whitespacesAndNewlines), expected)
+    }
+
+    static func assertHandlerDecodeStubMatchesSpec(
+        witnessName: String,
+        operationId: String,
+        document: OpenAPI.Document,
+        source: String,
+        decode: (Data) throws -> Void
+    ) throws {
+        let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: witnessName, in: source))
+        let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+        let specJSON = try #require(mockResponseBodyJSONString(operationId: operationId, in: spec))
+        try expectNormalizedJSONEqual(handlerJSON, specJSON)
+        try decode(Data(handlerJSON.utf8))
+    }
+
+    static func assertHandlerInlineDateStub(
+        source: String,
+        witnessName: String,
+        forbiddenSubstrings: [String] = []
+    ) {
+        #expect(source.contains("var \(witnessName):"))
+        #expect(source.contains("Date(timeIntervalSince1970:"))
+        #expect(!source.contains("_kawarimiStubData = Data(\""))
+        for forbidden in forbiddenSubstrings {
+            #expect(!source.contains(forbidden))
+        }
     }
 }
 
