@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-05-27
+
 ### Added
 
 - **KawarimiSpec** / **`SpecEndpointProviding`**: optional OpenAPI operation **parameters** (path, query, header) on generated endpoints — merged path-item + operation, operation wins; `schemaType` when a single primary JSON Schema type applies ([#74](https://github.com/novr/Kawarimi/issues/74)).
@@ -16,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **KawarimiCore**: `SpecParameter`, `SpecParameterLocation`, and `SpecParameter.merge` for shared generation and UI.
+
+### Fixed
+
+- **KawarimiHenge**: keep the detail-column toolbar visible when JSON content is tall ([#117](https://github.com/novr/Kawarimi/pull/117)).
+- **KawarimiHenge**: fix JSON editor line-number view explosion ([#122](https://github.com/novr/Kawarimi/pull/122)).
 
 ## [2.4.0] - 2026-05-25
 
@@ -314,6 +321,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.5.0]: https://github.com/novr/Kawarimi/releases/tag/v2.5.0
 [2.4.0]: https://github.com/novr/Kawarimi/releases/tag/v2.4.0
 [2.3.1]: https://github.com/novr/Kawarimi/releases/tag/v2.3.1
 [2.3.0]: https://github.com/novr/Kawarimi/releases/tag/v2.3.0
