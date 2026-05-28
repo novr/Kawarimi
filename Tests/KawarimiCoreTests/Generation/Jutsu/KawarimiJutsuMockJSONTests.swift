@@ -21,6 +21,7 @@ private struct AllOfMergePayload: Codable {
     let spec = KawarimiJutsu.generateKawarimiSpecSource(document: document)
     let specJSON = try #require(mockResponseBodyJSONString(operationId: "getSnapshotNoExample", in: spec))
     #expect(specJSON == transportJSON)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getSnapshotNoExample", actual: transportJSON)
     let decoded = try OpenAPIDateMockSupport.stubJSONDecoder().decode(
         DateTimeNoExamplePayload.self,
         from: Data(transportJSON.utf8)
@@ -78,6 +79,7 @@ private struct AllOfMergePayload: Codable {
     let (handlerSource, _) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
     let handlerJSON = try #require(handlerDecodeStubJSONString(witnessName: "onGetSnapshotDecode", in: handlerSource))
     #expect(handlerJSON == specJSON)
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getSnapshotDecode", actual: specJSON)
 }
 
 @Test func mockJSONStopsOnComponentsSchemaRefCycle() throws {
