@@ -209,6 +209,100 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
+@Test func disableCurrentMockRowClearDraftLocallySkipsServerCalls() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(
+            name: "op",
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"custom\":true}",
+            contentType: "application/json"
+        ),
+        validationMessage: nil,
+        isDirty: true
+    )
+    var configureCalls = 0
+    var removeCalls = 0
+    await store.disableCurrentMockRow(
+        endpointItem: item,
+        pathPrefix: "",
+        overrides: [],
+        endpoints: [endpoint],
+        configureOverride: { _ in
+            configureCalls += 1
+            return []
+        },
+        removeOverride: { _ in
+            removeCalls += 1
+            return []
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(configureCalls == 0)
+    #expect(removeCalls == 0)
+    #expect(store.detail?.isDirty == false)
+    #expect(store.detail?.mock.isEnabled == false)
+}
+
+@MainActor
+@Test func disableCurrentMockRowRemoveStoredRowCallsRemoveOnly() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "op",
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
+    store.detail = OverrideDetailDraft(
+        mock: stored,
+        validationMessage: nil,
+        isDirty: false
+    )
+    var configureCalls = 0
+    var removeCalls = 0
+    await store.disableCurrentMockRow(
+        endpointItem: item,
+        pathPrefix: "",
+        overrides: [stored],
+        endpoints: [endpoint],
+        configureOverride: { _ in
+            configureCalls += 1
+            return []
+        },
+        removeOverride: { _ in
+            removeCalls += 1
+            return []
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(configureCalls == 0)
+    #expect(removeCalls == 1)
+    #expect(store.detail?.isDirty == false)
+}
+
+@MainActor
 @Test func clearOverrideAndDisableMockRowPropagateConfiguratorErrors() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(

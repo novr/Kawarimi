@@ -35,7 +35,7 @@ package enum DisableMockPlanner {
             )
             return .removeThenReset(removeKey: removeKey, cleared: clearedDraft(for: endpoint))
         }
-        if hasUnsavedDraft || mock.isEnabled {
+        if hasUnsavedDraft {
             return .clearDraftLocally
         }
         return .none

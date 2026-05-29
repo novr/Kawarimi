@@ -202,6 +202,52 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Disable row planner
 
+@Test func disablePlannerWhenEnabledWithoutUnsavedDraftIsNoOp() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: "{}", contentType: "application/json")
+    let plan = DisableMockPlanner.plan(
+        mock: mock,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [],
+        hasUnsavedDraft: false
+    )
+    guard case .none = plan else {
+        Issue.record("expected none")
+        return
+    }
+}
+
+@Test func disablePlannerWhenInactiveWithUnsavedDraftClearsLocally() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: "{\"x\":1}", contentType: "application/json")
+    let plan = DisableMockPlanner.plan(
+        mock: mock,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [],
+        hasUnsavedDraft: true
+    )
+    guard case .clearDraftLocally = plan else {
+        Issue.record("expected clearDraftLocally")
+        return
+    }
+}
+
 @Test func disablePlannerWhenActiveWithoutStoredRowClearsDraftLocally() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
