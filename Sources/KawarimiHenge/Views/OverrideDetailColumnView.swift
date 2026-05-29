@@ -102,7 +102,7 @@ struct OverrideDetailColumnView: View {
     }
 
     private var canRemoveCurrentMockRow: Bool {
-        mock.isEnabled
+        hasUnsavedChanges
             || OverrideListQueries.hasStoredRowMatchingDraft(
                 mock,
                 rowKey: endpointItem.rowKey,

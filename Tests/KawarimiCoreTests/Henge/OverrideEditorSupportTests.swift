@@ -202,7 +202,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Disable row planner
 
-@Test func disablePlannerWhenActiveConfiguresDisable() {
+@Test func disablePlannerWhenActiveWithoutStoredRowClearsDraftLocally() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -216,14 +216,46 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: []
+        overrides: [],
+        hasUnsavedDraft: true
     )
-    guard case let .configureDisable(payload) = plan else {
-        Issue.record("expected configureDisable")
+    guard case .clearDraftLocally = plan else {
+        Issue.record("expected clearDraftLocally")
         return
     }
-    #expect(payload.isEnabled == false)
-    #expect(payload.statusCode == 200)
+}
+
+@Test func disablePlannerWhenActiveWithStoredRowRemoves() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "op",
+        path: "/x",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
+    let plan = DisableMockPlanner.plan(
+        mock: stored,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [stored],
+        hasUnsavedDraft: false
+    )
+    guard case let .removeThenReset(removeKey, _) = plan else {
+        Issue.record("expected removeThenReset")
+        return
+    }
+    #expect(removeKey.statusCode == 200)
 }
 
 @Test func disablePlannerWhenInactiveWithStoredRowRemoves() {
@@ -250,7 +282,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: [stored]
+        overrides: [stored],
+        hasUnsavedDraft: false
     )
     guard case let .removeThenReset(removeKey, cleared) = plan else {
         Issue.record("expected removeThenReset")
@@ -276,7 +309,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: []
+        overrides: [],
+        hasUnsavedDraft: false
     )
     guard case .none = plan else {
         Issue.record("expected none")

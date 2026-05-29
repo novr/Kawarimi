@@ -232,12 +232,22 @@ private enum TestAsyncError: LocalizedError {
     #expect(err == "kaboom")
 
     err = nil
+    let stored = MockOverride(
+        name: "op",
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
     await store.disableCurrentMockRow(
         endpointItem: item,
         pathPrefix: "/api",
-        overrides: [],
+        overrides: [stored],
         configureOverride: { _ in throw TestAsyncError.kaboom },
-        removeOverride: { _ in [] },
+        removeOverride: { _ in throw TestAsyncError.kaboom },
         setErrorMessage: { err = $0 }
     )
     #expect(err == "kaboom")

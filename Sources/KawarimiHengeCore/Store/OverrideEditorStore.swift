@@ -313,25 +313,33 @@ package final class OverrideEditorStore {
         let endpoint = endpointItem.endpoint
         setErrorMessage(nil)
         guard let draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        let hasUnsavedDraft = draft.persistableMockDiffersFromServer(
+            overrides: overrides,
+            endpoints: endpoints,
+            pathPrefix: pathPrefix
+        )
         let plan = DisableMockPlanner.plan(
             mock: draft.mock,
             endpoint: endpoint,
             rowKey: endpointItem.rowKey,
             pathPrefix: pathPrefix,
-            overrides: overrides
+            overrides: overrides,
+            hasUnsavedDraft: hasUnsavedDraft
         )
         do {
             switch plan {
             case .none:
                 break
-            case let .configureDisable(payload):
-                let refreshed = try await configureOverride(payload)
-                markSavedClean()
-                resyncDetailAfterOverridesRefresh(
+            case .clearDraftLocally:
+                if let fresh = buildDetail(
+                    rowKey: endpointItem.rowKey,
                     pathPrefix: pathPrefix,
                     endpoints: endpoints,
-                    overrides: refreshed
-                )
+                    overrides: overrides
+                ) {
+                    commitDetail(fresh)
+                }
+                markSavedClean()
             case let .removeThenReset(removeKey, cleared):
                 let refreshed = try await removeOverride(removeKey)
                 applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)

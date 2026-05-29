@@ -214,7 +214,7 @@ struct DetailColumnHeaderView: View {
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(.secondary)
                         .tracking(0.6)
-                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Save sends the current chip: enabled rows become primary; disabled rows stay off and still persist JSON. Add creates another row. Long-press a chip to copy example id. Del turns off an active mock or removes an inactive row.")
+                    Text("P marks the row that is active on the server (primary mock). Selected chip is what you are editing. When no row is active, Spec is effective. Save sends the current chip: enabled rows become primary; disabled rows stay off and still persist JSON. Add creates another row. Long-press a chip to copy example id. Del removes the saved row for the current chip from the server, or clears an unsaved draft locally.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                         .lineLimit(model.tightVertical ? 4 : nil)
@@ -238,7 +238,7 @@ struct DetailColumnHeaderView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(!model.canRemoveCurrentMockRow)
-                    .accessibilityLabel("Turn off mock, or delete row if already off")
+                    .accessibilityLabel("Remove saved row, or clear unsaved draft")
                 }
                 .padding(.top, 2)
             }

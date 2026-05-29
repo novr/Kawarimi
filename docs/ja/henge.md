@@ -174,13 +174,11 @@ API 対応:
 | `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**。`**204 No Content**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
-**KawarimiHenge（`KawarimiConfigView`）:** API の `baseURL` に揃えた **`KawarimiAPIClient`** と、生成された **`SpecResponse.self`**（**`KawarimiFetchedSpec`** 準拠）を渡します。
+**KawarimiHenge（`KawarimiConfigView`）:** 管理 API の **`baseURL`** に揃えた **`KawarimiAPIClient`** のみ渡します（例: `http://127.0.0.1:8080/api`）。Spec とエンドポイントは **`GET …/__kawarimi/spec`**（`HengeSpecSnapshot`）で取得します。
 
-画面上のサーバー表記は **`client.baseURL.absoluteString`** です。
+画面上のサーバー表記は、初回 fetch 後は **`meta.serverURL`**（取得前は **`client.baseURL`**）。
 
-マイナス（**Del**）は、モックがオンのとき **`isEnabled: false` を保存**します。
-
-すでにオフで、かつそのチップ用の**保存済み行**があるときは **`remove`** を呼び、サーバー設定から行を消してエディタを Spec のドラフトに戻します（HTTP は **KawarimiCore** の **`KawarimiAPIClient.removeOverride(override:)`** と同じ経路です）。
+マイナス（**Del**）は、現在のチップに対応する**保存済み行**があるとき **`POST …/__kawarimi/remove`** で行を削除します（**`configure` と同じ同一視**）。**保存行がなく未 Save のドラフトだけ**のときはサーバー呼び出しなしで Spec 寄せに**ローカルクリア**します。モックを止めつつ**行と JSON を残す**ときは **無効チップ + Save**（**Del ではない**）。
 
 本リポジトリの **DemoServer** 向けの **`curl` 例**: [Example/README_JA.md#henge-api-demoserver](../../Example/README_JA.md#henge-api-demoserver)。
 
@@ -233,9 +231,10 @@ API 対応:
 | まだ行を消さずに「テンプレだけ見る」状態に戻す | **Spec** タップで本文クリア、または **enabled なし**＋無効の既定行ならテンプレ JSON が入っていても **Spec** が光る。**200 OK** をタップすると番号チップのまま同じ本文を編集できる。 |
 | ドキュメント上のあるレスポンスをモックする（サーバー上の **プライマリ**にする） | **ステータス／例**のチップを選び（ドラフト **`isEnabled: true`**）、本文を編集して **Save**。**`KawarimiConfigView`** は同じ OpenAPI 操作の**他の** enabled 行を先に **`isEnabled: false`** で `configure` してから現在の行を **有効**で保存します（通常は操作あたりアクティブは1行）。 |
 | OpenAPI に無いステータス（や例）を足す | **+**（Add response）でステータスを選び、メイン画面で編集して **Save**（チップ／保存行のオンオフに従う）。 |
-| 本文は残すが **アクティブにしない** | **オフ**の行のチップを選び（保存済み無効行を読み込む、**Del** 後など）、本文を編集して **Save** — **`isEnabled: false`** のまま **body** / **contentType** も送ります。 |
-| モックを止めるが `kawarimi.json` の行は残す | オン中に **Del**、または無効のチップで **Save**。 |
-| **今選んでいるチップ**に対応する保存行だけ消す | モックがオフで保存行があるとき **Del**（**`remove`**）。 |
+| 本文は残すが **アクティブにしない** | **オフ**の行のチップを選び（保存済み無効行を読み込むなど）、本文を編集して **Save** — **`isEnabled: false`** のまま **body** / **contentType** も送ります。 |
+| モックを止めるが `kawarimi.json` の行は残す | **無効チップ + Save**（**`isEnabled: false`** で body 保持）。 |
+| **今選んでいるチップ**に対応する保存行を消す | 保存行があるとき **Del**（**`remove`**。オン／オフ問わず 1 回）。 |
+| **未 Save のドラフト**だけ捨てる | 保存行がなくエディタがサーバーとずれているとき **Del**（HTTP なし）。 |
 | **既定行**（先頭の spec ステータス・無名例）をオフ＋本文クリアにし、エディタをそれに合わせる | 下部 **Reset** — そのキーへの **`configure` のみ**。同じ操作の**別チップ**の行は残るので、消すときはチップごとに **Del**。 |
 | 全オーバーライドを消す | エクスプローラの **Reset all overrides**（確認あり）。 |
 
@@ -243,7 +242,7 @@ API 対応:
 
 詳細の番号チップの **`P`** だけが**サーバー上のプライマリ**行を示します（未保存の選択とは一致しないことがあります）。**一覧**は **P なし**でプライマリの HTTP ステータス（と例キャプション）を出し、編集中のチップとは切り離されます。同一操作に **enabled 行が2件以上**あるときは一覧に**警告**が出ます。サーバーとエクスプローラはどちらも `sortedForOverrideTieBreak`（Core 共通）の先頭を使います。
 
-**Del**（−）: モック **オン** → 同一キーで **`configure` でオフ**。**オフ**で保存行が一致 → **`remove`**（設定から行削除）。
+**Del**（−）: 保存行が一致 → **`remove`**（設定から行削除、エディタは Spec 寄せ）。**未 Save ドラフトのみ** → ローカルクリア（サーバー未呼び出し）。**オフのまま JSON を残す** → 無効チップ + **Save**（**Del ではない**）。
 
 **更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Save** / **configure** / **remove** 成功後は、親が **fetch した `[MockOverride]` を戻り値で渡し**、ストアが **`markSavedClean()`** のあと **`resyncDetailAfterOverridesRefresh`** で詳細を合わせます（成功経路では **`isDirty`** は false のため再同期が走る）。**別エンドポイントへ移ったとき、未保存（dirty）のドラフトは行キーごとに退避**され、同じ行を再度選ぶと復元されます（**Spec の再取得**で退避は消えます）。
 
@@ -269,7 +268,7 @@ API 対応:
 
 **Save** — UI は **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`**。**`draftRepresentsSpecOnlyRowForSave`** かつ **番号チップでない**ときだけ先に **無効＋クリア**で return。番号チップ（**`pinnedNumberedResponseChip`**）ならテンプレ一致のオフ行でも **有効**へ。それ以外は **`mock.isEnabled`** で **有効**／**無効**。**`buildApplyPrimary`** / **`buildSaveInactive`** はテストや強制経路用です。
 
-**Del** — **`DisableMockPlanner`**: アクティブ → `configure` でオフ。オフ＋保存行一致 → **`remove`** ＋ Spec 寄せのリセット。それ以外は no-op。
+**Del** — **`DisableMockPlanner`**: チップに保存行あり → **`remove`** ＋ Spec 寄せリセット。未 Save ドラフトのみ → **ローカルクリア**。それ以外は no-op。
 
 **自動テスト:** Henge エクスプローラのロジックは **`KawarimiCoreTests`**（`Tests/KawarimiCoreTests/Henge/`、モジュール **`KawarimiHengeCore`**）。ubuntu CI は **`KawarimiHengeCore`** のみ。SwiftUI の **`KawarimiHenge`** は macOS ローカルで確認。
 
