@@ -2,6 +2,8 @@
 
 Guards against regressions in the override **detail column** (header, JSON editor, bottom toolbar).
 
+**日本語:** [ja/henge-detail-column-regression.md](ja/henge-detail-column-regression.md)
+
 | Failure | Pass when |
 |---------|-----------|
 | Bottom toolbar missing | Validate / Format / Save / Reset stay visible with the editor |
