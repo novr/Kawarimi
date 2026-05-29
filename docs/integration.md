@@ -20,6 +20,13 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
+**2.5.0 → 2.6.0** (breaking — Henge SSoT + Del):
+
+1. Bump pin to **`from: "2.6.0"`**.
+2. **Henge**: use **`KawarimiConfigView(client:)`** only — **`KawarimiConfigView(client:specType:)`** is removed. Pass **`KawarimiAPIClient(baseURL:)`** aligned with your admin mount; spec loads via **`GET …/__kawarimi/spec`** (**`HengeSpecSnapshot`**). Drop generated **`SpecResponse`** from Henge-only targets if no longer needed ([#120](https://github.com/novr/Kawarimi/issues/120)).
+3. **Del**: saved row → **`remove`** in one step. To disable a mock but keep JSON in **`kawarimi.json`**, use **inactive chip + Save**, not **Del**.
+4. See **[CHANGELOG.md](../CHANGELOG.md)** under **[Unreleased]** (will become **2.6.0**).
+
 **2.4.0 → 2.5.0** (additive):
 
 1. Bump pin to **`from: "2.5.0"`**.
@@ -61,7 +68,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.5.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.6.0"),
 ],
 targets: [
     .target(
