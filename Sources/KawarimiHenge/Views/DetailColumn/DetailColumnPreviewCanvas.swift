@@ -51,6 +51,7 @@ private struct DetailColumnChromePreviewHost: View {
     let initialMock: MockOverride
 
     @State private var mock: MockOverride
+    @State private var bodyText: String
     @State private var contentTypeText: String
     @State private var delayMsText = ""
     @State private var confirmResetEndpoint = false
@@ -76,11 +77,13 @@ private struct DetailColumnChromePreviewHost: View {
         )
         self.initialMock = initialMock
         _mock = State(initialValue: initialMock)
+        _bodyText = State(initialValue: initialMock.body ?? "{}")
         _contentTypeText = State(initialValue: initialMock.contentType ?? "application/json")
     }
 
     var body: some View {
         DetailColumnScrollStack(
+            showResponseBody: true,
             header: {
                 DetailColumnHeaderView(
                     model: DetailColumnHeaderModel(
@@ -108,9 +111,19 @@ private struct DetailColumnChromePreviewHost: View {
                     )
                 )
             },
+            editor: {
+                DetailColumnJsonEditorView(
+                    bodyText: $bodyText,
+                    validationMessage: nil,
+                    tightVertical: false,
+                    focus: $detailFocus
+                )
+            },
             toolbar: {
                 DetailColumnBottomToolbarView(
                     tightVertical: false,
+                    onValidate: {},
+                    onFormat: {},
                     onSave: {},
                     confirmResetEndpoint: $confirmResetEndpoint
                 )
@@ -188,6 +201,8 @@ private struct DetailColumnToolbarPreviewHost: View {
     var body: some View {
         DetailColumnBottomToolbarView(
             tightVertical: true,
+            onValidate: {},
+            onFormat: {},
             onSave: {},
             confirmResetEndpoint: $confirmResetEndpoint
         )

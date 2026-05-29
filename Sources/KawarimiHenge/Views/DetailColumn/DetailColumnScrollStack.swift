@@ -1,7 +1,9 @@
 import SwiftUI
 
-struct DetailColumnScrollStack<Header: View, Toolbar: View>: View {
+struct DetailColumnScrollStack<Header: View, Editor: View, Toolbar: View>: View {
+    let showResponseBody: Bool
     @ViewBuilder let header: () -> Header
+    @ViewBuilder let editor: () -> Editor
     @ViewBuilder let toolbar: () -> Toolbar
 
     var body: some View {
@@ -10,6 +12,11 @@ struct DetailColumnScrollStack<Header: View, Toolbar: View>: View {
                 header()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+
+            if showResponseBody {
+                editor()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(ExplorerPalette.surface)

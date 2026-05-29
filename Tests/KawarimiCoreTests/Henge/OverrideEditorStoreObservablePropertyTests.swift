@@ -22,6 +22,48 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 // MARK: Seed `OverrideEditorStore.detail` directly, then assert `@Observable` state after store methods
 
 @MainActor
+@Test func validateBodyUpdatesObservableDetailAfterPropertySeededDraft() {
+    let store = OverrideEditorStore()
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(
+            name: "op",
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{",
+            contentType: "application/json"
+        ),
+        validationMessage: nil,
+        isDirty: false
+    )
+    store.validateBody()
+    #expect(store.detail?.validationMessage == EditorValidation.invalidJSONMessage)
+    #expect(store.detail?.isDirty == false)
+}
+
+@MainActor
+@Test func validateBodySetsValidMessageWhenDetailSeededWithValidJson() {
+    let store = OverrideEditorStore()
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"a\":1}",
+            contentType: "application/json"
+        ),
+        validationMessage: nil,
+        isDirty: false
+    )
+    store.validateBody()
+    #expect(store.detail?.validationMessage == EditorValidation.validJSONMessage)
+}
+
+@MainActor
 @Test func markSavedCleanMutatesObservableDetailInPlace() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
@@ -34,12 +76,35 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
             body: "{}",
             contentType: "application/json"
         ),
-        validationMessage: "Valid JSON",
+        validationMessage: EditorValidation.validJSONMessage,
         isDirty: true
     )
     store.markSavedClean()
     #expect(store.detail?.isDirty == false)
     #expect(store.detail?.validationMessage == nil)
+}
+
+@MainActor
+@Test func formatBodyUpdatesObservableDetailWhenSeeded() {
+    let store = OverrideEditorStore()
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(
+            path: "/p",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"z\":1,\"a\":2}",
+            contentType: "application/json"
+        ),
+        validationMessage: nil,
+        isDirty: false
+    )
+    store.formatBody()
+    #expect(store.detail?.isDirty == true)
+    #expect(store.detail?.validationMessage == EditorValidation.formattedMessage)
+    #expect(store.detail?.mock.body?.contains("\"a\"") == true)
+    #expect(store.detail?.mock.body?.contains("\"z\"") == true)
 }
 
 @MainActor
@@ -126,3 +191,4 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     #expect(store.detail?.pinnedNumberedResponseChip == false)
 }
+

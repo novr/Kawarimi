@@ -137,6 +137,36 @@ package final class OverrideEditorStore {
         commitDetail(d)
     }
 
+    package func validateBody() {
+        guard var d = detail else { return }
+        let text = d.mock.body ?? ""
+        let data = Data(text.utf8)
+        if (try? JSONSerialization.jsonObject(with: data)) != nil {
+            d.validationMessage = EditorValidation.validJSONMessage
+        } else {
+            d.validationMessage = EditorValidation.invalidJSONMessage
+        }
+        commitDetail(d)
+    }
+
+    package func formatBody() {
+        guard var d = detail else { return }
+        let text = d.mock.body ?? ""
+        guard let data = text.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data),
+              let formatted = try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys]),
+              let str = String(data: formatted, encoding: .utf8) else {
+            d.validationMessage = EditorValidation.invalidJSONCannotFormatMessage
+            commitDetail(d)
+            return
+        }
+        d.mock.body = str
+        d.validationMessage = EditorValidation.formattedMessage
+        d.isDirty = true
+        d.pinnedNumberedResponseChip = false
+        commitDetail(d)
+    }
+
     package func applyMockEdit(from item: SpecEndpointItem, newMock: MockOverride) {
         guard var d = detail else { return }
         let sameRow = d.endpointRowKey == item.rowKey
@@ -181,6 +211,12 @@ package final class OverrideEditorStore {
     package func setPinnedNumberedResponseChip(_ value: Bool) {
         guard var d = detail else { return }
         d.pinnedNumberedResponseChip = value
+        commitDetail(d)
+    }
+
+    package func setDetailValidationMessage(_ message: String?) {
+        guard var d = detail else { return }
+        d.validationMessage = message
         commitDetail(d)
     }
 

@@ -1,4 +1,5 @@
 import Foundation
+import KawarimiHengeCore
 import SwiftUI
 
 public struct JsonEditorLineNumberGutter: View {
@@ -42,7 +43,7 @@ public struct JsonEditorLineNumberGutter: View {
     }
 
     private var attributedLineNumbers: AttributedString {
-        var text = AttributedString(Self.lineNumbersText(lineCount: lineCount))
+        var text = AttributedString(DetailColumnLayoutCore.editorLineNumbersText(lineCount: lineCount))
         let paragraph = NSMutableParagraphStyle()
         paragraph.minimumLineHeight = lineHeight
         paragraph.maximumLineHeight = lineHeight
@@ -51,18 +52,6 @@ public struct JsonEditorLineNumberGutter: View {
         text.paragraphStyle = paragraph
         text.font = .system(size: fontSize, design: .monospaced)
         text.foregroundColor = Color.white.opacity(foregroundOpacity)
-        return text
-    }
-
-    private static func lineNumbersText(lineCount: Int) -> String {
-        let n = max(lineCount, 1)
-        guard n > 1 else { return "1" }
-        var text = ""
-        text.reserveCapacity(n * (Int(log10(Double(n))) + 2))
-        for i in 1...n {
-            if i > 1 { text.append("\n") }
-            text.append(String(i))
-        }
         return text
     }
 }
