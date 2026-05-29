@@ -1,6 +1,6 @@
 #if os(macOS)
 import AppKit
-import DemoAPI
+import DemoSupport
 import KawarimiCore
 import KawarimiHenge
 import SwiftUI
@@ -23,13 +23,13 @@ private final class HengeCliAppDelegate: NSObject, NSApplicationDelegate {
 
 private struct HengeCliRootView: View {
     var body: some View {
-        if let url = HengeCliConfig.clientBaseURL {
-            KawarimiConfigView(client: KawarimiAPIClient(baseURL: url), specType: SpecResponse.self)
+        if let url = KawarimiDemoClientURL.clientBaseURL {
+            KawarimiConfigView(client: KawarimiAPIClient(baseURL: url))
         } else {
             ContentUnavailableView(
                 "Invalid server URL",
                 systemImage: "exclamationmark.triangle",
-                description: Text("Check `servers` in openapi.yaml and regenerate.")
+                description: Text("Set KAWARIMI_BASE_URL or use the default \(KawarimiDemoClientURL.defaultBaseURL).")
             )
         }
     }

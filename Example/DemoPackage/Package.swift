@@ -6,9 +6,13 @@ let linuxCI = Context.environment["KAWARIMI_LINUX_CI"] == "1"
 
 var products: [Product] = [
     .library(name: "DemoAPI", targets: ["DemoAPI"]),
+    .library(name: "DemoSupport", targets: ["DemoSupport"]),
 ]
 
 var targets: [Target] = [
+    .target(
+        name: "DemoSupport"
+    ),
     .target(
         name: "DemoAPI",
         dependencies: [
@@ -57,7 +61,7 @@ if !linuxCI {
         .executableTarget(
             name: "HengeCli",
             dependencies: [
-                "DemoAPI",
+                "DemoSupport",
                 .product(name: "KawarimiCore", package: "Kawarimi"),
                 .product(name: "KawarimiHenge", package: "Kawarimi"),
             ]
