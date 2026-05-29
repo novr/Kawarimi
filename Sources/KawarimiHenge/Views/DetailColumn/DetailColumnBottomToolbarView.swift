@@ -3,15 +3,11 @@ import KawarimiHengeCore
 
 struct DetailColumnBottomToolbarView: View {
     let tightVertical: Bool
-    let onValidate: () -> Void
-    let onFormat: () -> Void
     let onSave: () -> Void
     @Binding var confirmResetEndpoint: Bool
 
     var body: some View {
         HStack(spacing: 4) {
-            toolbarPlainButton(title: "Validate", systemImage: "checkmark.circle", action: onValidate)
-            toolbarPlainButton(title: "Format", systemImage: "text.alignleft", action: onFormat)
             saveCapsuleButton
             toolbarPlainButton(title: "Reset", systemImage: "arrow.counterclockwise", foreground: .red) {
                 confirmResetEndpoint = true

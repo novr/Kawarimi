@@ -10,13 +10,10 @@ struct OverrideDetailColumnView: View {
     /// Server-side primary enabled row for this operation (`nil` = effective Spec).
     let primaryOverride: MockOverride?
     @Binding var mock: MockOverride
-    @Binding var validationMessage: String?
     let hasUnsavedChanges: Bool
     let embedNavigationStack: Bool
     let showToolbarRefresh: Bool
     let onRefresh: () -> Void
-    let onValidate: () -> Void
-    let onFormat: () -> Void
     let onSave: () -> Void
     let onReset: () -> Void
     let onDisableCurrentMock: () -> Void
@@ -112,15 +109,6 @@ struct OverrideDetailColumnView: View {
             )
     }
 
-    private var bodyTextBinding: Binding<String> {
-        Binding(
-            get: { mock.body ?? "" },
-            set: { newValue in
-                mock.body = newValue.isEmpty ? nil : newValue
-            }
-        )
-    }
-
     private var contentTypeBinding: Binding<String> {
         Binding(
             get: { mock.contentType ?? "application/json" },
@@ -211,7 +199,6 @@ struct OverrideDetailColumnView: View {
 
     private var detailScrollStack: some View {
         DetailColumnScrollStack(
-            showResponseBody: shouldShowResponseBodySection,
             header: {
                 DetailColumnHeaderView(
                     model: detailColumnHeaderModel,
@@ -219,19 +206,9 @@ struct OverrideDetailColumnView: View {
                     bindings: detailColumnHeaderBindings
                 )
             },
-            editor: {
-                DetailColumnJsonEditorView(
-                    bodyText: bodyTextBinding,
-                    validationMessage: validationMessage,
-                    tightVertical: detailTightVertical,
-                    focus: $detailFocus
-                )
-            },
             toolbar: {
                 DetailColumnBottomToolbarView(
                     tightVertical: detailTightVertical,
-                    onValidate: onValidate,
-                    onFormat: onFormat,
                     onSave: onSave,
                     confirmResetEndpoint: $confirmResetEndpoint
                 )
@@ -319,7 +296,7 @@ struct OverrideDetailColumnView: View {
                         .accessibilityLabel("Status")
                     }
                 }
-                Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
+                Text("A new example id is assigned automatically. The body is filled from the spec when possible—Save on the main screen to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -355,7 +332,7 @@ struct OverrideDetailColumnView: View {
             } header: {
                 Text("HTTP status")
             } footer: {
-                Text("A new example id is assigned automatically. The body is filled from the spec when possible—edit it on the main screen. Save there to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
+                Text("A new example id is assigned automatically. The body is filled from the spec when possible—Save on the main screen to apply to the server. Clients can use X-Kawarimi-Example-Id to pick among enabled mocks.")
             }
             if let addCustomFormError {
                 Section {

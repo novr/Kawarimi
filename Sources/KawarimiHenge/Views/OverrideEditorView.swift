@@ -164,13 +164,6 @@ struct OverrideEditorView: View {
         }
     }
 
-    private var validationMessageBinding: Binding<String?> {
-        Binding(
-            get: { store.detail?.validationMessage },
-            set: { store.setDetailValidationMessage($0) }
-        )
-    }
-
     /// Subtitle: **server primary** example label (list is never driven by unsaved draft selection).
     private func endpointListExampleCaption(rowKey: EndpointRowKey, item: SpecEndpointItem) -> String? {
         let opId = item.endpoint.operationId
@@ -392,7 +385,6 @@ struct OverrideEditorView: View {
                 apiPathPrefix: specPathPrefix,
                 primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
-                validationMessage: validationMessageBinding,
                 hasUnsavedChanges: store.hasUnsavedDraft(
                     for: d.endpointRowKey,
                     pathPrefix: specPathPrefix,
@@ -402,8 +394,6 @@ struct OverrideEditorView: View {
                 embedNavigationStack: true,
                 showToolbarRefresh: true,
                 onRefresh: onRefresh,
-                onValidate: { store.validateBody() },
-                onFormat: { store.formatBody() },
                 onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
@@ -427,7 +417,6 @@ struct OverrideEditorView: View {
                 apiPathPrefix: specPathPrefix,
                 primaryOverride: primaryOverride(for: item),
                 mock: mockBinding(for: item),
-                validationMessage: validationMessageBinding,
                 hasUnsavedChanges: store.hasUnsavedDraft(
                     for: key,
                     pathPrefix: specPathPrefix,
@@ -437,8 +426,6 @@ struct OverrideEditorView: View {
                 embedNavigationStack: false,
                 showToolbarRefresh: false,
                 onRefresh: onRefresh,
-                onValidate: { store.validateBody() },
-                onFormat: { store.formatBody() },
                 onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },

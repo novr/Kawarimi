@@ -19,22 +19,6 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding]
 }
 
-// MARK: `validationMessageBinding` set → ``OverrideEditorStore/setDetailValidationMessage``
-
-@MainActor
-@Test func setDetailValidationMessageUpdatesObservableDetail() {
-    let store = OverrideEditorStore()
-    store.detail = OverrideDetailDraft(
-        mock: MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil),
-        validationMessage: nil,
-        isDirty: false
-    )
-    store.setDetailValidationMessage("edited")
-    #expect(store.detail?.validationMessage == "edited")
-    store.setDetailValidationMessage(nil)
-    #expect(store.detail?.validationMessage == nil)
-}
-
 // MARK: `mockBinding` set → ``OverrideEditorStore/applyMockEdit(from:newMock:)``
 
 @MainActor
