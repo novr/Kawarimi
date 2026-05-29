@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "title": "GreetingService",
+    "version": "1.0.0",
+    "serverURL": "https://localhost:8080/api",
+    "apiPathPrefix": "/api"
+  },
+  "endpoints": [
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "operationId": "getGreeting",
+      "tags": ["Greetings"],
+      "parameters": [
+        {
+          "location": "query",
+          "name": "name",
+          "required": false,
+          "description": "name",
+          "schemaType": "string"
+        }
+      ],
+      "responses": [
+        {
+          "statusCode": 200,
+          "contentType": "application/json",
+          "body": "{\"message\": \"Hello from spec example\"}"
+        }
+      ]
+    },
+    {
+      "path": "/api/items/{id}",
+      "method": "DELETE",
+      "operationId": "deleteItem",
+      "tags": ["Items"],
+      "parameters": [
+        {
+          "location": "path",
+          "name": "id",
+          "required": true,
+          "schemaType": "string"
+        }
+      ],
+      "responses": [
+        {
+          "statusCode": 204,
+          "contentType": "application/json",
+          "body": "{}",
+          "description": "Deleted"
+        },
+        {
+          "statusCode": 404,
+          "contentType": "application/json",
+          "body": "{\"code\": \"\", \"message\": \"\"}",
+          "description": "Not found"
+        }
+      ]
+    }
+  ]
+}

@@ -59,6 +59,11 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode(Spec.self, from: data)
     }
 
+    /// Fetches the Henge wire document without a host-generated `SpecResponse` type.
+    public func fetchHengeSpec() async throws -> HengeSpecSnapshot {
+        try await fetchSpec(as: HengeSpecSnapshot.self)
+    }
+
     public func fetchOverrides() async throws -> [MockOverride] {
         let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("status")
         let (data, response) = try await session.data(from: url)
