@@ -53,13 +53,13 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
-    /// Fetches the **KawarimiHenge** wire document (`meta` + `endpoints`). Prefer this overload when using a generated `SpecResponse`.
+    /// Fetches the Henge wire document when your app links a generated type that conforms to ``KawarimiFetchedSpec`` (e.g. ``SpecResponse``).
     public func fetchSpec<Spec: KawarimiFetchedSpec>(as specType: Spec.Type) async throws -> Spec {
         let data = try await specWireData()
         return try JSONDecoder().decode(Spec.self, from: data)
     }
 
-    /// Fetches the Henge wire document without a host-generated `SpecResponse` type.
+    /// Fetches the Henge wire document without a host-generated ``SpecResponse`` (``HengeSpecSnapshot``).
     public func fetchHengeSpec() async throws -> HengeSpecSnapshot {
         try await fetchSpec(as: HengeSpecSnapshot.self)
     }

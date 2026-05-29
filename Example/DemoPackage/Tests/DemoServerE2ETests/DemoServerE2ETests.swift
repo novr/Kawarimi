@@ -203,6 +203,15 @@ final class DemoServerE2ETests {
         let spec = try DemoServerE2EJSON.decodeSpec(from: data)
         #expect(!spec.endpoints.isEmpty)
         #expect(spec.meta.title == "GreetingService")
+        let hengeSpec = try DemoServerE2EJSON.decodeHengeSpec(from: data)
+        #expect(hengeSpec.meta.title == spec.meta.title)
+        #expect(hengeSpec.meta.apiPathPrefix == spec.meta.apiPathPrefix)
+        #expect(hengeSpec.endpoints.count == spec.endpoints.count)
+        let specDelete = try #require(spec.endpoints.first { $0.operationId == "deleteItem" })
+        let hengeDelete = try #require(hengeSpec.endpoints.first { $0.operationId == "deleteItem" })
+        #expect(hengeDelete.method == specDelete.method)
+        #expect(hengeDelete.path == specDelete.path)
+
     }
 
     @Test func configureWithNamedExampleIdReturnsSpecBody() async throws {

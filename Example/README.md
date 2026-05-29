@@ -61,7 +61,7 @@ Coverage matrix and backlog: [Issue #80](https://github.com/novr/Kawarimi/issues
 
 **`HengeCli`** is a small SwiftPM executable in **`DemoPackage`** that runs the same **Kawarimi Henge** UI as the DemoApp tab, without Xcode.
 
-It resolves the admin client URL from **`KawarimiSpec.meta`** (your `openapi.yaml` `servers` + path prefix). See [henge.md](../docs/henge.md#hengecli-macos).
+Admin **`baseURL`** is **`KAWARIMI_BASE_URL`** (default `http://127.0.0.1:8080/api`). Same **`KawarimiDemoClientURL`** helper as DemoApp (**DemoSupport**). See [henge.md](../docs/henge.md#hengecli-macos).
 
 ```bash
 cd DemoPackage && swift run DemoServer   # terminal 1

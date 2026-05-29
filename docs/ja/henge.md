@@ -31,7 +31,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 
 **`Example/DemoPackage`** に実行ファイルプロダクト **`HengeCli`** があります。
 
-**macOS 専用**の SwiftUI アプリで、**`KawarimiConfigView`** を **`KawarimiAPIClient`** とともに起動します。クライアントの **`baseURL`** は生成された **`KawarimiSpec.meta`**（`serverURL` と `apiPathPrefix`）から決まります（Demo アプリと同系の解決ルール。実装は `Sources/HengeCli/HengeCliConfig.swift`）。
+**macOS 専用**の SwiftUI アプリで、**`KawarimiConfigView(client:)`** を **`KawarimiAPIClient`** とともに起動します。管理用 **`baseURL`** は **`DemoSupport`** / **`KawarimiDemoClientURL`** から決まります（環境変数 **`KAWARIMI_BASE_URL`**、既定 **`http://127.0.0.1:8080/api`** — Demo の `openapi.yaml` `servers` と一致）。実装は `Example/DemoPackage/Sources/DemoSupport/KawarimiDemoClientURL.swift` と `Sources/HengeCli/HengeCliEntry.swift` を参照してください。
 
 - **起動:** `Example/DemoPackage` で `swift run HengeCli`（または `swift build --product HengeCli`）。  
   先に **`DemoServer`** を立てるか、OpenAPI の `servers` と整合する URL で Henge API が出ているサーバーを用意してください。
@@ -40,7 +40,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 
   起動時は **`NSApp.activate(ignoringOtherApps: true)`** と **`makeKeyAndOrderFront`** で前面・キーウィンドウにし、ターミナル起動などでもテキスト入力が通りやすくしています。
 
-- **URL が不正:** `servers` やプレフィックスから URL を組めない場合は **`ContentUnavailableView`** で `openapi.yaml` の確認と再生成を促します。
+- **URL が不正:** **`KAWARIMI_BASE_URL`** が空または不正な URL のときは **`ContentUnavailableView`** で環境変数または既定 URL の修正を促します。
 
 iOS など他プラットフォーム向けビルドでは **スタブの `main`** がメッセージを出して終了します。
 
@@ -63,7 +63,7 @@ KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (bo
 
 生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠し、Henge の wire JSON（`GET …/__kawarimi/spec`）用に **`securitySchemes`** も載せます。
 
-そのため **`KawarimiConfigView(client:specType:)`** が `/__kawarimi/spec` を手動クロージャなしでデコードできます。
+ホストアプリは **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`** で同じ wire をデコードできます。**KawarimiHenge** は **`KawarimiConfigView(client:)`** のみで、**`fetchHengeSpec()`** / **`HengeSpecSnapshot`** により Henge UI ターゲットから生成 API モジュールを外せます。
 
 OpenAPI の **`content.examples` のキー**は、`endpoints` の `exampleId` と内側の `responseMap` のキーになります。
 

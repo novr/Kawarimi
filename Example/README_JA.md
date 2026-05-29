@@ -61,7 +61,7 @@ cd DemoPackage && swift test --filter DemoServerE2ETests
 
 **`HengeCli`** は **`DemoPackage`** 内の SwiftPM 実行ファイルで、Xcode なしで **Kawarimi Henge** の UI（`KawarimiConfigView`）を起動します。
 
-管理用クライアントの URL は **`KawarimiSpec.meta`**（`openapi.yaml` の `servers` とパスプレフィックス）から決まります。詳細は [henge.md](../docs/ja/henge.md#hengecli-macos)。
+管理用 **`baseURL`** は **`KAWARIMI_BASE_URL`**（既定 `http://127.0.0.1:8080/api`）。DemoApp と同じ **`KawarimiDemoClientURL`**（**DemoSupport**）。詳細は [henge.md](../docs/ja/henge.md#hengecli-macos)。
 
 ```bash
 cd DemoPackage && swift run DemoServer   # ターミナル 1
