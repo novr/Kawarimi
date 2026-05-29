@@ -57,7 +57,6 @@ if !linuxCI {
         .executableTarget(
             name: "HengeCli",
             dependencies: [
-                "DemoAPI",
                 .product(name: "KawarimiCore", package: "Kawarimi"),
                 .product(name: "KawarimiHenge", package: "Kawarimi"),
             ]

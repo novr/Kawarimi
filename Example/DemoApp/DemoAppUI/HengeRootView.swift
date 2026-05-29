@@ -1,4 +1,3 @@
-import DemoAPI
 import KawarimiCore
 import KawarimiHenge
 import SwiftUI
@@ -9,6 +8,6 @@ struct HengeRootView: View {
     }
 
     var body: some View {
-        KawarimiConfigView(client: client, specType: SpecResponse.self)
+        KawarimiConfigView(client: client)
     }
 }

@@ -1,36 +1,13 @@
-import DemoAPI
 import Foundation
-import KawarimiCore
 
-/// Resolves the Kawarimi admin client URL from generated `KawarimiSpec.meta` (same rules as DemoApp’s `KawarimiExampleConfig`).
 enum HengeCliConfig {
-    static var serverBaseURL: String { KawarimiSpec.meta.serverURL }
-    static var apiPathPrefix: String { KawarimiSpec.meta.apiPathPrefix }
+    private static let defaultBaseURL = "http://127.0.0.1:8080/api"
 
+    /// Kawarimi admin client base URL (override with `KAWARIMI_BASE_URL`).
     static var clientBaseURL: URL? {
-        resolve(origin: serverBaseURL, pathPrefix: apiPathPrefix)
-    }
-
-    private static func resolve(origin: String, pathPrefix: String) -> URL? {
-        let trimmed = origin.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard var c = URLComponents(string: trimmed),
-              let scheme = c.scheme, !scheme.isEmpty else { return nil }
-
-        let prefixSegs = KawarimiPath.splitPathSegments(pathPrefix)
-        let serverSegs = KawarimiPath.splitPathSegments(c.path)
-
-        if serverSegs == prefixSegs {
-            return c.url
-        }
-
-        if serverSegs.isEmpty {
-            c.path = KawarimiPath.joinPathPrefix(prefixSegs)
-            return c.url
-        }
-
-        c.path = KawarimiPath.joinPathPrefix(prefixSegs)
-        c.query = nil
-        c.fragment = nil
-        return c.url
+        let raw = ProcessInfo.processInfo.environment["KAWARIMI_BASE_URL"] ?? defaultBaseURL
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
     }
 }

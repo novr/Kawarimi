@@ -4,8 +4,6 @@ import SwiftUI
 
 /// Henge root: loads spec and overrides, passes snapshots into ``OverrideEditorView``. Configure/remove callbacks must return the same ``[MockOverride]`` as the overrides refresh (see henge *UI data flow*).
 public struct KawarimiConfigView: View {
-    private let serverURL: String
-
     private let specProvider: () async throws -> (
         meta: any SpecMetaProviding,
         endpoints: [any SpecEndpointProviding],
@@ -16,6 +14,7 @@ public struct KawarimiConfigView: View {
     private let removeOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
 
+    @State private var serverURL: String
     @State private var meta: (any SpecMetaProviding)?
     @State private var endpoints: [any SpecEndpointProviding] = []
     @State private var securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
@@ -27,13 +26,11 @@ public struct KawarimiConfigView: View {
     /// Bumps after overrides-only refresh (e.g. after configure) so the child reruns `.task(id:)`.
     @State private var overridesRevision = 0
 
-    /// Wires the mock UI to Henge HTTP via ``KawarimiAPIClient``.
-    ///
-    /// Pass your generated `SpecResponse.self` for `specType` (it conforms to ``KawarimiFetchedSpec``).
-    public init<Spec: KawarimiFetchedSpec>(client: KawarimiAPIClient, specType: Spec.Type) {
-        serverURL = client.baseURL.absoluteString
+    /// Wires the mock UI to Henge HTTP via ``KawarimiAPIClient`` (`GET …/__kawarimi/spec` + status/admin routes).
+    public init(client: KawarimiAPIClient) {
+        _serverURL = State(initialValue: client.baseURL.absoluteString)
         specProvider = {
-            let decoded = try await client.fetchSpec(as: specType)
+            let decoded = try await client.fetchHengeSpec()
             return (
                 meta: decoded.meta,
                 endpoints: decoded.endpoints,
@@ -92,6 +89,7 @@ public struct KawarimiConfigView: View {
             let spec = try await specProvider()
             let overrides = try await fetchOverrides()
             meta = spec.meta
+            serverURL = spec.meta.serverURL
             endpoints = spec.endpoints
             securitySchemeCatalog = spec.securitySchemeCatalog
             overridesSnapshot = overrides
