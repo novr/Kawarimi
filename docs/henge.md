@@ -175,13 +175,11 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore`. Returns **`204 No Content`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
-**KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** (aligned with your API `baseURL`) and your generated **`SpecResponse.self`** (conforms to **`KawarimiFetchedSpec`**).
+**KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
 
-The UI shows **`client.baseURL.absoluteString`** as the server label.
+The UI shows **`meta.serverURL`** from that fetch once loaded (falls back to **`client.baseURL`** until the first spec load).
 
-The minus (**Del**) control persists **`isEnabled: false`** for the current response chip when the mock is on.
-
-When the mock is **already off** and a **saved** row exists for that chip, **Del** calls **`remove`** so the row is dropped from the server config and the editor returns to the spec draft (same HTTP as **`KawarimiAPIClient.removeOverride(override:)`** in **KawarimiCore**).
+The minus (**Del**) control **removes the saved row** for the current response chip when one exists in `kawarimi.json` (**`POST …/__kawarimi/remove`**, same identity as **`configure`**). When there is **no saved row** but the editor has an **unsaved draft**, **Del** clears the draft locally toward Spec **without** calling the server. To turn a mock off but **keep** the row (disabled preset with JSON), use an **inactive chip + Save** — not **Del**.
 
 Sample **`curl`** for this repository’s **DemoServer**: [Example/README.md#try-the-henge-api-demoserver](../Example/README.md#try-the-henge-api-demoserver).
 
@@ -197,7 +195,7 @@ The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint e
 
 2. **Editor draft (per selection)** — **`OverrideEditorStore`** (`@Observable`) holds an optional **`OverrideDetailDraft`** for the **open** row: **`mock`**, **`isDirty`**, **`pinnedNumberedResponseChip`**, **`validationMessage`**. It is **not** a copy of the whole overrides array. **Stashed drafts** — when you switch endpoints with **`isDirty`**, the previous row’s draft is copied into **`pendingDraftsByRowKey`**; selecting that row again restores it (spec reload clears stashes).
 
-3. **Mutation bridge** — The child receives **`configureOverride`** / **`removeOverride`** typed as **`(MockOverride) async throws -> [MockOverride]`**. The parent’s wrapper (on **`KawarimiConfigView`**) may call **`disableConflictingStatusMocks`**, then the bare **`KawarimiAPIClient`** **`configure`** / **`remove`**, then **`refreshOverridesOnly()`**, which assigns **`overridesSnapshot`** and **`return`s the same `[MockOverride]`** produced by the fetch (so the return value never re-reads **`@State`** for that array). **`OverrideEditorStore`** uses that returned array in **`resyncDetailAfterOverridesRefresh`** immediately after a successful **Save** / **Reset** / **Del-disable** path (**`markSavedClean()`** first), so the draft matches the server response without relying on SwiftUI scheduling.
+3. **Mutation bridge** — The child receives **`configureOverride`** / **`removeOverride`** typed as **`(MockOverride) async throws -> [MockOverride]`**. The parent’s wrapper (on **`KawarimiConfigView`**) may call **`disableConflictingStatusMocks`**, then the bare **`KawarimiAPIClient`** **`configure`** / **`remove`**, then **`refreshOverridesOnly()`**, which assigns **`overridesSnapshot`** and **`return`s the same `[MockOverride]`** produced by the fetch (so the return value never re-reads **`@State`** for that array). **`OverrideEditorStore`** uses that returned array in **`resyncDetailAfterOverridesRefresh`** immediately after a successful **Save** / **Reset** / **Del → remove** path (**`markSavedClean()`** first), so the draft matches the server response without relying on SwiftUI scheduling.
 
 <a id="henge-dirty-vs-unsaved"></a>
 
@@ -234,9 +232,10 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 | Return the UI to that “template-only” state without deleting rows yet | Tap **Spec** (clears body) or rely on **no enabled mock** + default disabled row: **Spec** highlights even when the editor shows merged OpenAPI JSON; tap **200 OK** if you want the numbered chip while editing the same template. |
 | Mock one documented response (make it **primary** on the server) | Select the **status / example** chip (draft **`isEnabled: true`**), edit body, **Save**. **`KawarimiConfigView`** turns **`isEnabled: false`** on every **other** enabled row for the **same OpenAPI operation** first (any status / `exampleId`), then saves the current row **enabled** — only one active mock per operation in normal use. |
 | Add a status (or example) not in the doc | **+** (Add response), pick status, edit on the main screen, **Save** (enabled or off depending on chip / stored row). |
-| Persist JSON but **do not** make it the active mock | Choose a chip whose row is **off** (e.g. copy from a stored disabled row, or **Del** after turning off), edit body, **Save** — sends **`isEnabled: false`** with **body** / **contentType** preserved. |
-| Turn the mock off but keep the row in `kawarimi.json` | **Del** while the mock is on, or select an **inactive** chip row and **Save**. |
-| Remove the saved row for the **current** chip | **Del** when the mock is already off and a matching saved row exists (calls **`remove`**). |
+| Persist JSON but **do not** make it the active mock | Choose a chip whose row is **off** (e.g. copy from a stored disabled row), edit body, **Save** — sends **`isEnabled: false`** with **body** / **contentType** preserved. |
+| Turn the mock off but keep the row in `kawarimi.json` | Select an **inactive** chip row and **Save** ( **`isEnabled: false`** with body preserved). |
+| Remove the saved row for the **current** chip | **Del** when a matching saved row exists (calls **`remove`** in one step, whether the row is enabled or disabled). |
+| Clear an **unsaved** draft only | **Del** when no saved row exists for the chip but the editor differs from the server snapshot (no HTTP). |
 | Reset the **default** row to “off + cleared” and align the editor | **Reset** in the bottom bar — sends **`configure`** for the operation’s **first** spec status (no named example) only. **Other** chips’ rows for the same operation stay in `kawarimi.json` until you **Del** each. |
 | Clear every override | **Reset all overrides** in the explorer chrome (with confirmation). |
 
@@ -244,7 +243,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Primary badge (`P`)** on a **detail** numbered chip matches the **server’s** primary enabled row only (not unsaved edits). The **endpoint list** shows the primary’s HTTP status (and example caption) **without** a **P** badge. If **two or more** enabled rows exist for the same operation (e.g. hand-edited config), the list shows a **warning**; the server and explorer both use the first row after `sortedForOverrideTieBreak` (same Core ordering).
 
-**Del** (−): mock **on** → **`configure`** with **off** for the same keys; mock **off** and a **saved** row matches the chip → **`remove`** (row deleted from config).
+**Del** (−): matching **saved** row → **`remove`** (row deleted from config, editor reset toward Spec). **Unsaved draft only** → local clear (no server call). **Off but keep JSON** → inactive chip + **Save**, not **Del**.
 
 **Refresh / sync:** The editor assumes a **local, single-user** workflow — there is **no confirmation dialog** when a refresh would replace the open detail. **Reloading spec** refetches endpoints and **replaces the current detail** from server state (unsaved edits are dropped). After **Save** / **configure** / **remove**, the parent returns the **fresh** status array to the store, which **always** resyncs the open detail when the save path succeeds (**`markSavedClean()`** then **`resyncDetailAfterOverridesRefresh`**; the resync guard **`!isDirty`** is satisfied on that path). **Switching to another endpoint stashes a dirty draft per row** so returning restores it (spec reload clears stashed drafts).
 
@@ -270,7 +269,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Save** — UI uses **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`**. If **`draftRepresentsSpecOnlyRowForSave`** and **not** **`pinnedNumberedResponseChip`**, return the fixed **disabled** payload for the first spec status (early exit). Otherwise branch on **`mock.isEnabled`** or **pin** (numbered chip → treat as **enabled** when turning a template-matching inactive row on). **`buildApplyPrimary`** / **`buildSaveInactive`** remain for tests or forced paths.
 
-**Del** — **`DisableMockPlanner`**: active mock → `configure` **off**; off + matching stored row → **`remove`** + draft reset toward spec; else **no-op**.
+**Del** — **`DisableMockPlanner`**: saved row for the chip → **`remove`** + draft reset toward spec; unsaved draft only → **local clear**; else **no-op**.
 
 **Automated tests:** Henge explorer logic in **`KawarimiCoreTests`** (`Tests/KawarimiCoreTests/Henge/`, module **`KawarimiHengeCore`**). Ubuntu CI runs **`KawarimiHengeCore`** only; full **`KawarimiHenge`** (SwiftUI) on macOS locally.
 

@@ -2,8 +2,8 @@ import KawarimiCore
 
 package enum DisableMockPlanner {
     package enum Plan: Equatable {
-        case configureDisable(MockOverride)
         case removeThenReset(removeKey: MockOverride, cleared: MockOverride)
+        case clearDraftLocally
         case none
     }
 
@@ -12,7 +12,8 @@ package enum DisableMockPlanner {
         endpoint: any SpecEndpointProviding,
         rowKey: EndpointRowKey,
         pathPrefix: String,
-        overrides: [MockOverride]
+        overrides: [MockOverride],
+        hasUnsavedDraft: Bool
     ) -> Plan {
         let hasRow = OverrideListQueries.hasStoredRowMatchingDraft(
             mock,
@@ -21,20 +22,6 @@ package enum DisableMockPlanner {
             pathPrefix: pathPrefix,
             in: overrides
         )
-        if mock.isEnabled {
-            return .configureDisable(
-                MockOverride(
-                    name: endpoint.operationId,
-                    path: endpoint.path,
-                    method: endpoint.method,
-                    statusCode: mock.statusCode,
-                    exampleId: mock.exampleId,
-                    isEnabled: false,
-                    body: mock.body,
-                    contentType: mock.contentType
-                )
-            )
-        }
         if hasRow {
             let removeKey = MockOverride(
                 name: endpoint.operationId,
@@ -46,18 +33,24 @@ package enum DisableMockPlanner {
                 body: nil,
                 contentType: nil
             )
-            let cleared = MockOverride(
-                name: endpoint.operationId,
-                path: endpoint.path,
-                method: endpoint.method,
-                statusCode: endpoint.responseList.first?.statusCode ?? 200,
-                exampleId: nil,
-                isEnabled: false,
-                body: nil,
-                contentType: nil
-            )
-            return .removeThenReset(removeKey: removeKey, cleared: cleared)
+            return .removeThenReset(removeKey: removeKey, cleared: clearedDraft(for: endpoint))
+        }
+        if hasUnsavedDraft {
+            return .clearDraftLocally
         }
         return .none
+    }
+
+    private static func clearedDraft(for endpoint: any SpecEndpointProviding) -> MockOverride {
+        MockOverride(
+            name: endpoint.operationId,
+            path: endpoint.path,
+            method: endpoint.method,
+            statusCode: endpoint.responseList.first?.statusCode ?? 200,
+            exampleId: nil,
+            isEnabled: false,
+            body: nil,
+            contentType: nil
+        )
     }
 }

@@ -89,6 +89,33 @@ final class DemoServerE2ETests {
         #expect(overrides.isEmpty)
     }
 
+    @Test func hengeRemoveDeletesEnabledOverrideRow() async throws {
+        try await server.resetOverrides()
+
+        let greetPath = DemoServerE2EPaths.greetPath
+        let row = """
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,"body":"{\\"message\\":\\"Stored\\"}"}
+            """
+        let (configureResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "configure"),
+            body: Data(row.utf8)
+        )
+        #expect(configureResponse.statusCode == 200)
+
+        let (removeResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "remove"),
+            body: Data(row.utf8)
+        )
+        #expect(removeResponse.statusCode == 200)
+
+        let (statusResponse, statusData) = try await DemoServerHTTP.get(
+            server.kawarimiBaseURL.appending(path: "status")
+        )
+        #expect(statusResponse.statusCode == 200)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.isEmpty)
+    }
+
     @Test func hengeRemoveDeletesOverrideRow() async throws {
         try await server.resetOverrides()
 
