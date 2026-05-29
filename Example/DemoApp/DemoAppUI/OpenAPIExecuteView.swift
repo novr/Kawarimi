@@ -4,6 +4,7 @@ import AppKit
 import UIKit
 #endif
 import DemoAPI
+import DemoSupport
 import Foundation
 import HTTPTypes
 import KawarimiCore
@@ -98,7 +99,7 @@ struct OpenAPIExecuteView: View {
 
     private var endpoints: [KawarimiSpec.Endpoint] { KawarimiSpec.endpoints }
 
-    private var clientURL: URL? { KawarimiExampleConfig.clientBaseURL }
+    private var clientURL: URL? { KawarimiDemoClientURL.clientBaseURL }
 
     private var filteredEndpoints: [KawarimiSpec.Endpoint] {
         let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
