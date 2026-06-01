@@ -31,16 +31,16 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 
 **`Example/DemoPackage`** defines an executable product **`HengeCli`**.
 
-It is a **macOS-only** SwiftUI app that embeds **`KawarimiConfigView(client:)`** with a **`KawarimiAPIClient`**. Admin **`baseURL`** comes from **`DemoSupport`** / **`KawarimiDemoClientURL`**: environment variable **`KAWARIMI_BASE_URL`**, default **`http://127.0.0.1:8080/api`** (matches Demo `openapi.yaml` `servers`). See `Example/DemoPackage/Sources/DemoSupport/KawarimiDemoClientURL.swift` and `Sources/HengeCli/HengeCliEntry.swift`.
+It is a **macOS-only** SwiftUI app that embeds **`KawarimiConfigView(client: KawarimiAPIClient(baseURL: …))`**. The admin **`baseURL`** defaults to `http://127.0.0.1:8080/api` (Demo **`openapi.yaml`** `servers`) and can be overridden with **`KAWARIMI_BASE_URL`** — see **`DemoSupport`** / `KawarimiDemoClientURL.swift` (shared with **DemoApp**).
 
 - **Run:** from `Example/DemoPackage`, `swift run HengeCli` (or `swift build --product HengeCli`).  
-  Start **`DemoServer`** (or any server that serves Henge under the URL your OpenAPI `servers` entry describes) first.
+  Start **`DemoServer`** (or any server that serves **`…/__kawarimi/*`** under that base URL) first.
 
 - **Window lifecycle:** closing the **last window quits** the process (`applicationShouldTerminateAfterLastWindowClosed`).
 
   On launch, **`NSApp.activate(ignoringOtherApps: true)`** and **`makeKeyAndOrderFront`** run so the window is key when launched from Terminal or other non-GUI parents (text fields and editors accept input reliably).
 
-- **Bad base URL:** if **`KAWARIMI_BASE_URL`** is empty or not a valid URL, the UI shows **`ContentUnavailableView`** with a hint to fix the env var or use the default.
+- **Bad base URL:** if **`KAWARIMI_BASE_URL`** (or the default) is not a valid URL, the UI shows **`ContentUnavailableView`** with a hint to set the env var or use the default.
 
 iOS and other platforms compile a **stub** `main` that exits with an error message.
 
@@ -61,9 +61,9 @@ KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (bo
 
 Each **`Endpoint.security`** is the **effective** OpenAPI security for that operation (global `security` inherited when the operation omits it; `security: []` means none). The `security` array is a list of **OR** alternatives; each `SecurityRequirement.schemes` entry is an **AND** group. For apiKey schemes, use `SecurityScheme.apiKeyName` for the HTTP header/query/cookie name; for `http` use `httpScheme` / `bearerFormat`; for openIdConnect use `openIdConnectURL`. OAuth2 flow URLs and scopes are not emitted. `ScopedSecurityScheme.name` is the components key.
 
-The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`** and also carries **`securitySchemes`** for the Henge wire JSON (`GET …/__kawarimi/spec`).
+The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`** and also carries **`securitySchemes`** for the Henge wire JSON (`GET …/__kawarimi/spec`). Host code that still links a generated API module can decode the same wire JSON with **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`**.
 
-Host apps with a generated **`SpecResponse`** can decode the same wire with **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`**. **KawarimiHenge** uses **`KawarimiConfigView(client:)`**, which loads spec via **`fetchHengeSpec()`** / **`HengeSpecSnapshot`** so the Henge UI target does not need to link your API module.
+**Henge UI** uses **`KawarimiConfigView(client:)`** only: spec and endpoints come from **`GET …/__kawarimi/spec`** via Core **`HengeSpecSnapshot`** / **`fetchHengeSpec()`** — no generated **`SpecResponse`** in the Henge-only app target.
 
 OpenAPI **named** `content.examples` keys become `exampleId` strings in `endpoints` and as the inner `responseMap` keys.
 

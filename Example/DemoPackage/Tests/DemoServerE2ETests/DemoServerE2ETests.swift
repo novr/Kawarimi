@@ -89,7 +89,7 @@ final class DemoServerE2ETests {
         #expect(overrides.isEmpty)
     }
 
-    @Test func hengeRemoveDeletesEnabledOverrideRow() async throws {
+    @Test func hengeAdminRemoveDeletesEnabledOverrideRow() async throws {
         try await server.resetOverrides()
 
         let greetPath = DemoServerE2EPaths.greetPath

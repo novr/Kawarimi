@@ -31,16 +31,16 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 
 **`Example/DemoPackage`** に実行ファイルプロダクト **`HengeCli`** があります。
 
-**macOS 専用**の SwiftUI アプリで、**`KawarimiConfigView(client:)`** を **`KawarimiAPIClient`** とともに起動します。管理用 **`baseURL`** は **`DemoSupport`** / **`KawarimiDemoClientURL`** から決まります（環境変数 **`KAWARIMI_BASE_URL`**、既定 **`http://127.0.0.1:8080/api`** — Demo の `openapi.yaml` `servers` と一致）。実装は `Example/DemoPackage/Sources/DemoSupport/KawarimiDemoClientURL.swift` と `Sources/HengeCli/HengeCliEntry.swift` を参照してください。
+**macOS 専用**の SwiftUI アプリで、**`KawarimiConfigView(client: KawarimiAPIClient(baseURL: …))`** を起動します。管理用 **`baseURL`** の既定値は `http://127.0.0.1:8080/api`（Demo **`openapi.yaml`** の `servers`）で、**`KAWARIMI_BASE_URL`** で上書きできます — **`DemoSupport`** / `KawarimiDemoClientURL.swift`（**DemoApp** と共有）。
 
 - **起動:** `Example/DemoPackage` で `swift run HengeCli`（または `swift build --product HengeCli`）。  
-  先に **`DemoServer`** を立てるか、OpenAPI の `servers` と整合する URL で Henge API が出ているサーバーを用意してください。
+  先に **`DemoServer`** を立てるか、その base URL 配下で **`…/__kawarimi/*`** が応答するサーバーを用意してください。
 
 - **ウィンドウ:** **最後のウィンドウを閉じるとプロセス終了**（`applicationShouldTerminateAfterLastWindowClosed`）。
 
   起動時は **`NSApp.activate(ignoringOtherApps: true)`** と **`makeKeyAndOrderFront`** で前面・キーウィンドウにし、ターミナル起動などでもテキスト入力が通りやすくしています。
 
-- **URL が不正:** **`KAWARIMI_BASE_URL`** が空または不正な URL のときは **`ContentUnavailableView`** で環境変数または既定 URL の修正を促します。
+- **URL が不正:** **`KAWARIMI_BASE_URL`**（または既定値）が有効な URL でない場合は **`ContentUnavailableView`** で env var または既定 URL の設定を促します。
 
 iOS など他プラットフォーム向けビルドでは **スタブの `main`** がメッセージを出して終了します。
 
@@ -61,9 +61,9 @@ KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (bo
 
 各 **`Endpoint.security`** はその operation の **effective** OpenAPI security です（operation で省略時はグローバル `security` を継承、`security: []` は認証なし）。`security` 配列の要素間は **OR**、各 `SecurityRequirement.schemes` 内は **AND** です。apiKey は `apiKeyName` / `apiKeyIn`、`http` は `httpScheme` / `bearerFormat`、openIdConnect は `openIdConnectURL`。OAuth2 の flow URL や scopes は載せません。`ScopedSecurityScheme.name` は components のキーです。
 
-生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠し、Henge の wire JSON（`GET …/__kawarimi/spec`）用に **`securitySchemes`** も載せます。
+生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠し、Henge の wire JSON（`GET …/__kawarimi/spec`）用に **`securitySchemes`** も載せます。生成 API モジュールをリンクするホストコードは **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`** で同じ wire JSON をデコードできます。
 
-ホストアプリは **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`** で同じ wire をデコードできます。**KawarimiHenge** は **`KawarimiConfigView(client:)`** のみで、**`fetchHengeSpec()`** / **`HengeSpecSnapshot`** により Henge UI ターゲットから生成 API モジュールを外せます。
+**Henge UI** は **`KawarimiConfigView(client:)`** のみ: spec / endpoints は Core の **`HengeSpecSnapshot`** / **`fetchHengeSpec()`** 経由で **`GET …/__kawarimi/spec`** から取得し、Henge 専用ターゲットに生成 **`SpecResponse`** は不要です。
 
 OpenAPI の **`content.examples` のキー**は、`endpoints` の `exampleId` と内側の `responseMap` のキーになります。
 

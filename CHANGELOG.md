@@ -26,11 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- **henge.md** / **ja/henge.md**: Henge SSoT, **`KawarimiConfigView(client:)`**, and **Del** semantics ([#136](https://github.com/novr/Kawarimi/pull/136)).
+- **henge.md** / **ja/henge.md**: Henge SSoT, **`KawarimiConfigView(client:)`**, HengeCli base URL, and **Del** semantics ([#136](https://github.com/novr/Kawarimi/pull/136)).
 
 ### Migration from 2.5.0
 
-1. **SwiftPM** — Bump pin to **`from: "2.6.0"`** (or track **`main`** / **`feature/issue-120`** until release).
+1. **SwiftPM** — Bump pin to **`from: "2.6.0"`** when released (or track **`main`** until **v2.6.0**).
 2. **Henge UI** — Replace **`KawarimiConfigView(client:specType: SpecResponse.self)`** with **`KawarimiConfigView(client: KawarimiAPIClient(baseURL: …))`**. Pass only the admin **`baseURL`** (must reach **`…/__kawarimi/*`**). Remove **`import`** / SPM dependency on your generated API module from the Henge-only app target if it was only used for **`SpecResponse`**.
 3. **Del workflow** — Users who relied on **Del** to **turn off** an active mock while **keeping** the row must switch to **inactive chip + Save**. **Del** now **deletes** the saved row for the current chip (or clears an unsaved draft locally).
 4. **Example / HengeCli** — Optional **`KAWARIMI_BASE_URL`** env var; default matches Demo **`openapi.yaml`** servers entry.
