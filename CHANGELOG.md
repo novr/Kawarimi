@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-05-31
+
 ### Breaking
 
 - **KawarimiHenge**: **`KawarimiConfigView(client:specType:)`** removed — use **`KawarimiConfigView(client:)`** only. Henge UI targets no longer need to link a host-generated **`SpecResponse`**; spec and endpoints come from **`GET …/__kawarimi/spec`** via **`HengeSpecSnapshot`** ([#120](https://github.com/novr/Kawarimi/issues/120), [#132](https://github.com/novr/Kawarimi/pull/132), [#133](https://github.com/novr/Kawarimi/pull/133)).
@@ -25,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiHengeCore**: **Spec** chip **Save** / **Reset** — when the draft is Spec-only shaped, **`remove`** a matching stored default row instead of upserting a disabled placeholder (avoids spec-follow ghost rows in `kawarimi.json`). Supplemental chips hide disabled no-body rows for documented status codes ([#134](https://github.com/novr/Kawarimi/pull/134)).
 - **KawarimiHengeCore**: **Del** — **`storedOverrideForDel`** matches legacy rows saved without `exampleId` whose body matches a named OpenAPI example; **`removeIdentity`** uses the row’s persisted **`path`** / **`exampleId`** on **`POST …/remove`** ([#134](https://github.com/novr/Kawarimi/pull/134)).
 - **Example**: **HengeCli** no longer depends on **DemoAPI** ([#133](https://github.com/novr/Kawarimi/pull/133)).
+- **Dependencies**: [Yams](https://github.com/jpsim/Yams) 6.2.1 → 6.2.2 ([#138](https://github.com/novr/Kawarimi/pull/138)); [swift-argument-parser](https://github.com/apple/swift-argument-parser) 1.7.1 → 1.8.1 ([#139](https://github.com/novr/Kawarimi/pull/139)).
 
 ### Docs
 
@@ -32,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migration from 2.5.0
 
-1. **SwiftPM** — Bump pin to **`from: "2.6.0"`** when released (or track **`main`** until **v2.6.0**).
+1. **SwiftPM** — Bump pin to **`from: "2.6.0"`**.
 2. **Henge UI** — Replace **`KawarimiConfigView(client:specType: SpecResponse.self)`** with **`KawarimiConfigView(client: KawarimiAPIClient(baseURL: …))`**. Pass only the admin **`baseURL`** (must reach **`…/__kawarimi/*`**). Remove **`import`** / SPM dependency on your generated API module from the Henge-only app target if it was only used for **`SpecResponse`**.
 3. **Del workflow** — Users who relied on **Del** to **turn off** an active mock while **keeping** the row must switch to **inactive chip + Save**. **Del** now **deletes** the saved row for the current chip (or clears an unsaved draft locally).
 4. **Example / HengeCli** — Optional **`KAWARIMI_BASE_URL`** env var; default matches Demo **`openapi.yaml`** servers entry.
@@ -350,6 +353,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.6.0]: https://github.com/novr/Kawarimi/releases/tag/v2.6.0
 [2.5.0]: https://github.com/novr/Kawarimi/releases/tag/v2.5.0
 [2.4.0]: https://github.com/novr/Kawarimi/releases/tag/v2.4.0
 [2.3.1]: https://github.com/novr/Kawarimi/releases/tag/v2.3.1

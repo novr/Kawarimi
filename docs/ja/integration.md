@@ -25,7 +25,7 @@
 1. pin を **`from: "2.6.0"`** に上げる。
 2. **Henge**: **`KawarimiConfigView(client:)`** のみ — **`KawarimiConfigView(client:specType:)`** は削除。**`KawarimiAPIClient(baseURL:)`** を渡す（管理 API の **`…/__kawarimi/*`** に届く URL）。spec は **`GET …/__kawarimi/spec`**（**`HengeSpecSnapshot`**）で取得。Henge 専用ターゲットから生成 **`SpecResponse`** 依存を外せる ([#120](https://github.com/novr/Kawarimi/issues/120))。
 3. **Del**: 保存行あり → 1 回で **`remove`**。モックを止めつつ **`kawarimi.json` に行を残す**ときは **無効チップ + Save**（**Del ではない**）。
-4. **[CHANGELOG.md](../../CHANGELOG.md)** の **[Unreleased]**（リリース後 **2.6.0**）を参照。
+4. **[CHANGELOG.md](../../CHANGELOG.md)** の **2.6.0** を参照。
 
 **2.4.0 → 2.5.0**（追加のみ）:
 
