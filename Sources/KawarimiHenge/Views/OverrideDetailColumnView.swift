@@ -95,6 +95,7 @@ struct OverrideDetailColumnView: View {
         return OverrideListQueries.hasStoredRowMatchingDraft(
             mock,
             rowKey: endpointItem.rowKey,
+            endpoint: endpoint,
             operationId: endpoint.operationId,
             pathPrefix: apiPathPrefix,
             in: overrides
@@ -102,10 +103,11 @@ struct OverrideDetailColumnView: View {
     }
 
     private var canRemoveCurrentMockRow: Bool {
-        mock.isEnabled
+        hasUnsavedChanges
             || OverrideListQueries.hasStoredRowMatchingDraft(
                 mock,
                 rowKey: endpointItem.rowKey,
+                endpoint: endpoint,
                 operationId: endpoint.operationId,
                 pathPrefix: apiPathPrefix,
                 in: overrides

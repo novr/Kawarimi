@@ -89,6 +89,33 @@ final class DemoServerE2ETests {
         #expect(overrides.isEmpty)
     }
 
+    @Test func hengeAdminRemoveDeletesEnabledOverrideRow() async throws {
+        try await server.resetOverrides()
+
+        let greetPath = DemoServerE2EPaths.greetPath
+        let row = """
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,"body":"{\\"message\\":\\"Stored\\"}"}
+            """
+        let (configureResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "configure"),
+            body: Data(row.utf8)
+        )
+        #expect(configureResponse.statusCode == 200)
+
+        let (removeResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "remove"),
+            body: Data(row.utf8)
+        )
+        #expect(removeResponse.statusCode == 200)
+
+        let (statusResponse, statusData) = try await DemoServerHTTP.get(
+            server.kawarimiBaseURL.appending(path: "status")
+        )
+        #expect(statusResponse.statusCode == 200)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.isEmpty)
+    }
+
     @Test func hengeRemoveDeletesOverrideRow() async throws {
         try await server.resetOverrides()
 
@@ -176,6 +203,15 @@ final class DemoServerE2ETests {
         let spec = try DemoServerE2EJSON.decodeSpec(from: data)
         #expect(!spec.endpoints.isEmpty)
         #expect(spec.meta.title == "GreetingService")
+        let hengeSpec = try DemoServerE2EJSON.decodeHengeSpec(from: data)
+        #expect(hengeSpec.meta.title == spec.meta.title)
+        #expect(hengeSpec.meta.apiPathPrefix == spec.meta.apiPathPrefix)
+        #expect(hengeSpec.endpoints.count == spec.endpoints.count)
+        let specDelete = try #require(spec.endpoints.first { $0.operationId == "deleteItem" })
+        let hengeDelete = try #require(hengeSpec.endpoints.first { $0.operationId == "deleteItem" })
+        #expect(hengeDelete.method == specDelete.method)
+        #expect(hengeDelete.path == specDelete.path)
+
     }
 
     @Test func configureWithNamedExampleIdReturnsSpecBody() async throws {

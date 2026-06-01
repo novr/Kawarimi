@@ -41,6 +41,17 @@ package enum SavePayload {
         return disabledRowPayload(mock: mock, endpoint: endpoint)
     }
 
+    /// Spec chip **Save** should drop matching stored rows (follow Spec = no row in `kawarimi.json`), not upsert a disabled ghost.
+    package static func isSpecOnlyRemovePayload(
+        _ payload: MockOverride,
+        endpoint: any SpecEndpointProviding
+    ) -> Bool {
+        OverrideListQueries.persistableMockConfigurationEqual(
+            payload,
+            specOnlyDisablePayload(endpoint: endpoint)
+        )
+    }
+
     private static func specOnlyDisablePayload(endpoint: any SpecEndpointProviding) -> MockOverride {
         MockOverride(
             name: endpoint.operationId,

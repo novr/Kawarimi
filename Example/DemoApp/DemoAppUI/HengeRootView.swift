@@ -1,14 +1,18 @@
-import DemoAPI
+import DemoSupport
 import KawarimiCore
 import KawarimiHenge
 import SwiftUI
 
 struct HengeRootView: View {
-    private var client: KawarimiAPIClient {
-        KawarimiAPIClient(baseURL: KawarimiExampleConfig.clientBaseURL!)
-    }
-
     var body: some View {
-        KawarimiConfigView(client: client, specType: SpecResponse.self)
+        if let url = KawarimiDemoClientURL.clientBaseURL {
+            KawarimiConfigView(client: KawarimiAPIClient(baseURL: url))
+        } else {
+            ContentUnavailableView(
+                "Invalid server URL",
+                systemImage: "exclamationmark.triangle",
+                description: Text("Set KAWARIMI_BASE_URL or use the default \(KawarimiDemoClientURL.defaultBaseURL).")
+            )
+        }
     }
 }

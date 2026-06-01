@@ -38,6 +38,10 @@ enum DemoServerE2EJSON {
         try decoder.decode(SpecResponse.self, from: data)
     }
 
+    static func decodeHengeSpec(from data: Data) throws -> HengeSpecSnapshot {
+        try decoder.decode(HengeSpecSnapshot.self, from: data)
+    }
+
     static func decodeOverrides(from data: Data) throws -> [MockOverride] {
         try decoder.decode([MockOverride].self, from: data)
     }

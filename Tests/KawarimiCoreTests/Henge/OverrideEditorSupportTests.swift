@@ -202,7 +202,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Disable row planner
 
-@Test func disablePlannerWhenActiveConfiguresDisable() {
+@Test func disablePlannerWhenEnabledWithoutUnsavedDraftIsNoOp() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -216,14 +216,93 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: []
+        overrides: [],
+        hasUnsavedDraft: false
     )
-    guard case let .configureDisable(payload) = plan else {
-        Issue.record("expected configureDisable")
+    guard case .none = plan else {
+        Issue.record("expected none")
         return
     }
-    #expect(payload.isEnabled == false)
-    #expect(payload.statusCode == 200)
+}
+
+@Test func disablePlannerWhenInactiveWithUnsavedDraftClearsLocally() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: "{\"x\":1}", contentType: "application/json")
+    let plan = DisableMockPlanner.plan(
+        mock: mock,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [],
+        hasUnsavedDraft: true
+    )
+    guard case .clearDraftLocally = plan else {
+        Issue.record("expected clearDraftLocally")
+        return
+    }
+}
+
+@Test func disablePlannerWhenActiveWithoutStoredRowClearsDraftLocally() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let mock = MockOverride(path: "/x", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: "{}", contentType: "application/json")
+    let plan = DisableMockPlanner.plan(
+        mock: mock,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [],
+        hasUnsavedDraft: true
+    )
+    guard case .clearDraftLocally = plan else {
+        Issue.record("expected clearDraftLocally")
+        return
+    }
+}
+
+@Test func disablePlannerWhenActiveWithStoredRowRemoves() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/x",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "op",
+        path: "/x",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json"
+    )
+    let plan = DisableMockPlanner.plan(
+        mock: stored,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [stored],
+        hasUnsavedDraft: false
+    )
+    guard case let .removeThenReset(storedRow, _) = plan else {
+        Issue.record("expected removeThenReset")
+        return
+    }
+    #expect(storedRow.statusCode == 200)
+    #expect(storedRow.path == "/x")
 }
 
 @Test func disablePlannerWhenInactiveWithStoredRowRemoves() {
@@ -250,16 +329,127 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: [stored]
+        overrides: [stored],
+        hasUnsavedDraft: false
     )
-    guard case let .removeThenReset(removeKey, cleared) = plan else {
+    guard case let .removeThenReset(storedRow, cleared) = plan else {
         Issue.record("expected removeThenReset")
         return
     }
-    #expect(removeKey.statusCode == 200)
+    #expect(storedRow.statusCode == 200)
     #expect(cleared.isEnabled == false)
     #expect(cleared.statusCode == 200)
     #expect(cleared.exampleId == nil)
+}
+
+@Test func removeIdentityUsesStoredPathAndExampleId() {
+    let stored = MockOverride(
+        name: "getGreeting",
+        path: "/api/wrong-path",
+        method: .get,
+        statusCode: 200,
+        exampleId: "success",
+        isEnabled: true,
+        body: "{\"message\":\"Hello\"}",
+        contentType: "application/json"
+    )
+    let wire = OverrideListQueries.removeIdentity(for: stored, operationId: "getGreeting")
+    #expect(wire.path == "/api/wrong-path")
+    #expect(wire.exampleId == "success")
+    #expect(wire.statusCode == 200)
+    #expect(wire.isEnabled == false)
+    #expect(wire.body == nil)
+}
+
+@Test func storedOverrideForDelFindsLegacyRowWithoutExampleId() {
+    let formalBody = "{\"message\":\"Good day from API\"}"
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello from API\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: formalBody, exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let mock = MockOverride(
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: "formal",
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let found = OverrideListQueries.storedOverrideForDel(
+        mock: mock,
+        rowKey: item.rowKey,
+        endpoint: endpoint,
+        operationId: "getGreeting",
+        pathPrefix: "/api",
+        in: [stored]
+    )
+    #expect(found?.exampleId == nil)
+    #expect(found?.body == formalBody)
+}
+
+@Test func disablePlannerRemovesLegacyRowWithoutExampleIdWhenFormalChipSelected() {
+    let formalBody = "{\"message\":\"Good day from API\"}"
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello from API\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: formalBody, exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let mock = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: "formal",
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let plan = DisableMockPlanner.plan(
+        mock: mock,
+        endpoint: endpoint,
+        rowKey: item.rowKey,
+        pathPrefix: "/api",
+        overrides: [stored],
+        hasUnsavedDraft: false
+    )
+    guard case let .removeThenReset(storedRow, _) = plan else {
+        Issue.record("expected removeThenReset")
+        return
+    }
+    #expect(storedRow.exampleId == nil)
+    #expect(storedRow.body == formalBody)
 }
 
 @Test func disablePlannerWhenInactiveWithoutRowIsNoOp() {
@@ -276,7 +466,8 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         endpoint: endpoint,
         rowKey: item.rowKey,
         pathPrefix: "/api",
-        overrides: []
+        overrides: [],
+        hasUnsavedDraft: false
     )
     guard case .none = plan else {
         Issue.record("expected none")
@@ -445,7 +636,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func savePayloadSpecOnlySendsDisableEvenWhenStoredRowStillEnabled() {
+@Test func savePayloadSpecOnlyShapeIsDisabledFirstSpecRow() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -502,7 +693,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     let inactiveBuilt = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
     #expect(inactiveBuilt.isEnabled == false)
     let applyBuilt = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
-    // Draft matches spec template → both paths send the Spec-only disable payload.
+    // Draft matches spec template → build paths produce the Spec-only shape (store may remove instead of configure).
     #expect(applyBuilt.isEnabled == false)
 }
 
@@ -634,6 +825,48 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     #expect(opts.count == 3)
     #expect(opts.first?.isSpec == true)
+}
+
+@Test func chipOptionsOmitsSpecFollowGhostRowOnNamedExamples() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Formal\"}", exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let storedGhost = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let mock = MockOverride(
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let opts = ResponseChips.buildChipOptions(
+        mock: mock,
+        endpointItem: item,
+        endpoint: endpoint,
+        overrides: [storedGhost],
+        pathPrefix: "/api"
+    )
+    #expect(opts.count == 3)
+    #expect(opts.filter { !$0.isSpec && $0.specResponseListIndex == nil }.isEmpty)
+    #expect(OverrideListQueries.isSpecFollowGhostRow(storedGhost, endpoint: endpoint))
 }
 
 // MARK: - Primary override (Core-aligned)

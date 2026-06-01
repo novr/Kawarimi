@@ -530,7 +530,9 @@ struct OverrideEditorView: View {
             endpointItem: endpointItem,
             pathPrefix: specPathPrefix,
             endpoints: endpoints,
+            overrides: overrides,
             configureOverride: configureOverride,
+            removeOverride: removeOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
     }
@@ -540,7 +542,9 @@ struct OverrideEditorView: View {
             endpointItem: endpointItem,
             pathPrefix: specPathPrefix,
             endpoints: endpoints,
+            overrides: overrides,
             configureOverride: configureOverride,
+            removeOverride: removeOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )
     }

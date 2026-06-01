@@ -8,6 +8,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+
+- **KawarimiHenge**: **`KawarimiConfigView(client:specType:)`** removed — use **`KawarimiConfigView(client:)`** only. Henge UI targets no longer need to link a host-generated **`SpecResponse`**; spec and endpoints come from **`GET …/__kawarimi/spec`** via **`HengeSpecSnapshot`** ([#120](https://github.com/novr/Kawarimi/issues/120), [#132](https://github.com/novr/Kawarimi/pull/132), [#133](https://github.com/novr/Kawarimi/pull/133)).
+- **KawarimiHenge**: **Del (−)** with a matching **saved** override row now always calls **`POST …/__kawarimi/remove`** in one step. The previous two-step flow (Del while mock **on** → **`configure`** with **`isEnabled: false`** and body preserved, then Del again to **`remove`**) is removed. To turn a mock off but **keep** the row in **`kawarimi.json`**, use an **inactive chip + Save**, not **Del** ([#120](https://github.com/novr/Kawarimi/issues/120), [#136](https://github.com/novr/Kawarimi/pull/136)). **Del** prevents **Del-induced** disabled-row buildup; **Save** with **`isEnabled: false`** can still grow the file if you keep disabled presets.
+
+### Added
+
+- **KawarimiCore**: **`HengeSpecSnapshot`** and **`KawarimiAPIClient.fetchHengeSpec()`** — wire decode for Henge without a generated **`SpecResponse`** ([#132](https://github.com/novr/Kawarimi/pull/132)).
+- **Example**: **`DemoSupport`** / **`KawarimiDemoClientURL`** — shared admin **`baseURL`** for DemoApp and **HengeCli** (`KAWARIMI_BASE_URL`, default `http://127.0.0.1:8080/api`) ([#133](https://github.com/novr/Kawarimi/pull/133)).
+
+### Changed
+
+- **KawarimiHenge**: **`meta`**, **`endpoints`**, and the displayed server URL are loaded from the server spec snapshot after fetch (not from linked **`KawarimiSpec.meta`**) ([#133](https://github.com/novr/Kawarimi/pull/133)).
+- **KawarimiHengeCore**: **`DisableMockPlanner`** — saved row → **`remove`**; unsaved draft only → local clear toward Spec (no HTTP) ([#136](https://github.com/novr/Kawarimi/pull/136)).
+- **KawarimiHengeCore**: **Spec** chip **Save** / **Reset** — when the draft is Spec-only shaped, **`remove`** a matching stored default row instead of upserting a disabled placeholder (avoids spec-follow ghost rows in `kawarimi.json`). Supplemental chips hide disabled no-body rows for documented status codes ([#134](https://github.com/novr/Kawarimi/pull/134)).
+- **KawarimiHengeCore**: **Del** — **`storedOverrideForDel`** matches legacy rows saved without `exampleId` whose body matches a named OpenAPI example; **`removeIdentity`** uses the row’s persisted **`path`** / **`exampleId`** on **`POST …/remove`** ([#134](https://github.com/novr/Kawarimi/pull/134)).
+- **Example**: **HengeCli** no longer depends on **DemoAPI** ([#133](https://github.com/novr/Kawarimi/pull/133)).
+
+### Docs
+
+- **henge.md** / **ja/henge.md**: Henge SSoT, **`KawarimiConfigView(client:)`**, HengeCli base URL, **Del** semantics, Spec **Save**/**Reset** → **`remove`**, OpenAPI chips vs saved rows ([#136](https://github.com/novr/Kawarimi/pull/136), [#134](https://github.com/novr/Kawarimi/pull/134)).
+
+### Migration from 2.5.0
+
+1. **SwiftPM** — Bump pin to **`from: "2.6.0"`** when released (or track **`main`** until **v2.6.0**).
+2. **Henge UI** — Replace **`KawarimiConfigView(client:specType: SpecResponse.self)`** with **`KawarimiConfigView(client: KawarimiAPIClient(baseURL: …))`**. Pass only the admin **`baseURL`** (must reach **`…/__kawarimi/*`**). Remove **`import`** / SPM dependency on your generated API module from the Henge-only app target if it was only used for **`SpecResponse`**.
+3. **Del workflow** — Users who relied on **Del** to **turn off** an active mock while **keeping** the row must switch to **inactive chip + Save**. **Del** now **deletes** the saved row for the current chip (or clears an unsaved draft locally).
+4. **Example / HengeCli** — Optional **`KAWARIMI_BASE_URL`** env var; default matches Demo **`openapi.yaml`** servers entry.
+
 ## [2.5.0] - 2026-05-27
 
 ### Added
