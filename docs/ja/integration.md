@@ -86,7 +86,7 @@ targets: [
 ]
 ```
 
-ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。
+ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の `kawarimi.json` 保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。
 
 ## 2. OpenAPI の置き場所
 

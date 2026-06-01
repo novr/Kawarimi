@@ -56,6 +56,7 @@ struct DemoServer {
             configPath: configPath,
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
         )
+        await store.startFileWatchIfEnabled()
         await registerKawarimiRoutes(app: app, store: store)
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()

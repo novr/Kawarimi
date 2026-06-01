@@ -86,7 +86,7 @@ targets: [
 ]
 ```
 
-For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer** — see [henge.md](henge.md).
+For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to `kawarimi.json` on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`).
 
 ## 2. OpenAPI spec location
 

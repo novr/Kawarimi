@@ -41,7 +41,10 @@
 cd DemoPackage && swift build
 swift run DemoServer   # kawarimi.json は DemoPackage/ 配下
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
+KAWARIMI_CONFIG_WATCH=0 swift run DemoServer   # ファイル保存時の自動 reload を OFF
 ```
+
+**DemoServer** は既定で `kawarimi.json` を監視する（`KAWARIMI_CONFIG_WATCH` 未設定または `1`）。保存すると実行中サーバのオーバーライドが再読み込みされる。
 
 `HOST`（待受ホスト）と `PORT`（待受ポート、省略時は 8080）を環境変数で上書きできます。空きポートに任せる場合は `PORT=0` を指定します。listen 完了後に `http://host:port` を 1 行で受け取るには、`KAWARIMI_LISTEN_READY_FILE=/path/to/file` または `swift run DemoServer --print-listen-url /path/to/file`（stdout のみなら `--print-listen-url`）を使います。
 

@@ -146,7 +146,7 @@ API 対応:
 
 | 対象 | 挙動 |
 | --- | --- |
-| **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、または **`POST …/reload`** でディスクから再読み込み（ファイル監視なし）。**ディスクを直接編集しても reload または再起動まで反映されない**。reload は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の正規化を行わない。単一プロセス内では最後に完了した `configure` / `reload` / `reset` が勝つ。 |
+| **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の正規化を行わない。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
 | **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware
@@ -171,7 +171,7 @@ API 対応:
 | `POST {pathPrefix}/__kawarimi/remove` | `configure` と同じ同一視（正規化後の path・メソッド・`statusCode`・`exampleId`）で 1 行を削除。べき等 |
 | `GET {pathPrefix}/__kawarimi/status` | 有効なオーバーライド一覧を取得 |
 | `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除 |
-| `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**。`**204 No Content**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）。spec / `responseMap` の更新用ではない。 |
+| `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**（ファイル監視の reload と同じ）。`**204 No Content**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
 **KawarimiHenge（`KawarimiConfigView`）:** 管理 API の **`baseURL`** に揃えた **`KawarimiAPIClient`** のみ渡します（例: `http://127.0.0.1:8080/api`）。Spec とエンドポイントは **`GET …/__kawarimi/spec`**（`HengeSpecSnapshot`）で取得します。
@@ -298,6 +298,8 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 ファイル形式は `KawarimiConfig`（overrides 配列）です。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
+
+`KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 
 `kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` と `generateKawarimi` / `generateHandler` / `generateSpec` は `kawarimi-generator-config.yaml`）。
 
