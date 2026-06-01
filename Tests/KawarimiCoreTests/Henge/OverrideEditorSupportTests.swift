@@ -342,6 +342,68 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(cleared.exampleId == nil)
 }
 
+@Test func removeIdentityUsesStoredPathAndExampleId() {
+    let stored = MockOverride(
+        name: "getGreeting",
+        path: "/api/wrong-path",
+        method: .get,
+        statusCode: 200,
+        exampleId: "success",
+        isEnabled: true,
+        body: "{\"message\":\"Hello\"}",
+        contentType: "application/json"
+    )
+    let wire = OverrideListQueries.removeIdentity(for: stored, operationId: "getGreeting")
+    #expect(wire.path == "/api/wrong-path")
+    #expect(wire.exampleId == "success")
+    #expect(wire.statusCode == 200)
+    #expect(wire.isEnabled == false)
+    #expect(wire.body == nil)
+}
+
+@Test func storedOverrideForDelFindsLegacyRowWithoutExampleId() {
+    let formalBody = "{\"message\":\"Good day from API\"}"
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello from API\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: formalBody, exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let stored = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let mock = MockOverride(
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: "formal",
+        isEnabled: false,
+        body: formalBody,
+        contentType: "application/json"
+    )
+    let found = OverrideListQueries.storedOverrideForDel(
+        mock: mock,
+        rowKey: item.rowKey,
+        endpoint: endpoint,
+        operationId: "getGreeting",
+        pathPrefix: "/api",
+        in: [stored]
+    )
+    #expect(found?.exampleId == nil)
+    #expect(found?.body == formalBody)
+}
+
 @Test func disablePlannerRemovesLegacyRowWithoutExampleIdWhenFormalChipSelected() {
     let formalBody = "{\"message\":\"Good day from API\"}"
     let endpoint = FakeSpecEndpoint(
@@ -574,7 +636,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func savePayloadSpecOnlySendsDisableEvenWhenStoredRowStillEnabled() {
+@Test func savePayloadSpecOnlyShapeIsDisabledFirstSpecRow() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -631,7 +693,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     let inactiveBuilt = SavePayload.buildSaveInactive(mock: mock, endpoint: endpoint)
     #expect(inactiveBuilt.isEnabled == false)
     let applyBuilt = SavePayload.buildApplyPrimary(mock: mock, endpoint: endpoint)
-    // Draft matches spec template → both paths send the Spec-only disable payload.
+    // Draft matches spec template → build paths produce the Spec-only shape (store may remove instead of configure).
     #expect(applyBuilt.isEnabled == false)
 }
 

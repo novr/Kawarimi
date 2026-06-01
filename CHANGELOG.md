@@ -22,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **KawarimiHenge**: **`meta`**, **`endpoints`**, and the displayed server URL are loaded from the server spec snapshot after fetch (not from linked **`KawarimiSpec.meta`**) ([#133](https://github.com/novr/Kawarimi/pull/133)).
 - **KawarimiHengeCore**: **`DisableMockPlanner`** — saved row → **`remove`**; unsaved draft only → local clear toward Spec (no HTTP) ([#136](https://github.com/novr/Kawarimi/pull/136)).
+- **KawarimiHengeCore**: **Spec** chip **Save** / **Reset** — when the draft is Spec-only shaped, **`remove`** a matching stored default row instead of upserting a disabled placeholder (avoids spec-follow ghost rows in `kawarimi.json`). Supplemental chips hide disabled no-body rows for documented status codes ([#134](https://github.com/novr/Kawarimi/pull/134)).
+- **KawarimiHengeCore**: **Del** — **`storedOverrideForDel`** matches legacy rows saved without `exampleId` whose body matches a named OpenAPI example; **`removeIdentity`** uses the row’s persisted **`path`** / **`exampleId`** on **`POST …/remove`** ([#134](https://github.com/novr/Kawarimi/pull/134)).
 - **Example**: **HengeCli** no longer depends on **DemoAPI** ([#133](https://github.com/novr/Kawarimi/pull/133)).
 
 ### Docs
 
-- **henge.md** / **ja/henge.md**: Henge SSoT, **`KawarimiConfigView(client:)`**, HengeCli base URL, and **Del** semantics ([#136](https://github.com/novr/Kawarimi/pull/136)).
+- **henge.md** / **ja/henge.md**: Henge SSoT, **`KawarimiConfigView(client:)`**, HengeCli base URL, **Del** semantics, Spec **Save**/**Reset** → **`remove`**, OpenAPI chips vs saved rows ([#136](https://github.com/novr/Kawarimi/pull/136), [#134](https://github.com/novr/Kawarimi/pull/134)).
 
 ### Migration from 2.5.0
 
