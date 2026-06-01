@@ -95,6 +95,7 @@ struct OverrideDetailColumnView: View {
         return OverrideListQueries.hasStoredRowMatchingDraft(
             mock,
             rowKey: endpointItem.rowKey,
+            endpoint: endpoint,
             operationId: endpoint.operationId,
             pathPrefix: apiPathPrefix,
             in: overrides
@@ -106,6 +107,7 @@ struct OverrideDetailColumnView: View {
             || OverrideListQueries.hasStoredRowMatchingDraft(
                 mock,
                 rowKey: endpointItem.rowKey,
+                endpoint: endpoint,
                 operationId: endpoint.operationId,
                 pathPrefix: apiPathPrefix,
                 in: overrides

@@ -379,8 +379,10 @@ package final class OverrideEditorStore {
                     commitDetail(fresh)
                 }
                 markSavedClean()
-            case let .removeThenReset(removeKey, cleared):
-                let refreshed = try await removeOverride(removeKey)
+            case let .removeThenReset(storedRow, cleared):
+                let refreshed = try await removeOverride(
+                    OverrideListQueries.removeIdentity(for: storedRow, operationId: endpoint.operationId)
+                )
                 applyServerReset(mock: cleared, rowKey: endpointItem.rowKey)
                 markSavedClean()
                 resyncDetailAfterOverridesRefresh(

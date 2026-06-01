@@ -140,23 +140,70 @@ package enum OverrideListQueries {
         overrides.first { ov in
             overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
                 && ov.statusCode == statusCode
-                && MockExamplePresentation.normalizedExampleId(ov.exampleId) == MockExamplePresentation.normalizedExampleId(exampleId)
+                && MockExamplePresentation.exampleIdsEqual(ov.exampleId, exampleId)
         }
+    }
+
+    /// Stored row to delete for **Del** on the current chip — exact identity first, then legacy rows saved without `exampleId` but whose body matches the chip's OpenAPI template.
+    package static func storedOverrideForDel(
+        mock: MockOverride,
+        rowKey: EndpointRowKey,
+        endpoint: any SpecEndpointProviding,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> MockOverride? {
+        if let exact = storedOverride(
+            for: rowKey,
+            operationId: operationId,
+            pathPrefix: pathPrefix,
+            statusCode: mock.statusCode,
+            exampleId: mock.exampleId,
+            in: overrides
+        ) {
+            return exact
+        }
+        guard let chipExampleId = MockExamplePresentation.normalizedExampleId(mock.exampleId) else { return nil }
+        guard let specResp = endpoint.responseList.first(where: { r in
+            r.statusCode == mock.statusCode
+                && MockExamplePresentation.normalizedExampleId(r.exampleId) == chipExampleId
+        }) else { return nil }
+        return overrides.first { ov in
+            overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
+                && ov.statusCode == mock.statusCode
+                && MockExamplePresentation.normalizedExampleId(ov.exampleId) == nil
+                && bodiesAndContentTypesMatchSpec(mock: ov, spec: specResp)
+        }
+    }
+
+    /// Wire identity for ``POST …/__kawarimi/remove`` — uses the stored row's path / example id as persisted in `kawarimi.json`.
+    package static func removeIdentity(for stored: MockOverride, operationId: String) -> MockOverride {
+        MockOverride(
+            name: stored.name ?? operationId,
+            path: stored.path,
+            method: stored.method,
+            statusCode: stored.statusCode,
+            exampleId: stored.exampleId,
+            isEnabled: false,
+            body: nil,
+            contentType: nil
+        )
     }
 
     package static func hasStoredRowMatchingDraft(
         _ draft: MockOverride,
         rowKey: EndpointRowKey,
+        endpoint: any SpecEndpointProviding,
         operationId: String?,
         pathPrefix: String,
         in overrides: [MockOverride]
     ) -> Bool {
-        storedOverride(
-            for: rowKey,
+        storedOverrideForDel(
+            mock: draft,
+            rowKey: rowKey,
+            endpoint: endpoint,
             operationId: operationId,
             pathPrefix: pathPrefix,
-            statusCode: draft.statusCode,
-            exampleId: draft.exampleId,
             in: overrides
         ) != nil
     }

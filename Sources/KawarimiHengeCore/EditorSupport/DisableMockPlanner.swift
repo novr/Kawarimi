@@ -2,7 +2,7 @@ import KawarimiCore
 
 package enum DisableMockPlanner {
     package enum Plan: Equatable {
-        case removeThenReset(removeKey: MockOverride, cleared: MockOverride)
+        case removeThenReset(storedRow: MockOverride, cleared: MockOverride)
         case clearDraftLocally
         case none
     }
@@ -15,25 +15,18 @@ package enum DisableMockPlanner {
         overrides: [MockOverride],
         hasUnsavedDraft: Bool
     ) -> Plan {
-        let hasRow = OverrideListQueries.hasStoredRowMatchingDraft(
-            mock,
+        if let stored = OverrideListQueries.storedOverrideForDel(
+            mock: mock,
             rowKey: rowKey,
+            endpoint: endpoint,
             operationId: endpoint.operationId,
             pathPrefix: pathPrefix,
             in: overrides
-        )
-        if hasRow {
-            let removeKey = MockOverride(
-                name: endpoint.operationId,
-                path: endpoint.path,
-                method: endpoint.method,
-                statusCode: mock.statusCode,
-                exampleId: mock.exampleId,
-                isEnabled: false,
-                body: nil,
-                contentType: nil
+        ) {
+            return .removeThenReset(
+                storedRow: stored,
+                cleared: clearedDraft(for: endpoint)
             )
-            return .removeThenReset(removeKey: removeKey, cleared: clearedDraft(for: endpoint))
         }
         if hasUnsavedDraft {
             return .clearDraftLocally
