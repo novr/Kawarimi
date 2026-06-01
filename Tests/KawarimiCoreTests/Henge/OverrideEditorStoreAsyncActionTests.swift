@@ -46,6 +46,7 @@ private enum TestAsyncError: LocalizedError {
     await store.applyWithBody(
         endpointItem: item,
         configureOverride: { _ in throw TestAsyncError.kaboom },
+        removeOverride: { _ in [] },
         setErrorMessage: { lastError = $0 }
     )
     #expect(lastError == "kaboom")
@@ -74,6 +75,7 @@ private enum TestAsyncError: LocalizedError {
             #expect(sent.isEnabled == true)
             return [sent]
         },
+        removeOverride: { _ in [] },
         setErrorMessage: { steps.append($0) }
     )
     #expect(steps == [nil])
@@ -111,6 +113,7 @@ private enum TestAsyncError: LocalizedError {
         pathPrefix: "",
         endpoints: [endpoint],
         configureOverride: { _ in [fromServer] },
+        removeOverride: { _ in [] },
         setErrorMessage: { _ in }
     )
     #expect(store.detail?.mock.exampleId == "serverExample")
@@ -148,6 +151,7 @@ private enum TestAsyncError: LocalizedError {
         pathPrefix: "",
         endpoints: [endpoint],
         configureOverride: { _ in [server503] },
+        removeOverride: { _ in [] },
         setErrorMessage: { _ in }
     )
     #expect(store.detail?.mock.statusCode == 503)
@@ -179,6 +183,7 @@ private enum TestAsyncError: LocalizedError {
             #expect(sent.body == "{\"x\":1}")
             return [sent]
         },
+        removeOverride: { _ in [] },
         setErrorMessage: { steps.append($0) }
     )
     #expect(steps == [nil])
@@ -203,9 +208,71 @@ private enum TestAsyncError: LocalizedError {
             callCount += 1
             return []
         },
+        removeOverride: { _ in [] },
         setErrorMessage: { _ in }
     )
     #expect(callCount == 0)
+}
+
+@MainActor
+@Test func applyWithBodySpecOnlySaveRemovesStoredGhostRow() async {
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Formal\"}", exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let storedGhost = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let store = OverrideEditorStore()
+    store.detail = OverrideDetailDraft(
+        mock: MockOverride(
+            name: "getGreeting",
+            path: "/api/greet",
+            method: .get,
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: false,
+            body: nil,
+            contentType: nil
+        ),
+        validationMessage: nil,
+        isDirty: true
+    )
+    var configureCalls = 0
+    var removeCalls = 0
+    await store.applyWithBody(
+        endpointItem: item,
+        pathPrefix: "/api",
+        endpoints: [endpoint],
+        overrides: [storedGhost],
+        configureOverride: { _ in
+            configureCalls += 1
+            return [storedGhost]
+        },
+        removeOverride: { key in
+            removeCalls += 1
+            #expect(key.statusCode == 200)
+            #expect(key.exampleId == nil)
+            return []
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(configureCalls == 0)
+    #expect(removeCalls == 1)
+    #expect(store.detail?.isDirty == false)
 }
 
 @MainActor
@@ -318,9 +385,21 @@ private enum TestAsyncError: LocalizedError {
         isDirty: false
     )
     var err: String?
+    let storedGhost = MockOverride(
+        name: "op",
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
     await store.clearOverride(
         endpointItem: item,
+        overrides: [storedGhost],
         configureOverride: { _ in throw TestAsyncError.kaboom },
+        removeOverride: { _ in throw TestAsyncError.kaboom },
         setErrorMessage: { err = $0 }
     )
     #expect(err == "kaboom")

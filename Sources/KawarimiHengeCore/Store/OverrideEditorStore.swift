@@ -227,13 +227,16 @@ package final class OverrideEditorStore {
         endpointItem: SpecEndpointItem,
         pathPrefix: String = "",
         endpoints: [any SpecEndpointProviding] = [],
+        overrides: [MockOverride] = [],
         configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         await applyWithPayloadBuilder(
             endpointItem: endpointItem,
             pathPrefix: pathPrefix,
             endpoints: endpoints,
+            overrides: overrides,
             build: {
                 SavePayload.build(
                     mock: $0.mock,
@@ -242,6 +245,7 @@ package final class OverrideEditorStore {
                 )
             },
             configureOverride: configureOverride,
+            removeOverride: removeOverride,
             setErrorMessage: setErrorMessage
         )
     }
@@ -250,15 +254,33 @@ package final class OverrideEditorStore {
         endpointItem: SpecEndpointItem,
         pathPrefix: String,
         endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride],
         build: (OverrideDetailDraft) -> MockOverride,
         configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         setErrorMessage(nil)
         guard var draft = detail, draft.endpointRowKey == endpointItem.rowKey else { return }
+        let endpoint = endpointItem.endpoint
         let override = build(draft)
         do {
-            let refreshed = try await configureOverride(override)
+            let refreshed: [MockOverride]
+            if SavePayload.isSpecOnlyRemovePayload(override, endpoint: endpoint),
+               let stored = OverrideListQueries.storedOverride(
+                   for: endpointItem.rowKey,
+                   operationId: endpoint.operationId,
+                   pathPrefix: pathPrefix,
+                   statusCode: override.statusCode,
+                   exampleId: override.exampleId,
+                   in: overrides
+               ) {
+                refreshed = try await removeOverride(stored)
+            } else if SavePayload.isSpecOnlyRemovePayload(override, endpoint: endpoint) {
+                refreshed = overrides
+            } else {
+                refreshed = try await configureOverride(override)
+            }
             draft.mock.isEnabled = override.isEnabled
             draft.mock.statusCode = override.statusCode
             draft.mock.exampleId = override.exampleId
@@ -277,7 +299,9 @@ package final class OverrideEditorStore {
         endpointItem: SpecEndpointItem,
         pathPrefix: String = "",
         endpoints: [any SpecEndpointProviding] = [],
+        overrides: [MockOverride] = [],
         configureOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
         setErrorMessage: @escaping (String?) -> Void
     ) async {
         let endpoint = endpointItem.endpoint
@@ -293,7 +317,22 @@ package final class OverrideEditorStore {
             contentType: nil
         )
         do {
-            let refreshed = try await configureOverride(reset)
+            let refreshed: [MockOverride]
+            if SavePayload.isSpecOnlyRemovePayload(reset, endpoint: endpoint),
+               let stored = OverrideListQueries.storedOverride(
+                   for: endpointItem.rowKey,
+                   operationId: endpoint.operationId,
+                   pathPrefix: pathPrefix,
+                   statusCode: reset.statusCode,
+                   exampleId: reset.exampleId,
+                   in: overrides
+               ) {
+                refreshed = try await removeOverride(stored)
+            } else if SavePayload.isSpecOnlyRemovePayload(reset, endpoint: endpoint) {
+                refreshed = overrides
+            } else {
+                refreshed = try await configureOverride(reset)
+            }
             applyServerReset(mock: reset, rowKey: endpointItem.rowKey)
             resyncDetailAfterOverridesRefresh(pathPrefix: pathPrefix, endpoints: endpoints, overrides: refreshed)
         } catch {

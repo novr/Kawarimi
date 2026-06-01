@@ -716,6 +716,48 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(opts.first?.isSpec == true)
 }
 
+@Test func chipOptionsOmitsSpecFollowGhostRowOnNamedExamples() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/api/greet",
+        method: .get,
+        operationId: "getGreeting",
+        responseList: [
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Hello\"}", exampleId: "success", summary: nil, description: nil),
+            FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"message\":\"Formal\"}", exampleId: "formal", summary: nil, description: nil),
+        ]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let storedGhost = MockOverride(
+        name: "getGreeting",
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let mock = MockOverride(
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil
+    )
+    let opts = ResponseChips.buildChipOptions(
+        mock: mock,
+        endpointItem: item,
+        endpoint: endpoint,
+        overrides: [storedGhost],
+        pathPrefix: "/api"
+    )
+    #expect(opts.count == 3)
+    #expect(opts.filter { !$0.isSpec && $0.specResponseListIndex == nil }.isEmpty)
+    #expect(OverrideListQueries.isSpecFollowGhostRow(storedGhost, endpoint: endpoint))
+}
+
 // MARK: - Primary override (Core-aligned)
 
 @Test func hengePrimaryMatchesCoreForOperationIdDespitePathTypo() {

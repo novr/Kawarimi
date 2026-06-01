@@ -203,10 +203,22 @@ package enum OverrideListQueries {
             overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
         }
         return hits.filter { ov in
-            !endpoint.responseList.contains { r in
+            if isSpecFollowGhostRow(ov, endpoint: endpoint) {
+                return false
+            }
+            return !endpoint.responseList.contains { r in
                 r.statusCode == ov.statusCode && MockExamplePresentation.exampleIdsEqual(r.exampleId, ov.exampleId)
             }
         }
+    }
+
+    /// Disabled preset with no custom JSON for a documented status — not a supplemental chip (e.g. Spec-only Save residue with `exampleId: nil` on named-example operations).
+    package static func isSpecFollowGhostRow(
+        _ ov: MockOverride,
+        endpoint: any SpecEndpointProviding
+    ) -> Bool {
+        guard !ov.isEnabled, !ov.hasEffectiveCustomBody else { return false }
+        return endpoint.responseList.contains { $0.statusCode == ov.statusCode }
     }
 
     package static func specContainsResponse(
