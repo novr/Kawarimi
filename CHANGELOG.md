@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **KawarimiCore**: **`KawarimiConfigFileWatcher`** and **`KawarimiConfigStore/startFileWatchIfEnabled()`** — reload `kawarimi.json` when the config file changes on disk (debounced; macOS vnode, Linux inotify). Opt out with **`KAWARIMI_CONFIG_WATCH=0`** (unset or **`1`** → enabled). **DemoServer** enables watch at startup.
+- **KawarimiCore**: **`KawarimiAdminRoute`**, **`adminURL(baseURL:route:)`**, and **`KawarimiAdminSpecWire.validate(_:)`** — shared admin HTTP route contract and spec wire decode validation.
+- **Example**: **DemoServer** admin route segments from **`KawarimiAdminRoute`**; shared **`DemoServerSpecResponse`** wire builder; startup and **`GET …/spec`** both serve **`JSONEncoder`** output validated by **`KawarimiAdminSpecWire`**; E2E asserts HTTP spec bytes decode as **`HengeSpecSnapshot`**; admin success statuses follow **`KawarimiAdminRoute.successStatusCode`**.
 
 ## [2.6.0] - 2026-05-31
 

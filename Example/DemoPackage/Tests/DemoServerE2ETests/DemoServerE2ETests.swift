@@ -39,7 +39,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -50,7 +50,7 @@ final class DemoServerE2ETests {
         #expect(greetJSON.message == "From E2E test")
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -69,7 +69,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -82,7 +82,7 @@ final class DemoServerE2ETests {
         #expect(greetJSON.message == "Hello from API")
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -97,19 +97,19 @@ final class DemoServerE2ETests {
             {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,"body":"{\\"message\\":\\"Stored\\"}"}
             """
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: Data(row.utf8)
         )
         #expect(configureResponse.statusCode == 200)
 
         let (removeResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "remove"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath),
             body: Data(row.utf8)
         )
         #expect(removeResponse.statusCode == 200)
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -124,19 +124,19 @@ final class DemoServerE2ETests {
             {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":false}
             """
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: Data(row.utf8)
         )
         #expect(configureResponse.statusCode == 200)
 
         let (removeResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "remove"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath),
             body: Data(row.utf8)
         )
         #expect(removeResponse.statusCode == 200)
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -154,14 +154,14 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
 
-        let reloadURL = server.kawarimiBaseURL.appending(path: "reload")
+        let reloadURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.reload.relativePath)
         let (unchangedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
-        #expect(unchangedResponse.statusCode == 204)
+        #expect(unchangedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
         #expect(unchangedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "unchanged")
 
         let diskEdit = Data(
@@ -173,7 +173,7 @@ final class DemoServerE2ETests {
         try server.writeConfigOnDisk(diskEdit)
 
         let (appliedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
-        #expect(appliedResponse.statusCode == 204)
+        #expect(appliedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
         #expect(appliedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "applied")
 
         let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
@@ -191,13 +191,13 @@ final class DemoServerE2ETests {
             "body":"{\\"message\\":\\"Good day from API\\"}","contentType":"application/json"}
             """
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: Data(configureRow.utf8)
         )
         #expect(configureResponse.statusCode == 200)
 
         let (statusBeforeResponse, statusBeforeData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusBeforeResponse.statusCode == 200)
         let before = try DemoServerE2EJSON.decodeOverrides(from: statusBeforeData)
@@ -208,13 +208,13 @@ final class DemoServerE2ETests {
             {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":false}
             """
         let (removeResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "remove"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath),
             body: Data(removeWire.utf8)
         )
         #expect(removeResponse.statusCode == 200)
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -233,7 +233,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -255,7 +255,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -274,10 +274,11 @@ final class DemoServerE2ETests {
         try await server.resetOverrides()
 
         let (response, data) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "spec")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.spec.relativePath)
         )
-        #expect(response.statusCode == 200)
+        #expect(response.statusCode == KawarimiAdminRoute.spec.successStatusCode)
         #expect(DemoServerE2EHTTPChecks.isJSONContentType(response))
+        try KawarimiAdminSpecWire.validate(data)
         let spec = try DemoServerE2EJSON.decodeSpec(from: data)
         #expect(!spec.endpoints.isEmpty)
         #expect(spec.meta.title == "GreetingService")
@@ -302,7 +303,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -323,7 +324,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
@@ -334,7 +335,7 @@ final class DemoServerE2ETests {
         #expect(body.message == "Hello from API")
 
         let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: "status")
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
         )
         #expect(statusResponse.statusCode == 200)
         let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
@@ -353,7 +354,7 @@ final class DemoServerE2ETests {
                 """.utf8
             )
             let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-                server.kawarimiBaseURL.appending(path: "configure"),
+                server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
                 body: configureBody
             )
             #expect(configureResponse.statusCode == 200)
@@ -384,7 +385,7 @@ final class DemoServerE2ETests {
         try await server.resetOverrides()
 
         let (response, _) = try await DemoServerHTTP.post(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: Data("{".utf8),
             contentType: "application/json"
         )
@@ -403,7 +404,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (response, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(response.statusCode == 413)
@@ -420,7 +421,7 @@ final class DemoServerE2ETests {
             """.utf8
         )
         let (configureResponse, _) = try await DemoServerHTTP.postJSON(
-            server.kawarimiBaseURL.appending(path: "configure"),
+            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)

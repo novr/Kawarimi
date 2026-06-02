@@ -41,7 +41,7 @@ public struct KawarimiAPIClient: Sendable {
     }
 
     private func specWireData() async throws -> Data {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("spec")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .spec)
         let (data, response) = try await session.data(from: url)
         try validateHTTPStatus(response, data: data)
         return data
@@ -68,7 +68,7 @@ public struct KawarimiAPIClient: Sendable {
     }
 
     public func fetchOverrides() async throws -> [MockOverride] {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("status")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .status)
         let (data, response) = try await session.data(from: url)
         try validateHTTPStatus(response, data: data)
         return try JSONDecoder().decode([MockOverride].self, from: data)
@@ -76,10 +76,10 @@ public struct KawarimiAPIClient: Sendable {
 
     /// Upserts one override. JSON may include `exampleId` (or `null`/omit for the default example); see Henge docs.
     public func configure(override: MockOverride) async throws {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("configure")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .configure)
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = KawarimiAdminRoute.configure.httpMethod.rawValue
+        request.setValue(KawarimiAdminHeaders.jsonContentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(override)
         let (data, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: data)
@@ -87,10 +87,10 @@ public struct KawarimiAPIClient: Sendable {
 
     /// Removes one override row from config (same identity as ``configure(override:)``).
     public func removeOverride(override: MockOverride) async throws {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("remove")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .remove)
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpMethod = KawarimiAdminRoute.remove.httpMethod.rawValue
+        request.setValue(KawarimiAdminHeaders.jsonContentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(override)
         let (data, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: data)
@@ -123,23 +123,23 @@ public struct KawarimiAPIClient: Sendable {
     }
 
     public func reset() async throws {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("reset")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reset)
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = KawarimiAdminRoute.reset.httpMethod.rawValue
         let (_, response) = try await session.data(for: request)
         try validateHTTPStatus(response, data: nil)
     }
 
-    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects `204` and `X-Kawarimi-Reload`.
+    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode` and `X-Kawarimi-Reload`.
     public func reload() async throws -> KawarimiConfigReloadResult {
-        let url = baseURL.appendingPathComponent("__kawarimi").appendingPathComponent("reload")
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reload)
         var request = URLRequest(url: url)
-        request.httpMethod = "POST"
+        request.httpMethod = KawarimiAdminRoute.reload.httpMethod.rawValue
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw KawarimiAPIError(statusCode: 0, data: data)
         }
-        guard http.statusCode == 204 else {
+        guard http.statusCode == KawarimiAdminRoute.reload.successStatusCode else {
             throw KawarimiAPIError(statusCode: http.statusCode, data: data)
         }
         let raw = http.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) ?? ""

@@ -6,8 +6,18 @@ import KawarimiServer
 import OpenAPIVapor
 import Vapor
 
-enum DemoServerError: Error {
+enum DemoServerError: Error, LocalizedError {
     case invalidStubURL
+    case invalidSpecWire(underlying: Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidStubURL:
+            "Could not build stub server URL for OpenAPI handler registration"
+        case .invalidSpecWire(let underlying):
+            "Spec wire JSON failed HengeSpecSnapshot validation: \(underlying)"
+        }
+    }
 }
 
 private func applyListenConfiguration(to app: Application) {
@@ -40,6 +50,12 @@ private func resolvedKawarimiConfigPath() -> String {
 @main
 struct DemoServer {
     static func main() async throws {
+        do {
+            try DemoServerSpecResponse.validateWireAtStartup()
+        } catch {
+            throw DemoServerError.invalidSpecWire(underlying: error)
+        }
+
         let app = try await Application.make()
         applyListenConfiguration(to: app)
         let launch = DemoServerLaunchOptions.parse()

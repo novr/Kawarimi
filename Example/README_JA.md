@@ -21,6 +21,12 @@
 
 サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)。
 
+**DemoServer** は管理 segment を **`KawarimiAdminRoute`** / **`KawarimiAdminPath`** から登録し、**`main.swift`** は listen 前に **`DemoServerSpecResponse.validateWireAtStartup()`** を呼ぶ。**`GET …/spec`** も **`DemoServerSpecResponse.encodedWireData()`**（同一 **`JSONEncoder`** 出力）を返す。
+
+```swift
+try DemoServerSpecResponse.validateWireAtStartup()
+```
+
 動的モックは製品 **KawarimiServer** の **`KawarimiServerMiddleware`**（`registerHandlers(middlewares:)`）を使用。詳細は [henge.md](../docs/ja/henge.md)。
 
 ## セキュリティ（サンプル限定）

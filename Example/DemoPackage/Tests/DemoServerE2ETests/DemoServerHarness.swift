@@ -3,11 +3,12 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+import KawarimiCore
 
 /// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
 struct DemoServerHarness {
     private(set) var baseURL: URL
-    var kawarimiBaseURL: URL { baseURL.appending(path: "__kawarimi") }
+    var kawarimiBaseURL: URL { baseURL.appending(path: KawarimiAdminPath.managementSegment) }
 
     let configFileURL: URL
 
@@ -62,14 +63,15 @@ struct DemoServerHarness {
     }
 
     func resetOverrides() async throws {
+        let resetURL = kawarimiBaseURL.appending(path: KawarimiAdminRoute.reset.relativePath)
         let (response, _) = try await DemoServerHTTP.postJSON(
-            kawarimiBaseURL.appending(path: "reset"),
+            resetURL,
             body: Data("{}".utf8)
         )
-        guard response.statusCode == 200 else {
+        guard response.statusCode == KawarimiAdminRoute.reset.successStatusCode else {
             throw HarnessError.unexpectedHTTPStatus(
                 response.statusCode,
-                url: kawarimiBaseURL.appending(path: "reset"),
+                url: resetURL,
                 stderr: stderrMonitor.snapshot()
             )
         }
