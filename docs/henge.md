@@ -147,7 +147,7 @@ API summary:
 
 | What | Behavior |
 | --- | --- |
-| **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, or when you call **`POST …/reload`** to re-read the config file from disk (not file-watched). **Editing `kawarimi.json` on disk does not auto-apply** until reload or server restart. Reload uses the **same load rules as startup** (invalid JSON → empty overrides). Disk loads do **not** run `configure` normalization. Within a single server process, the last completed `configure` / `reload` / `reset` wins. |
+| **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads do **not** run `configure` normalization. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
 | **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware
@@ -172,7 +172,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/remove` | Remove one override row that matches the same identity as `configure` (normalized path, method, `statusCode`, `exampleId`). Idempotent. |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
-| `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore`. Returns **`204 No Content`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory). Not for spec / `responseMap` refresh. |
+| `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`204 No Content`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
@@ -299,6 +299,8 @@ If you need **one** client that switches real vs mock at runtime, implement a sm
 The file format uses `KawarimiConfig` (overrides array).
 
 Set `KAWARIMI_CONFIG` to override the config file path.
+
+`KAWARIMI_CONFIG_WATCH` controls automatic reload when the config file changes on disk: **unset** or **`1`** → watch enabled; **`0`** → disabled. Values such as **`false`** are treated as enabled (only **`0`** turns watch off). **DemoServer** calls `startFileWatchIfEnabled()` at startup; other hosts should do the same if they want the same behavior.
 
 `kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy` and codegen toggles (`generateKawarimi`, `generateHandler`, `generateSpec`).
 

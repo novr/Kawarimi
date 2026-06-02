@@ -41,7 +41,10 @@ This sample is **not** hardened for production.
 cd DemoPackage && swift build
 swift run DemoServer   # kawarimi.json under DemoPackage/
 KAWARIMI_CONFIG=/tmp/kawarimi.json swift run DemoServer
+KAWARIMI_CONFIG_WATCH=0 swift run DemoServer   # disable auto-reload on file save
 ```
+
+**DemoServer** watches `kawarimi.json` by default (`KAWARIMI_CONFIG_WATCH` unset or `1`). Saving the file reloads overrides into the running server.
 
 Override the listen address with `HOST` and `PORT` (default port **8080**). Use `PORT=0` to bind an ephemeral port. After the server is listening, write `http://host:port` to a file with `KAWARIMI_LISTEN_READY_FILE=/path/to/file` or `swift run DemoServer --print-listen-url /path/to/file` (stdout only: `--print-listen-url` with no path).
 

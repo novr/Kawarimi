@@ -42,6 +42,7 @@ public actor KawarimiConfigStore {
     private let configPath: String
     private let prefix: String
     private var cachedOverrides: [MockOverride]
+    private var fileWatcher: KawarimiConfigFileWatcher?
 
     public var pathPrefix: String { prefix }
 
@@ -72,6 +73,23 @@ public actor KawarimiConfigStore {
         }
         cachedOverrides = loaded
         return .applied
+    }
+
+    /// Watches ``configPath`` on disk when ``policy`` is enabled (default: ``KawarimiConfigWatchPolicy/fromEnvironment()``).
+    public func startFileWatchIfEnabled(
+        policy: KawarimiConfigWatchPolicy = KawarimiConfigWatchPolicy.fromEnvironment()
+    ) {
+        guard policy.isEnabled, fileWatcher == nil else { return }
+        let path = configPath
+        fileWatcher = KawarimiConfigFileWatcher(path: path) { [weak self] in
+            guard let self else { return }
+            Task { await self.reloadFromDisk() }
+        }
+    }
+
+    public func stopFileWatch() {
+        fileWatcher?.cancel()
+        fileWatcher = nil
     }
 
     private static func loadOverridesFromDisk(at absolute: String) -> [MockOverride] {

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore**: **`KawarimiConfigFileWatcher`** and **`KawarimiConfigStore/startFileWatchIfEnabled()`** — reload `kawarimi.json` when the config file changes on disk (debounced; macOS vnode, Linux inotify). Opt out with **`KAWARIMI_CONFIG_WATCH=0`** (unset or **`1`** → enabled). **DemoServer** enables watch at startup.
+
 ## [2.6.0] - 2026-05-31
 
 ### Breaking
