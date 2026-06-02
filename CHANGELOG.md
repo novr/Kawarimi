@@ -8,11 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-06-02
+
 ### Added
 
-- **KawarimiCore**: **`KawarimiConfigFileWatcher`** and **`KawarimiConfigStore/startFileWatchIfEnabled()`** — reload `kawarimi.json` when the config file changes on disk (debounced; macOS vnode, Linux inotify). Opt out with **`KAWARIMI_CONFIG_WATCH=0`** (unset or **`1`** → enabled). **DemoServer** enables watch at startup.
-- **KawarimiCore**: **`KawarimiAdminRoute`**, **`adminURL(baseURL:route:)`**, and **`KawarimiAdminSpecWire.validate(_:)`** — shared admin HTTP route contract and spec wire decode validation.
-- **Example**: **DemoServer** admin route segments from **`KawarimiAdminRoute`**; shared **`DemoServerSpecResponse`** wire builder; startup and **`GET …/spec`** both serve **`JSONEncoder`** output validated by **`KawarimiAdminSpecWire`**; E2E asserts HTTP spec bytes decode as **`HengeSpecSnapshot`**; admin success statuses follow **`KawarimiAdminRoute.successStatusCode`**.
+- **KawarimiCore**: **`KawarimiConfigFileWatcher`** and **`KawarimiConfigStore/startFileWatchIfEnabled()`** — reload `kawarimi.json` when the config file changes on disk (debounced; macOS vnode, Linux inotify). Opt out with **`KAWARIMI_CONFIG_WATCH=0`** (unset or **`1`** → enabled). **DemoServer** enables watch at startup ([#141](https://github.com/novr/Kawarimi/pull/141)).
+- **KawarimiCore**: **`KawarimiAdminRoute`**, **`adminURL(baseURL:route:)`**, and **`KawarimiAdminSpecWire.validate(_:)`** — shared admin HTTP route contract and spec wire decode validation ([#144](https://github.com/novr/Kawarimi/pull/144)).
+- **Example**: **DemoServer** admin route segments from **`KawarimiAdminRoute`**; shared **`DemoServerSpecResponse`** wire builder; startup and **`GET …/spec`** both serve **`JSONEncoder`** output validated by **`KawarimiAdminSpecWire`**; E2E asserts HTTP spec bytes decode as **`HengeSpecSnapshot`**; admin success statuses follow **`KawarimiAdminRoute.successStatusCode`** ([#144](https://github.com/novr/Kawarimi/pull/144)).
+- **Example**: expanded **DemoServerE2ETests** for admin **`reload`**, legacy **`remove`**, and **`KawarimiAdminRoute`** paths ([#143](https://github.com/novr/Kawarimi/pull/143)).
+
+### Migration from 2.6.0
+
+1. **SwiftPM** — Bump pin to **`from: "2.7.0"`**.
+2. **Server** — Optional: call **`await store.startFileWatchIfEnabled()`** after **`KawarimiConfigStore`** init so disk edits to **`kawarimi.json`** apply without restart (disable with **`KAWARIMI_CONFIG_WATCH=0`**).
+3. **Server** — Optional: register admin segments via **`KawarimiAdminPath`** / **`KawarimiAdminRoute`** and validate spec wire at startup (**`KawarimiAdminSpecWire.validate`**) — see [integration.md](docs/integration.md) and [Example/README.md](Example/README.md).
+4. **Henge / client-only** — No required API changes unless you adopt the new admin route helpers.
 
 ## [2.6.0] - 2026-05-31
 
@@ -359,6 +369,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[2.7.0]: https://github.com/novr/Kawarimi/releases/tag/v2.7.0
 [2.6.0]: https://github.com/novr/Kawarimi/releases/tag/v2.6.0
 [2.5.0]: https://github.com/novr/Kawarimi/releases/tag/v2.5.0
 [2.4.0]: https://github.com/novr/Kawarimi/releases/tag/v2.4.0
