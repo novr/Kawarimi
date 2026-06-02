@@ -20,6 +20,13 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
+**2.6.0 → 2.7.0** (additive):
+
+1. Bump pin to **`from: "2.7.0"`**.
+2. **Server**: optional **`await store.startFileWatchIfEnabled()`** after **`KawarimiConfigStore`** init; disable with **`KAWARIMI_CONFIG_WATCH=0`**.
+3. **Server**: optional **`KawarimiAdminRoute`** / **`KawarimiAdminSpecWire.validate`** for admin wiring — see [henge.md](henge.md) and [Example/README.md](../Example/README.md).
+4. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.7.0**.
+
 **2.5.0 → 2.6.0** (breaking — Henge SSoT + Del):
 
 1. Bump pin to **`from: "2.6.0"`**.
@@ -68,7 +75,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.6.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.7.0"),
 ],
 targets: [
     .target(

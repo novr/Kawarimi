@@ -20,6 +20,13 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
+**2.6.0 → 2.7.0**（追加のみ）:
+
+1. pin を **`from: "2.7.0"`** に上げる。
+2. **サーバー**: **`KawarimiConfigStore`** 作成後に任意で **`await store.startFileWatchIfEnabled()`**（**`KAWARIMI_CONFIG_WATCH=0`** で無効）。
+3. **サーバー**: 任意で **`KawarimiAdminRoute`** / **`KawarimiAdminSpecWire.validate`** で管理ルートを揃える — [henge.md](henge.md)、[Example/README.md](../Example/README.md)。
+4. **[CHANGELOG.md](../../CHANGELOG.md)** の **2.7.0** を参照。
+
 **2.5.0 → 2.6.0**（破壊的 — Henge SSoT + Del）:
 
 1. pin を **`from: "2.6.0"`** に上げる。
@@ -68,7 +75,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.6.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.7.0"),
 ],
 targets: [
     .target(
