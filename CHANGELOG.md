@@ -101,7 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- **`AGENT.md`**: patch releases do not update **`docs/integration.md`**; trim redundant integration migration notes.
+- **`AGENTS.md`**: patch releases do not update **`docs/integration.md`**; trim redundant integration migration notes.
 
 ## [2.2.1] - 2026-05-20
 
@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- **`AGENT.md`** — CHANGELOG structure contract, Conventional Commits / **`chore(release)`**, and two-phase release flow ([#91](https://github.com/novr/Kawarimi/issues/91)).
+- **`AGENTS.md`** — CHANGELOG structure contract, Conventional Commits / **`chore(release)`**, and two-phase release flow ([#91](https://github.com/novr/Kawarimi/issues/91)).
 
 ## [2.2.0] - 2026-05-19
 
@@ -176,7 +176,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`AGENT.md`** — contributor and agent guidelines ([#59](https://github.com/novr/Kawarimi/pull/59)).
+- **`AGENTS.md`** — contributor and agent guidelines ([#59](https://github.com/novr/Kawarimi/pull/59)).
 - **CI**: **`ci.yaml`** — skip **macOS** **`swift test`** / **`kawarimi-perf-report`** when changes touch only paths outside code, tests, Example, Scripts, and workflow filters (documentation-only PRs) ([#60](https://github.com/novr/Kawarimi/pull/60)).
 
 ## [2.0.2] - 2026-05-12

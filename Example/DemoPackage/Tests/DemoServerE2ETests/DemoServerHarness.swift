@@ -9,6 +9,8 @@ struct DemoServerHarness {
     private(set) var baseURL: URL
     var kawarimiBaseURL: URL { baseURL.appending(path: "__kawarimi") }
 
+    let configFileURL: URL
+
     private let process: Process
     private let configDir: URL
     private let listenReadyFile: URL
@@ -45,6 +47,7 @@ struct DemoServerHarness {
 
         var harness = DemoServerHarness(
             baseURL: URL(string: "http://127.0.0.1:0")!,
+            configFileURL: configPath,
             process: process,
             configDir: configDir,
             listenReadyFile: listenReadyFile,
@@ -52,6 +55,10 @@ struct DemoServerHarness {
         )
         try await harness.waitUntilReady(timeout: timeout)
         return harness
+    }
+
+    func writeConfigOnDisk(_ data: Data) throws {
+        try data.write(to: configFileURL, options: .atomic)
     }
 
     func resetOverrides() async throws {
@@ -80,12 +87,14 @@ struct DemoServerHarness {
 
     private init(
         baseURL: URL,
+        configFileURL: URL,
         process: Process,
         configDir: URL,
         listenReadyFile: URL,
         stderrMonitor: StderrMonitor
     ) {
         self.baseURL = baseURL
+        self.configFileURL = configFileURL
         self.process = process
         self.configDir = configDir
         self.listenReadyFile = listenReadyFile
@@ -241,6 +250,12 @@ enum DemoServerHTTP {
         return try await data(for: request)
     }
 
+    static func postEmpty(_ url: URL) async throws -> (HTTPURLResponse, Data) {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        return try await data(for: request)
+    }
+
     static func data(for request: URLRequest) async throws -> (HTTPURLResponse, Data) {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
@@ -251,32 +266,46 @@ enum DemoServerHTTP {
     }
 }
 
+private func e2eSwiftBuildPath() -> String {
+    let env = ProcessInfo.processInfo.environment["KAWARIMI_SWIFT_BUILD_PATH"]?
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    return env.isEmpty ? ".build" : env
+}
+
 private func findDemoServerExecutable(packageRoot: URL) -> URL? {
     let fm = FileManager.default
+    let buildPath = e2eSwiftBuildPath()
+    #if os(Linux)
+    let triples = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
+    #else
     let triples = [
         "arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx",
         "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
     ]
+    #endif
     var candidates: [URL] = []
     for triple in triples {
         candidates.append(
             packageRoot
-                .appendingPathComponent(".build")
+                .appendingPathComponent(buildPath)
                 .appendingPathComponent(triple)
                 .appendingPathComponent("debug")
                 .appendingPathComponent("DemoServer")
         )
     }
-    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty {
+    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot, buildPath: buildPath), !binPath.isEmpty {
         candidates.append(URL(fileURLWithPath: binPath).appendingPathComponent("DemoServer"))
     }
     return candidates.first { fm.fileExists(atPath: $0.path) }
 }
 
-private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
+private func runSwiftBuildShowBinPath(packageRoot: URL, buildPath: String) -> String? {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = ["swift", "build", "--package-path", packageRoot.path, "--show-bin-path"]
+    process.arguments = [
+        "swift", "build", "--package-path", packageRoot.path,
+        "--build-path", buildPath, "--show-bin-path",
+    ]
     let pipe = Pipe()
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
