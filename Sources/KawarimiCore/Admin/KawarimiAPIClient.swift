@@ -130,8 +130,8 @@ public struct KawarimiAPIClient: Sendable {
         try validateHTTPStatus(response, data: nil)
     }
 
-    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode` and `X-Kawarimi-Reload`.
-    public func reload() async throws -> KawarimiConfigReloadResult {
+    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode`, `X-Kawarimi-Reload`, and a JSON override array (same as ``fetchOverrides()``).
+    public func reload() async throws -> KawarimiConfigReloadResponse {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reload)
         var request = URLRequest(url: url)
         request.httpMethod = KawarimiAdminRoute.reload.httpMethod.rawValue
@@ -146,6 +146,7 @@ public struct KawarimiAPIClient: Sendable {
         guard let result = KawarimiConfigReloadResult(httpHeaderValue: raw) else {
             throw KawarimiAPIError(statusCode: http.statusCode, data: data)
         }
-        return result
+        let overrides = try JSONDecoder().decode([MockOverride].self, from: data)
+        return KawarimiConfigReloadResponse(result: result, overrides: overrides)
     }
 }

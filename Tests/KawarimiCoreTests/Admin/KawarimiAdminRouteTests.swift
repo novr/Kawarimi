@@ -26,7 +26,7 @@ import Testing
 
     #expect(KawarimiAdminRoute.reload.httpMethod == .post)
     #expect(KawarimiAdminRoute.reload.relativePath == "reload")
-    #expect(KawarimiAdminRoute.reload.successStatusCode == 204)
+    #expect(KawarimiAdminRoute.reload.successStatusCode == 200)
 }
 
 @Test func kawarimiAdminRouteAdminURLMatchesLegacyClientPaths() {

@@ -143,7 +143,7 @@ final class DemoServerE2ETests {
         #expect(overrides.isEmpty)
     }
 
-    @Test func hengeReloadReturns204WithReloadHeader() async throws {
+    @Test func hengeReloadReturns200WithOverridesAndReloadHeader() async throws {
         try await server.resetOverrides()
 
         let greetPath = DemoServerE2EPaths.greetPath
@@ -160,9 +160,12 @@ final class DemoServerE2ETests {
         #expect(configureResponse.statusCode == 200)
 
         let reloadURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.reload.relativePath)
-        let (unchangedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
+        let (unchangedResponse, unchangedData) = try await DemoServerHTTP.postEmpty(reloadURL)
         #expect(unchangedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
         #expect(unchangedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "unchanged")
+        let unchangedOverrides = try DemoServerE2EJSON.decodeOverrides(from: unchangedData)
+        #expect(unchangedOverrides.count == 1)
+        #expect(unchangedOverrides[0].body?.contains("Before reload") == true)
 
         let diskEdit = Data(
             """
@@ -172,9 +175,12 @@ final class DemoServerE2ETests {
         )
         try server.writeConfigOnDisk(diskEdit)
 
-        let (appliedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
+        let (appliedResponse, appliedData) = try await DemoServerHTTP.postEmpty(reloadURL)
         #expect(appliedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
         #expect(appliedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "applied")
+        let appliedOverrides = try DemoServerE2EJSON.decodeOverrides(from: appliedData)
+        #expect(appliedOverrides.count == 1)
+        #expect(appliedOverrides[0].body?.contains("After disk edit") == true)
 
         let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(greetResponse.statusCode == 200)

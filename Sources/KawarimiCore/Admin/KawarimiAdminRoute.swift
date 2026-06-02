@@ -28,12 +28,7 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
         }
     }
 
-    public var successStatusCode: Int {
-        switch self {
-        case .reload: 204
-        default: 200
-        }
-    }
+    public var successStatusCode: Int { 200 }
 
     public init?(relativePath: String, httpMethod: HTTPRequest.Method) {
         guard let route = Self.allCases.first(where: {

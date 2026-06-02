@@ -9,8 +9,4 @@ package enum KawarimiConfigReloadPresentation {
             "Reload unchanged: server already matched kawarimi.json."
         }
     }
-
-    package static func refreshFailureMessage(after result: KawarimiConfigReloadResult, error: Error) -> String {
-        "\(noticeMessage(for: result)) Failed to refresh overrides from status API: \(error.localizedDescription)"
-    }
 }

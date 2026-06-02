@@ -82,7 +82,7 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     }
 }
 
-/// `URL.host` is the `X-Kawarimi-Reload` value (`applied` / `unchanged`); responds with `204`.
+/// `URL.host` is the `X-Kawarimi-Reload` value (`applied` / `unchanged`); responds with `200` and a JSON override array.
 private final class MockKawarimiReloadURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -93,20 +93,27 @@ private final class MockKawarimiReloadURLProtocol: URLProtocol {
             return
         }
         let outcome = url.host ?? "applied"
+        let body = """
+            [{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":true}]
+            """.data(using: .utf8)!
         let response = HTTPURLResponse(
             url: url,
-            statusCode: 204,
+            statusCode: KawarimiAdminRoute.reload.successStatusCode,
             httpVersion: nil,
-            headerFields: [KawarimiAdminHeaders.reloadOutcome: outcome]
+            headerFields: [
+                KawarimiAdminHeaders.reloadOutcome: outcome,
+                "Content-Type": KawarimiAdminHeaders.jsonContentType,
+            ]
         )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
     }
 
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIClientReloadParsesReloadOutcomeHeader() async throws {
+@Test func kawarimiAPIClientReloadParsesReloadOutcomeHeaderAndOverrides() async throws {
     URLProtocol.registerClass(MockKawarimiReloadURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiReloadURLProtocol.self) }
 
@@ -115,8 +122,13 @@ private final class MockKawarimiReloadURLProtocol: URLProtocol {
     let session = URLSession(configuration: config)
 
     let appliedClient = KawarimiAPIClient(baseURL: URL(string: "http://applied/")!, session: session)
-    #expect(try await appliedClient.reload() == .applied)
+    let applied = try await appliedClient.reload()
+    #expect(applied.result == .applied)
+    #expect(applied.overrides.count == 1)
+    #expect(applied.overrides[0].path == "/api/greet")
 
     let unchangedClient = KawarimiAPIClient(baseURL: URL(string: "http://unchanged/")!, session: session)
-    #expect(try await unchangedClient.reload() == .unchanged)
+    let unchanged = try await unchangedClient.reload()
+    #expect(unchanged.result == .unchanged)
+    #expect(unchanged.overrides.count == 1)
 }

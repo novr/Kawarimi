@@ -13,7 +13,7 @@ public struct KawarimiConfigView: View {
     private let configureOverride: (MockOverride) async throws -> Void
     private let removeOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
-    private let reloadFromDisk: () async throws -> KawarimiConfigReloadResult
+    private let reloadFromDisk: () async throws -> KawarimiConfigReloadResponse
 
     @State private var serverURL: String
     @State private var meta: (any SpecMetaProviding)?
@@ -124,13 +124,10 @@ public struct KawarimiConfigView: View {
         reloadNoticeMessage = nil
         defer { isReloadingFromDisk = false }
         do {
-            let result = try await reloadFromDisk()
-            reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: result)
-            do {
-                _ = try await refreshOverridesOnly()
-            } catch {
-                errorMessage = KawarimiConfigReloadPresentation.refreshFailureMessage(after: result, error: error)
-            }
+            let response = try await reloadFromDisk()
+            reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
+            overridesSnapshot = response.overrides
+            overridesRevision += 1
         } catch {
             errorMessage = error.localizedDescription
         }
