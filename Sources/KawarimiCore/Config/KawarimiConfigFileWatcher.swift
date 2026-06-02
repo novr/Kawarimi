@@ -1,5 +1,21 @@
 import Foundation
 
+#if canImport(OSLog)
+import OSLog
+#endif
+
+#if canImport(OSLog)
+private let kawarimiConfigFileWatcherLog = Logger(subsystem: "Kawarimi", category: "KawarimiConfigFileWatcher")
+#endif
+
+private func logConfigFileWatchFailure(_ message: String) {
+#if canImport(OSLog)
+    kawarimiConfigFileWatcherLog.warning("\(message, privacy: .public)")
+#else
+    StandardError.write("KawarimiConfigFileWatcher: \(message)")
+#endif
+}
+
 /// Watches a config file path (or its parent directory until the file exists) and invokes `onChange` after debounced writes.
 final class KawarimiConfigFileWatcher: @unchecked Sendable {
     private let backend: ConfigFileWatchBackend
@@ -106,6 +122,7 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
     private var watchDescriptor: Int32 = -1
     private var readSource: DispatchSourceRead?
     private var watchingDirectory = false
+    private var targetFileWasPresent = false
 
     init(targetPath: String, queue: DispatchQueue, onEvent: @escaping () -> Void, onNeedsReinstall: @escaping () -> Void) {
         self.targetPath = targetPath
@@ -116,9 +133,13 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
     }
 
     func start() {
+        targetFileWasPresent = FileManager.default.fileExists(atPath: targetPath)
         if inotifyFD < 0 {
             inotifyFD = inotify_init1(Int32(IN_NONBLOCK | IN_CLOEXEC))
-            guard inotifyFD >= 0 else { return }
+            guard inotifyFD >= 0 else {
+                logConfigFileWatchFailure("inotify_init1 failed for \(targetPath)")
+                return
+            }
             let source = DispatchSource.makeReadSource(fileDescriptor: inotifyFD, queue: queue)
             source.setEventHandler { [weak self] in
                 self?.drainEvents()
@@ -145,6 +166,7 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
             close(inotifyFD)
             inotifyFD = -1
         }
+        targetFileWasPresent = false
     }
 
     private func addWatch() {
@@ -162,6 +184,9 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
             let directory = parent.isEmpty ? "." : parent
             let mask = UInt32(IN_MODIFY | IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_TO)
             watchDescriptor = inotify_add_watch(inotifyFD, directory, mask)
+        }
+        if watchDescriptor < 0 {
+            logConfigFileWatchFailure("inotify_add_watch failed for \(targetPath)")
         }
     }
 
@@ -214,8 +239,15 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
                 offset += recordSize
             }
         }
-        if watchingDirectory, !shouldNotify, FileManager.default.fileExists(atPath: targetPath) {
-            shouldNotify = true
+        if watchingDirectory {
+            let filePresent = FileManager.default.fileExists(atPath: targetPath)
+            if filePresent, !targetFileWasPresent {
+                targetFileWasPresent = true
+                shouldNotify = true
+                needsReinstall = true
+            } else if !filePresent {
+                targetFileWasPresent = false
+            }
         }
         if needsReinstall {
             onNeedsReinstall()
@@ -237,6 +269,7 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
     private var fileDescriptor: Int32 = -1
     private var source: DispatchSourceFileSystemObject?
     private var watchingDirectory = false
+    private var targetFileWasPresent = false
 
     init(targetPath: String, queue: DispatchQueue, onEvent: @escaping () -> Void, onNeedsReinstall: @escaping () -> Void) {
         self.targetPath = targetPath
@@ -247,7 +280,8 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
 
     func start() {
         cancel()
-        if FileManager.default.fileExists(atPath: targetPath) {
+        targetFileWasPresent = FileManager.default.fileExists(atPath: targetPath)
+        if targetFileWasPresent {
             watchFile(at: targetPath)
         } else {
             watchParentDirectory()
@@ -259,11 +293,13 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
         source = nil
         fileDescriptor = -1
         watchingDirectory = false
+        targetFileWasPresent = false
     }
 
     private func watchFile(at path: String) {
         let fd = open(path, O_EVTONLY)
         guard fd >= 0 else {
+            logConfigFileWatchFailure("open(O_EVTONLY) failed for \(path)")
             watchParentDirectory()
             return
         }
@@ -288,7 +324,10 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
         let parent = (targetPath as NSString).deletingLastPathComponent
         let directory = parent.isEmpty ? "." : parent
         let fd = open(directory, O_EVTONLY)
-        guard fd >= 0 else { return }
+        guard fd >= 0 else {
+            logConfigFileWatchFailure("open(O_EVTONLY) failed for directory \(directory) (watching \(targetPath))")
+            return
+        }
         fileDescriptor = fd
         watchingDirectory = true
         let mask: DispatchSource.FileSystemEvent = [.write, .extend, .attrib, .link, .rename, .revoke]
@@ -299,10 +338,14 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
         )
         source.setEventHandler { [weak self] in
             guard let self else { return }
-            if FileManager.default.fileExists(atPath: self.targetPath) {
+            let filePresent = FileManager.default.fileExists(atPath: self.targetPath)
+            if filePresent, !self.targetFileWasPresent {
+                self.targetFileWasPresent = true
                 self.onNeedsReinstall()
+                self.onEvent()
+            } else if !filePresent {
+                self.targetFileWasPresent = false
             }
-            self.onEvent()
         }
         source.setCancelHandler { [fd] in
             close(fd)
