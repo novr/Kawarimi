@@ -27,6 +27,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 - **ブランチとコミット**: 作業用ブランチを切り、**論理単位でコミットを分割**する。
 - **プラン・To-do**: 既に To-do がある場合は作り直さず、**先頭から in_progress にして完了まで**進める。プラン用の添付ファイルは編集しない。
 - **検証**: 変更内容に応じて `swift test`、必要なら `Scripts/performance/` や CI と揃えた環境変数で確認する。**パフォーマンスに触れたら性能チェックも行う**。
+- **Linux（ローカル）**: macOS 上で ubuntu CI と同じテスト列を試すときは Docker 上の [`Scripts/linux-test.sh`](Scripts/linux-test.sh)（`KAWARIMI_LINUX_CI=1`、CI では未使用）。ビルド成果物は **`.build/linux-docker`** に隔離（macOS の `.build` と混ぜない）。全件 `./Scripts/linux-test.sh`、E2E のみ `./Scripts/linux-test.sh --filter DemoServerE2ETests`。以前の docker 実行で PCH パス不一致（`/workspace` vs 実パス）が出たら、壊れた Linux キャッシュを削除: `rm -rf .build/aarch64-unknown-linux-gnu .build/linux-docker Example/DemoPackage/.build/linux-docker`。SwiftUI の **`KawarimiHenge` Views** は macOS の `swift test` 全件で確認する。
 - **ビルド情報**: コミット済みスタブ **`dev`**（ローカル・PR CI）。タグ付きリリース時のみ [`.github/workflows/release.yaml`](.github/workflows/release.yaml) が `git describe --tags` で `Generated.swift` を上書きし、Release 用ソースアーカイブに含める（ワークツリーは汚さない）。
 - **`[kawarimi-perf]`**: 利用者・計測手向けの説明は [Scripts/performance/README.md](Scripts/performance/README.md) に従う（実装やワークフローへの参照はこのファイルでは書かない）。
 - **Issue**: バグ・機能は Issue で追う。**サーバ実装依存は本パッケージのスコープ外**（上記「境界」と同じ前提）。
@@ -40,7 +41,7 @@ Prioritize utilizing existing code and minimizing moving parts over creating new
 ### ドキュメントのみの PR と CI
 
 - **`main` 向け PR**: [`.github/workflows/ci.yaml`](.github/workflows/ci.yaml) の `changes`（`dorny/paths-filter`）が、次のいずれかに触れる変更があるかだけを見る: `Sources/**`, `Tests/**`, `Package.swift`, `Package.resolved`, `Example/**`, `Scripts/**`, `.github/**`。
-- **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENT.md`、`docs/**` のみ）の PR では、ubuntu 上のテストジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。**`[kawarimi-perf]`** の計測は PR CI ではなく [Scripts/performance/README.md](Scripts/performance/README.md) の手動ワークフロー／ローカルスクリプト。
+- **上記に該当しない差分だけ**（例: ルートの `README*.md`、`AGENTS.md`、`docs/**` のみ）の PR では、ubuntu 上のテストジョブはスキップされる。ブランチ保護で必須にしている **チェック名「Swift Test」** は、常に走る集約ジョブ `swift-test` が成功することで満たされる（ルール側で必須チェックを外す必要はない）。**`[kawarimi-perf]`** の計測は PR CI ではなく [Scripts/performance/README.md](Scripts/performance/README.md) の手動ワークフロー／ローカルスクリプト。
 - **ubuntu CI（コード変更 PR）**: `swift:6.2-noble` コンテナ上で、ルートと `Example/DemoPackage` はそれぞれ `swift test`（**`BuildInfo.version` は生成しない** — スタブ **`dev`**）。**`KAWARIMI_LINUX_CI=1`** のとき **`KawarimiHengeCore`** と **`Tests/KawarimiCoreTests/Henge/`** を CI で実行する（SwiftUI の **`KawarimiHenge`** ライブラリ product と Demo の `HengeCli` は除外）。マージ前に macOS ローカルで `swift test` 全件（`KawarimiHenge` Views 含む）を実行すること。
 - **ビルドや CI に効く新しいパス**（上記以外に置いたツールや設定など）を追加したら、同じワークフローの `code` フィルタに追記し、該当変更でテストが走るようにする。
 

@@ -143,6 +143,84 @@ final class DemoServerE2ETests {
         #expect(overrides.isEmpty)
     }
 
+    @Test func hengeReloadReturns204WithReloadHeader() async throws {
+        try await server.resetOverrides()
+
+        let greetPath = DemoServerE2EPaths.greetPath
+        let configureBody = Data(
+            """
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,\
+            "body":"{\\"message\\":\\"Before reload\\"}","contentType":"application/json"}
+            """.utf8
+        )
+        let (configureResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "configure"),
+            body: configureBody
+        )
+        #expect(configureResponse.statusCode == 200)
+
+        let reloadURL = server.kawarimiBaseURL.appending(path: "reload")
+        let (unchangedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
+        #expect(unchangedResponse.statusCode == 204)
+        #expect(unchangedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "unchanged")
+
+        let diskEdit = Data(
+            """
+            {"overrides":[{"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":true,\
+            "body":"{\\"message\\":\\"After disk edit\\"}","contentType":"application/json"}]}
+            """.utf8
+        )
+        try server.writeConfigOnDisk(diskEdit)
+
+        let (appliedResponse, _) = try await DemoServerHTTP.postEmpty(reloadURL)
+        #expect(appliedResponse.statusCode == 204)
+        #expect(appliedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "applied")
+
+        let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
+        #expect(greetResponse.statusCode == 200)
+        #expect(try DemoServerE2EJSON.decodeGreeting(from: greetData).message == "After disk edit")
+    }
+
+    /// Legacy row: saved without `exampleId` but body matches OpenAPI `formal`. Henge Del sends wire identity (`exampleId` nil), not chip `exampleId: "formal"`.
+    @Test func hengeRemoveMatchesLegacyRowWithoutExampleId() async throws {
+        try await server.resetOverrides()
+
+        let greetPath = DemoServerE2EPaths.greetPath
+        let configureRow = """
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":false,\
+            "body":"{\\"message\\":\\"Good day from API\\"}","contentType":"application/json"}
+            """
+        let (configureResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "configure"),
+            body: Data(configureRow.utf8)
+        )
+        #expect(configureResponse.statusCode == 200)
+
+        let (statusBeforeResponse, statusBeforeData) = try await DemoServerHTTP.get(
+            server.kawarimiBaseURL.appending(path: "status")
+        )
+        #expect(statusBeforeResponse.statusCode == 200)
+        let before = try DemoServerE2EJSON.decodeOverrides(from: statusBeforeData)
+        #expect(before.count == 1)
+        #expect(before.first?.exampleId == nil)
+
+        let removeWire = """
+            {"path":"\(greetPath)","method":"GET","statusCode":200,"isEnabled":false}
+            """
+        let (removeResponse, _) = try await DemoServerHTTP.postJSON(
+            server.kawarimiBaseURL.appending(path: "remove"),
+            body: Data(removeWire.utf8)
+        )
+        #expect(removeResponse.statusCode == 200)
+
+        let (statusResponse, statusData) = try await DemoServerHTTP.get(
+            server.kawarimiBaseURL.appending(path: "status")
+        )
+        #expect(statusResponse.statusCode == 200)
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
+        #expect(overrides.isEmpty)
+    }
+
     // MARK: - E2E-10, E2E-11 (middleware + responseMap; handler stubs throw for unconfigured ops)
 
     @Test func listItemsReturnsSpecExampleViaConfigure() async throws {
