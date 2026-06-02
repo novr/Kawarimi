@@ -5,7 +5,6 @@ import KawarimiCore
 import Vapor
 
 extension MockOverride: @retroactive Content {}
-extension SpecResponse: Content {}
 
 /// Nest under the same `pathPrefix` as OpenAPI or client base URLs drift from admin routes.
 func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async {
@@ -13,8 +12,8 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
     let segments = pathPrefix.split(separator: "/").filter { !$0.isEmpty }.map(String.init)
 
     func mountKawarimi(on builder: RoutesBuilder) {
-        builder.group("__kawarimi") { kawarimi in
-            kawarimi.post("configure") { req async throws -> Response in
+        builder.group(PathComponent(stringLiteral: KawarimiAdminPath.managementSegment)) { kawarimi in
+            kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.configure.relativePath)) { req async throws -> Response in
                 let override: MockOverride
                 do {
                     override = try req.content.decode(MockOverride.self)
@@ -29,7 +28,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
                 do {
                     try await store.configure(override)
-                    return Response(status: .ok)
+                    return Response(status: adminSuccessHTTPStatus(for: .configure))
                 } catch let e as KawarimiConfigStoreError {
                     if case .bodyTooLong = e {
                         return Response(status: .payloadTooLarge, body: .init(string: "\(e)"))
@@ -40,7 +39,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
             }
 
-            kawarimi.post("remove") { req async throws -> Response in
+            kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.remove.relativePath)) { req async throws -> Response in
                 let override: MockOverride
                 do {
                     override = try req.content.decode(MockOverride.self)
@@ -49,37 +48,40 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
                 do {
                     try await store.removeOverride(override)
-                    return Response(status: .ok)
+                    return Response(status: adminSuccessHTTPStatus(for: .remove))
                 } catch {
                     return Response(status: .internalServerError, body: .init(string: "\(error)"))
                 }
             }
 
-            kawarimi.get("status") { _ async throws -> Response in
+            kawarimi.get(PathComponent(stringLiteral: KawarimiAdminRoute.status.relativePath)) { _ async throws -> Response in
                 let overrides = await store.overrides()
                 let data = try JSONEncoder().encode(overrides)
                 var headers = HTTPHeaders()
                 headers.contentType = .json
-                return Response(status: .ok, headers: headers, body: .init(data: data))
+                return Response(status: adminSuccessHTTPStatus(for: .status), headers: headers, body: .init(data: data))
             }
 
-            kawarimi.post("reset") { _ async throws -> Response in
+            kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.reset.relativePath)) { _ async throws -> Response in
                 try await store.reset()
-                return Response(status: .ok)
+                return Response(status: adminSuccessHTTPStatus(for: .reset))
             }
 
-            kawarimi.post("reload") { _ async throws -> Response in
+            kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.reload.relativePath)) { _ async throws -> Response in
                 let result = await store.reloadFromDisk()
                 var headers = HTTPHeaders()
                 headers.add(name: KawarimiAdminHeaders.reloadOutcome, value: result.httpHeaderValue)
-                return Response(status: .noContent, headers: headers)
+                return Response(status: adminSuccessHTTPStatus(for: .reload), headers: headers)
             }
 
-            kawarimi.get("spec") { _ async throws -> SpecResponse in
-                SpecResponse(
-                    meta: KawarimiSpec.meta,
-                    endpoints: KawarimiSpec.endpoints,
-                    securitySchemes: KawarimiSpec.securitySchemes
+            kawarimi.get(PathComponent(stringLiteral: KawarimiAdminRoute.spec.relativePath)) { _ async throws -> Response in
+                let data = try DemoServerSpecResponse.encodedWireData()
+                var headers = HTTPHeaders()
+                headers.add(name: .contentType, value: KawarimiAdminHeaders.jsonContentType)
+                return Response(
+                    status: adminSuccessHTTPStatus(for: .spec),
+                    headers: headers,
+                    body: .init(data: data)
                 )
             }
         }

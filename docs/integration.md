@@ -88,6 +88,10 @@ targets: [
 
 For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to `kawarimi.json` on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`).
 
+### Admin route segments and spec wire validation
+
+When wiring **`__kawarimi`** routes on your server, use **`KawarimiAdminPath.managementSegment`** and **`KawarimiAdminRoute.*.relativePath`** instead of string literals (see [Example `KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)). At startup, encode your host **`SpecResponse`** and call **`KawarimiAdminSpecWire.validate(_:)`** so `GET …/spec` stays decodable as **`HengeSpecSnapshot`** — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift).
+
 ## 2. OpenAPI spec location
 
 In the **Swift target root** (same layout as [swift-openapi-generator](https://github.com/apple/swift-openapi-generator)), add **exactly one** of **`openapi.yaml`**, **`openapi.yml`**, or **`openapi.json`**. **KawarimiPlugin** picks it from **`sourceFiles`**, not by directory scan. Build output: Types/Client/Server (OpenAPIGenerator) and Kawarimi/KawarimiHandler/KawarimiSpec (KawarimiPlugin).

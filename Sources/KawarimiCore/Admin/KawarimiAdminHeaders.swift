@@ -4,6 +4,9 @@ import Foundation
 public enum KawarimiAdminHeaders {
     /// Outcome of `POST …/__kawarimi/reload`: `applied` or `unchanged`.
     public static let reloadOutcome = "X-Kawarimi-Reload"
+
+    /// JSON request/response bodies on admin routes (`POST …/configure`, `GET …/spec`, …).
+    public static let jsonContentType = "application/json"
 }
 
 /// Result of ``KawarimiConfigStore/reloadFromDisk()`` and `POST …/__kawarimi/reload`.

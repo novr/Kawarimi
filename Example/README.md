@@ -21,6 +21,12 @@ Wiring: [`DemoPackage/Package.swift`](DemoPackage/Package.swift) (`DemoServer` t
 
 Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
 
+**DemoServer** registers admin segments from **`KawarimiAdminRoute`** / **`KawarimiAdminPath`**, and **`main.swift`** calls **`DemoServerSpecResponse.validateWireAtStartup()`** before listening. **`GET …/spec`** serves the same **`JSONEncoder`** bytes via **`DemoServerSpecResponse.encodedWireData()`**.
+
+```swift
+try DemoServerSpecResponse.validateWireAtStartup()
+```
+
 Dynamic mocks use **`KawarimiServerMiddleware`** from the **KawarimiServer** product (`registerHandlers(middlewares:)`). See [Henge](../docs/henge.md).
 
 ## Security (sample only)

@@ -102,6 +102,14 @@ Mount admin routes **under a path prefix aligned with your OpenAPI API** (e.g. *
 
 You may mount `__kawarimi` at the root in your own app; keep it aligned with `KawarimiAPIClient`’s `baseURL`.
 
+### Core admin route contract
+
+**KawarimiCore** exposes the shared HTTP contract so clients and servers stay aligned without duplicating path strings:
+
+- **`KawarimiAdminRoute`** — `spec`, `status`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (reload → `204`).
+- **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — builds `{baseURL}/__kawarimi/{segment}` (same rules as **`KawarimiAPIClient`**).
+- **`KawarimiAdminSpecWire.validate(_:)`** — fail-fast decode check that encoded spec wire JSON matches **`HengeSpecSnapshot`** (`GET …/spec` contract). Call after **`JSONEncoder`** on your host **`SpecResponse`** (or equivalent) at startup; **`KawarimiAdminHeaders.jsonContentType`** is the shared JSON **`Content-Type`** string.
+
 Register admin routes on your Vapor app, then attach **`KawarimiServerMiddleware`** when registering generated handlers:
 
 ```swift

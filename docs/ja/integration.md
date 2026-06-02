@@ -88,6 +88,10 @@ targets: [
 
 ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の `kawarimi.json` 保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。
 
+### 管理ルート segment と spec wire 検証
+
+サーバー側 **`__kawarimi`** 登録では文字列リテラルではなく **`KawarimiAdminPath.managementSegment`** と **`KawarimiAdminRoute.*.relativePath`** を使う（[Example `KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)）。起動時にホスト **`SpecResponse`** を encode し **`KawarimiAdminSpecWire.validate(_:)`** を呼ぶと、`GET …/spec` が **`HengeSpecSnapshot`** として decode 可能なことを fail-fast で確認できる（[Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift)）。
+
 ## 2. OpenAPI の置き場所
 
 **Swift ターゲットルート**（[swift-openapi-generator](https://github.com/apple/swift-openapi-generator) と同じ）に **`openapi.yaml`** / **`openapi.yml`** / **`openapi.json` のいずれか 1 本**。**KawarimiPlugin** は **`sourceFiles`** から選び、ディレクトリは走査しない。生成物: Types/Client/Server（OpenAPIGenerator）、Kawarimi/KawarimiHandler/KawarimiSpec（KawarimiPlugin）。
