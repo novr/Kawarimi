@@ -247,6 +247,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 | **未 Save のドラフト**だけ捨てる | 保存行がなくエディタがサーバーとずれているとき **Del**（HTTP なし）。 |
 | **既定行**（先頭の spec ステータス・無名例）をオフ＋本文クリアにし、エディタをそれに合わせる | 下部 **Reset** — **Spec** 上の **Save** と同じ Spec-only 経路: 一致する保存行があれば **`remove`**、なければ **`configure`**。同じ操作の**別チップ**の行は残るので、消すときはチップごとに **Del**。 |
 | 全オーバーライドを消す | エクスプローラの **Reset all overrides**（確認あり）。 |
+| ディスク編集後にサーバーが `kawarimi.json` を再読み込み | エクスプローラの **Reload kawarimi.json** — **`POST …/__kawarimi/reload`** のあと **`GET …/status`** で一覧更新。ボタン下に **applied** / **unchanged** を表示。spec は再取得しない。 |
 
 **Save** は **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`** を組み立て、**`OverrideEditorStore`** が **`SavePayload.isSpecOnlyRemovePayload`** なら一致する保存済み既定行を **`remove`**（無効 placeholder の upsert はしない）。保存行がなければ HTTP なし。**Spec 形**でも **番号チップ**（**`pinnedNumberedResponseChip`** true）なら **`configure` で有効**を送りプライマリにします。それ以外は **`mock.isEnabled`** で **有効**／**無効**を **`configure`** し、**無効**でもトリム済みの **body** / **contentType** を送ります。
 
@@ -254,7 +255,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 **Del**（−）: 保存行が一致 → **`remove`**（設定から行削除、エディタは Spec 寄せ）。**`OverrideListQueries.storedOverrideForDel`** は exact 一致のあと、`exampleId` なし legacy 行の本文テンプレ一致も見ます。**未 Save ドラフトのみ** → ローカルクリア（サーバー未呼び出し）。**オフのまま JSON を残す** → 無効チップ + **Save**（**Del ではない**）。OpenAPI 番号チップは **Del 後も表示**されます。
 
-**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Save** / **configure** / **remove** 成功後は、親が **fetch した `[MockOverride]` を戻り値で渡し**、ストアが **`markSavedClean()`** のあと **`resyncDetailAfterOverridesRefresh`** で詳細を合わせます（成功経路では **`isDirty`** は false のため再同期が走る）。**別エンドポイントへ移ったとき、未保存（dirty）のドラフトは行キーごとに退避**され、同じ行を再度選ぶと復元されます（**Spec の再取得**で退避は消えます）。
+**更新／同期:** エディタは**ローカルで一人が触る**前提で、refresh で詳細が置き換わるときも**確認ダイアログは出しません**。**Spec を再取得**（ツールバー **Refresh**）するとエンドポイント一覧が更新され、**開いている詳細はサーバー状態で上書き**されます（**未保存の編集は失われます**）。**Reload kawarimi.json** はサーバー上のディスク再読み込みのみ行い、オーバーライド一覧を更新します。**`isDirty`** が false のとき開いている詳細も再同期し、サーバーがファイルを取り込んだか（**applied**）既に一致していたか（**unchanged**）をボタン下に表示します。**Save** / **configure** / **remove** 成功後は、親が **fetch した `[MockOverride]` を戻り値で渡し**、ストアが **`markSavedClean()`** のあと **`resyncDetailAfterOverridesRefresh`** で詳細を合わせます（成功経路では **`isDirty`** は false のため再同期が走る）。**別エンドポイントへ移ったとき、未保存（dirty）のドラフトは行キーごとに退避**され、同じ行を再度選ぶと復元されます（**Spec の再取得**で退避は消えます）。
 
 ---
 

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiHenge**: **Reload kawarimi.json** in the explorer chrome — calls **`POST …/__kawarimi/reload`** via **`KawarimiAPIClient.reload()`** and shows **`applied`** / **`unchanged`** outcome ([#130](https://github.com/novr/Kawarimi/issues/130)).
+
 ## [2.7.0] - 2026-06-02
 
 ### Added

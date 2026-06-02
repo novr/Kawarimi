@@ -42,6 +42,9 @@ struct ExplorerTopInset: View {
     @Binding var searchText: String
     let explorerTightVertical: Bool
     let horizontalMargin: CGFloat
+    let onReloadFromDisk: () -> Void
+    let isReloadingFromDisk: Bool
+    let reloadNoticeMessage: String?
     let onRequestResetAll: () -> Void
     var showsInlineSearch: Bool = true
 
@@ -89,6 +92,17 @@ struct ExplorerTopInset: View {
             )
 
             Button {
+                onReloadFromDisk()
+            } label: {
+                Label("Reload kawarimi.json", systemImage: "arrow.clockwise.doc")
+                    .font(.subheadline.weight(.medium))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(explorerTightVertical ? .small : .regular)
+            .disabled(isReloadingFromDisk)
+
+            Button {
                 onRequestResetAll()
             } label: {
                 Label("Reset all overrides", systemImage: "arrow.counterclockwise")
@@ -98,6 +112,15 @@ struct ExplorerTopInset: View {
             .buttonStyle(.bordered)
             .tint(.secondary)
             .controlSize(explorerTightVertical ? .small : .regular)
+            .disabled(isReloadingFromDisk)
+
+            if let reloadNoticeMessage {
+                Text(reloadNoticeMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
         }
     }
 
