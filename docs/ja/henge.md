@@ -182,6 +182,22 @@ API 対応:
 | `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**（ファイル監視の reload と同じ）。`**200**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）、および **`GET …/status` と同型**の JSON オーバーライド配列。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
+### Admin エラー応答
+
+**DemoServer** の参考実装（[`KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)）。ホスト実装は異なってよい。クライアントは 2xx 以外をエラー（**`KawarimiAPIError`**）として扱う。
+
+| ルート | ステータス | レスポンス body |
+|---|---|---|
+| `POST …/configure` | `400` | プレーンテキスト（**`MockOverride`** JSON として不正な body） |
+| `POST …/configure` | `413` | プレーンテキスト（override **`body`** が **`MockOverride.maxBodyLength`**（65536 バイト）超過） |
+| `POST …/configure` | `500` | プレーンテキスト（**`KawarimiConfigStoreError`** や永続化失敗） |
+| `POST …/remove` | `400` | プレーンテキスト（**`MockOverride`** JSON として不正な body） |
+| `POST …/remove` | `500` | プレーンテキスト（ストア失敗） |
+
+成功時の JSON 応答（**`GET …/status`**、**`GET …/spec`**、**`POST …/reload`**）は **`Content-Type: application/json`**（**`KawarimiAdminHeaders.jsonContentType`**）。**`POST …/configure`** / **`remove`** / **`reset`** の成功は空 **`200`**。
+
+**`KawarimiAPIClient`** には **`configureAndFetchOverrides`** / **`removeAndFetchOverrides`** / **`resetAndFetchOverrides`** もある（ミューテーション後に **`GET …/status`**。HTTP 契約は変えない additive API）。
+
 **KawarimiHenge（`KawarimiConfigView`）:** 管理 API の **`baseURL`** に揃えた **`KawarimiAPIClient`** のみ渡します（例: `http://127.0.0.1:8080/api`）。Spec とエンドポイントは **`GET …/__kawarimi/spec`**（`HengeSpecSnapshot`）で取得します。
 
 画面上のサーバー表記は、初回 fetch 後は **`meta.serverURL`**（取得前は **`client.baseURL`**）。

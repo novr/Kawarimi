@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **KawarimiHenge**: **Reload kawarimi.json** in the explorer chrome — **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** (outcome + overrides in one call) and shows **`applied`** / **`unchanged`** under the button ([#130](https://github.com/novr/Kawarimi/issues/130)).
 - **KawarimiCore**: **`KawarimiConfigReloadResponse`** — reload outcome plus post-reload override list from **`POST …/__kawarimi/reload`**.
+- **KawarimiCore**: **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** on **`KawarimiAPIClient`** — mutation then **`GET …/status`** without changing admin HTTP contracts.
+
+### Docs
+
+- **henge.md** / **integration.md** (EN/JA): admin error responses (DemoServer reference); **`2.7.0 → next release`** reload migration.
 
 ### Breaking
 

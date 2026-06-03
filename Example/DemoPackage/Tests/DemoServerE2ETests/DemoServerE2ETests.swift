@@ -162,6 +162,7 @@ final class DemoServerE2ETests {
         let reloadURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.reload.relativePath)
         let (unchangedResponse, unchangedData) = try await DemoServerHTTP.postEmpty(reloadURL)
         #expect(unchangedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(unchangedResponse))
         #expect(unchangedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "unchanged")
         let unchangedOverrides = try DemoServerE2EJSON.decodeOverrides(from: unchangedData)
         #expect(unchangedOverrides.count == 1)
@@ -177,6 +178,7 @@ final class DemoServerE2ETests {
 
         let (appliedResponse, appliedData) = try await DemoServerHTTP.postEmpty(reloadURL)
         #expect(appliedResponse.statusCode == KawarimiAdminRoute.reload.successStatusCode)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(appliedResponse))
         #expect(appliedResponse.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) == "applied")
         let appliedOverrides = try DemoServerE2EJSON.decodeOverrides(from: appliedData)
         #expect(appliedOverrides.count == 1)
@@ -185,6 +187,16 @@ final class DemoServerE2ETests {
         let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(greetResponse.statusCode == 200)
         #expect(try DemoServerE2EJSON.decodeGreeting(from: greetData).message == "After disk edit")
+    }
+
+    @Test func hengeRemoveRejectsInvalidJSONBody() async throws {
+        try await server.resetOverrides()
+
+        let removeURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath)
+        let (response, data) = try await DemoServerHTTP.postJSON(removeURL, body: Data("{not json}".utf8))
+        #expect(response.statusCode == 400)
+        let body = String(data: data, encoding: .utf8) ?? ""
+        #expect(body.contains("Invalid JSON body"))
     }
 
     /// Legacy row: saved without `exampleId` but body matches OpenAPI `formal`. Henge Del sends wire identity (`exampleId` nil), not chip `exampleId: "formal"`.

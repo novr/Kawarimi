@@ -183,6 +183,22 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`200`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory), and a JSON override array (same shape as **`GET …/status`**). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
+### Admin error responses
+
+Reference behavior from **DemoServer** ([`KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)). Hosts may differ; clients should treat non-2xx as errors (**`KawarimiAPIError`**).
+
+| Route | Status | Response body |
+|---|---|---|
+| `POST …/configure` | `400` | Plain text (`Invalid JSON body: …`) when the body is not valid **`MockOverride`** JSON |
+| `POST …/configure` | `413` | Plain text when override **`body`** exceeds **`MockOverride.maxBodyLength`** (65536 bytes) |
+| `POST …/configure` | `500` | Plain text for **`KawarimiConfigStoreError`** or persistence failures |
+| `POST …/remove` | `400` | Plain text when the body is not valid **`MockOverride`** JSON |
+| `POST …/remove` | `500` | Plain text for store failures |
+
+Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`POST …/reload`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/configure`**, **`POST …/remove`**, and **`POST …/reset`** return empty **`200`** on success.
+
+**KawarimiAPIClient** also offers **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** — each performs the mutation then **`GET …/status`** (additive; HTTP contract unchanged).
+
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
 
 The UI shows **`meta.serverURL`** from that fetch once loaded (falls back to **`client.baseURL`** until the first spec load).

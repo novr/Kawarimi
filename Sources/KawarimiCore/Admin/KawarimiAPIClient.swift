@@ -74,6 +74,24 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
 
+    /// Upserts one override, then returns the current override list (`POST …/configure` + `GET …/status`).
+    public func configureAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await configure(override: override)
+        return try await fetchOverrides()
+    }
+
+    /// Removes one override row, then returns the current override list (`POST …/remove` + `GET …/status`).
+    public func removeAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await removeOverride(override: override)
+        return try await fetchOverrides()
+    }
+
+    /// Clears all overrides, then returns the current override list (`POST …/reset` + `GET …/status`).
+    public func resetAndFetchOverrides() async throws -> [MockOverride] {
+        try await reset()
+        return try await fetchOverrides()
+    }
+
     /// Upserts one override. JSON may include `exampleId` (or `null`/omit for the default example); see Henge docs.
     public func configure(override: MockOverride) async throws {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .configure)
