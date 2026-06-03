@@ -13,6 +13,7 @@ public struct KawarimiConfigView: View {
     private let configureOverride: (MockOverride) async throws -> Void
     private let removeOverride: (MockOverride) async throws -> Void
     private let resetAllOverrides: () async throws -> Void
+    private let reloadFromDisk: () async throws -> KawarimiConfigReloadResponse
 
     @State private var serverURL: String
     @State private var meta: (any SpecMetaProviding)?
@@ -20,6 +21,8 @@ public struct KawarimiConfigView: View {
     @State private var securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     @State private var overridesSnapshot: [MockOverride] = []
     @State private var isLoading = false
+    @State private var isReloadingFromDisk = false
+    @State private var reloadNoticeMessage: String?
     @State private var errorMessage: String?
     /// Bumps after a successful spec + overrides fetch so the child reruns `.task(id:)`.
     @State private var specLoadID = 0
@@ -41,6 +44,7 @@ public struct KawarimiConfigView: View {
         configureOverride = { try await client.configure(override: $0) }
         removeOverride = { try await client.removeOverride(override: $0) }
         resetAllOverrides = { try await client.reset() }
+        reloadFromDisk = { try await client.reload() }
     }
 
     public var body: some View {
@@ -56,6 +60,13 @@ public struct KawarimiConfigView: View {
                     }
                 }
             },
+            onReloadFromDisk: {
+                Task { @MainActor in
+                    await performReloadFromDisk()
+                }
+            },
+            reloadNoticeMessage: reloadNoticeMessage,
+            isReloadingFromDisk: isReloadingFromDisk,
             meta: meta,
             endpoints: endpoints,
             securitySchemeCatalog: securitySchemeCatalog,
@@ -84,6 +95,7 @@ public struct KawarimiConfigView: View {
     private func loadSpecAndOverrides() async {
         isLoading = true
         errorMessage = nil
+        reloadNoticeMessage = nil
         defer { isLoading = false }
         do {
             let spec = try await specProvider()
@@ -100,8 +112,25 @@ public struct KawarimiConfigView: View {
     }
 
     private func performResetAll() async throws {
+        reloadNoticeMessage = nil
         try await resetAllOverrides()
         await loadSpecAndOverrides()
+    }
+
+    private func performReloadFromDisk() async {
+        guard !isReloadingFromDisk else { return }
+        isReloadingFromDisk = true
+        errorMessage = nil
+        reloadNoticeMessage = nil
+        defer { isReloadingFromDisk = false }
+        do {
+            let response = try await reloadFromDisk()
+            reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
+            overridesSnapshot = response.overrides
+            overridesRevision += 1
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Fetches overrides, updates ``overridesSnapshot`` / ``overridesRevision``, and returns the **same** array for callers that must resync without re-reading `@State`.

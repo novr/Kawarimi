@@ -20,6 +20,12 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
+**2.7.0 → 次リリース**（破壊的 — reload）:
+
+1. リリースタグ公開後に pin を上げる — **[CHANGELOG.md](../../CHANGELOG.md)** の **`[Unreleased]`** を参照。
+2. **カスタム admin サーバー**: **`POST …/__kawarimi/reload`** は **`204 No Content`** ではなく、**`GET …/status` と同型**の JSON オーバーライド配列 + **`X-Kawarimi-Reload: applied|unchanged`** で **`200`** を返す。**`reloadFromDisk()`** 後に **`store.overrides()`** をエンコードする。
+3. **`KawarimiAPIClient.reload()`** は **`KawarimiConfigReloadResult`** ではなく **`KawarimiConfigReloadResponse`**（結果 + overrides）を返す。
+
 **2.6.0 → 2.7.0**（追加のみ）:
 
 1. pin を **`from: "2.7.0"`** に上げる。

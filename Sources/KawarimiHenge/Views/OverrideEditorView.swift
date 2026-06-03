@@ -7,6 +7,9 @@ struct OverrideEditorView: View {
     private let serverURL: String
     private let onRefresh: () -> Void
     private let onResetAll: () -> Void
+    private let onReloadFromDisk: () -> Void
+    private let reloadNoticeMessage: String?
+    private let isReloadingFromDisk: Bool
     private let meta: (any SpecMetaProviding)?
     private let endpoints: [any SpecEndpointProviding]
     private let securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
@@ -33,6 +36,9 @@ struct OverrideEditorView: View {
         serverURL: String,
         onRefresh: @escaping () -> Void,
         onResetAll: @escaping () -> Void,
+        onReloadFromDisk: @escaping () -> Void,
+        reloadNoticeMessage: String?,
+        isReloadingFromDisk: Bool,
         meta: (any SpecMetaProviding)?,
         endpoints: [any SpecEndpointProviding],
         securitySchemeCatalog: [any SpecSecuritySchemeProviding]?,
@@ -47,6 +53,9 @@ struct OverrideEditorView: View {
         self.serverURL = serverURL
         self.onRefresh = onRefresh
         self.onResetAll = onResetAll
+        self.onReloadFromDisk = onReloadFromDisk
+        self.reloadNoticeMessage = reloadNoticeMessage
+        self.isReloadingFromDisk = isReloadingFromDisk
         self.meta = meta
         self.endpoints = endpoints
         self.securitySchemeCatalog = securitySchemeCatalog
@@ -136,6 +145,13 @@ struct OverrideEditorView: View {
         }
         .task(id: specLoadID) {
             store.resyncDetailAfterSpecReload(pathPrefix: specPathPrefix, endpoints: endpoints, overrides: overrides)
+        }
+        .onChange(of: overridesRevision) { _, _ in
+            store.resyncDetailAfterOverridesRefresh(
+                pathPrefix: specPathPrefix,
+                endpoints: endpoints,
+                overrides: overrides
+            )
         }
         .confirmationDialog(
             "Reset all overrides?",
@@ -363,6 +379,9 @@ struct OverrideEditorView: View {
             searchText: $searchText,
             explorerTightVertical: explorerTightVertical,
             horizontalMargin: Self.explorerHorizontalMargin,
+            onReloadFromDisk: onReloadFromDisk,
+            isReloadingFromDisk: isReloadingFromDisk,
+            reloadNoticeMessage: reloadNoticeMessage,
             onRequestResetAll: { confirmResetAll = true },
             showsInlineSearch: explorerShowsInlineSearch
         )

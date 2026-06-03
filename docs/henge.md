@@ -106,7 +106,7 @@ You may mount `__kawarimi` at the root in your own app; keep it aligned with `Ka
 
 **KawarimiCore** exposes the shared HTTP contract so clients and servers stay aligned without duplicating path strings:
 
-- **`KawarimiAdminRoute`** — `spec`, `status`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (reload → `204`).
+- **`KawarimiAdminRoute`** — `spec`, `status`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`).
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — builds `{baseURL}/__kawarimi/{segment}` (same rules as **`KawarimiAPIClient`**).
 - **`KawarimiAdminSpecWire.validate(_:)`** — fail-fast decode check that encoded spec wire JSON matches **`HengeSpecSnapshot`** (`GET …/spec` contract). Call after **`JSONEncoder`** on your host **`SpecResponse`** (or equivalent) at startup; **`KawarimiAdminHeaders.jsonContentType`** is the shared JSON **`Content-Type`** string.
 
@@ -180,8 +180,24 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 | `POST {pathPrefix}/__kawarimi/remove` | Remove one override row that matches the same identity as `configure` (normalized path, method, `statusCode`, `exampleId`). Idempotent. |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
-| `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`204 No Content`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory). Not for spec / `responseMap` refresh. |
+| `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`200`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory), and a JSON override array (same shape as **`GET …/status`**). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
+
+### Admin error responses
+
+Reference behavior from **DemoServer** ([`KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)). Hosts may differ; clients should treat non-2xx as errors (**`KawarimiAPIError`**).
+
+| Route | Status | Response body |
+|---|---|---|
+| `POST …/configure` | `400` | Plain text (`Invalid JSON body: …`) when the body is not valid **`MockOverride`** JSON |
+| `POST …/configure` | `413` | Plain text when override **`body`** exceeds **`MockOverride.maxBodyLength`** (65536 bytes) |
+| `POST …/configure` | `500` | Plain text for **`KawarimiConfigStoreError`** or persistence failures |
+| `POST …/remove` | `400` | Plain text when the body is not valid **`MockOverride`** JSON |
+| `POST …/remove` | `500` | Plain text for store failures |
+
+Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`POST …/reload`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/configure`**, **`POST …/remove`**, and **`POST …/reset`** return empty **`200`** on success.
+
+**KawarimiAPIClient** also offers **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** — each performs the mutation then **`GET …/status`** (additive; HTTP contract unchanged).
 
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
 
@@ -248,6 +264,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 | Clear an **unsaved** draft only | **Del** when no saved row exists for the chip but the editor differs from the server snapshot (no HTTP). |
 | Reset the **default** row to “off + cleared” and align the editor | **Reset** in the bottom bar — same Spec-only path as **Save** on **Spec**: **`remove`** when a matching default stored row exists, else **`configure`**. **Other** chips’ rows for the same operation stay in `kawarimi.json` until you **Del** each. |
 | Clear every override | **Reset all overrides** in the explorer chrome (with confirmation). |
+| Re-read `kawarimi.json` on the server after disk edits | **Reload kawarimi.json** in the explorer chrome — **`POST …/__kawarimi/reload`** (overrides in the response body). Shows **applied** or **unchanged** under the button. Does not refetch spec. |
 
 **Save** builds **`SavePayload.build(mock:endpoint:pinnedNumberedResponseChip:)`**. If the draft is **Spec-shaped** (see below) **and** the user is on the **Spec** chip (`pinnedNumberedResponseChip` is false), **`OverrideEditorStore`** **`remove`s** a matching stored default row when one exists (**`SavePayload.isSpecOnlyRemovePayload`**); otherwise no HTTP — it does **not** upsert a disabled placeholder. If the user chose a **numbered** chip (pin true) but the stored row is still **off** (draft can match the template), **Save** **`configure`s** with **enabled** so **200 OK** (etc.) becomes primary. Otherwise **`mock.isEnabled`** chooses **enabled** vs **disabled** via **`configure`**; **disabled** saves still include trimmed **body** / **contentType** on the wire.
 
@@ -255,7 +272,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Del** (−): matching **saved** row → **`remove`** (row deleted from config, editor reset toward Spec). **`OverrideListQueries.storedOverrideForDel`** matches exact identity first, then legacy rows without `exampleId` whose body matches the chip’s OpenAPI template. **Unsaved draft only** → local clear (no server call). **Off but keep JSON** → inactive chip + **Save**, not **Del**. OpenAPI numbered chips remain visible after **Del** — only **`kawarimi.json`** rows are removed.
 
-**Refresh / sync:** The editor assumes a **local, single-user** workflow — there is **no confirmation dialog** when a refresh would replace the open detail. **Reloading spec** refetches endpoints and **replaces the current detail** from server state (unsaved edits are dropped). After **Save** / **configure** / **remove**, the parent returns the **fresh** status array to the store, which **always** resyncs the open detail when the save path succeeds (**`markSavedClean()`** then **`resyncDetailAfterOverridesRefresh`**; the resync guard **`!isDirty`** is satisfied on that path). **Switching to another endpoint stashes a dirty draft per row** so returning restores it (spec reload clears stashed drafts).
+**Refresh / sync:** The editor assumes a **local, single-user** workflow — there is **no confirmation dialog** when a refresh would replace the open detail. **Reloading spec** (toolbar **Refresh**) refetches endpoints and **replaces the current detail** from server state (unsaved edits are dropped). **Reload kawarimi.json** re-reads overrides from disk on the server only; it updates the explorer list and resyncs the open detail when **`isDirty`** is false, and shows whether the server applied new file contents (**applied**) or already matched memory (**unchanged**). After **Save** / **configure** / **remove**, the parent returns the **fresh** status array to the store, which **always** resyncs the open detail when the save path succeeds (**`markSavedClean()`** then **`resyncDetailAfterOverridesRefresh`**; the resync guard **`!isDirty`** is satisfied on that path). **Switching to another endpoint stashes a dirty draft per row** so returning restores it (spec reload clears stashed drafts).
 
 ---
 

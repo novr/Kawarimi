@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiHenge**: **Reload kawarimi.json** in the explorer chrome — **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** (outcome + overrides in one call) and shows **`applied`** / **`unchanged`** under the button ([#130](https://github.com/novr/Kawarimi/issues/130)).
+- **KawarimiCore**: **`KawarimiConfigReloadResponse`** — reload outcome plus post-reload override list from **`POST …/__kawarimi/reload`**.
+- **KawarimiCore**: **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** on **`KawarimiAPIClient`** — mutation then **`GET …/status`** without changing admin HTTP contracts.
+
+### Docs
+
+- **henge.md** / **integration.md** (EN/JA): admin error responses (DemoServer reference); **`2.7.0 → next release`** reload migration.
+
+### Breaking
+
+- **Admin HTTP**: **`POST …/__kawarimi/reload`** now returns **`200`** with a JSON override array (same as **`GET …/status`**) and **`X-Kawarimi-Reload: applied|unchanged`**, instead of **`204 No Content`**. **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** instead of **`KawarimiConfigReloadResult`**. Custom admin servers must encode overrides after **`reloadFromDisk()`**.
+
 ## [2.7.0] - 2026-06-02
 
 ### Added

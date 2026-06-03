@@ -55,11 +55,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
             }
 
             kawarimi.get(PathComponent(stringLiteral: KawarimiAdminRoute.status.relativePath)) { _ async throws -> Response in
-                let overrides = await store.overrides()
-                let data = try JSONEncoder().encode(overrides)
-                var headers = HTTPHeaders()
-                headers.contentType = .json
-                return Response(status: adminSuccessHTTPStatus(for: .status), headers: headers, body: .init(data: data))
+                try await adminOverridesJSONResponse(overrides: store.overrides(), route: .status)
             }
 
             kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.reset.relativePath)) { _ async throws -> Response in
@@ -71,7 +67,11 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 let result = await store.reloadFromDisk()
                 var headers = HTTPHeaders()
                 headers.add(name: KawarimiAdminHeaders.reloadOutcome, value: result.httpHeaderValue)
-                return Response(status: adminSuccessHTTPStatus(for: .reload), headers: headers)
+                return try await adminOverridesJSONResponse(
+                    overrides: store.overrides(),
+                    route: .reload,
+                    extraHeaders: headers
+                )
             }
 
             kawarimi.get(PathComponent(stringLiteral: KawarimiAdminRoute.spec.relativePath)) { _ async throws -> Response in

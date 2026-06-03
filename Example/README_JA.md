@@ -129,7 +129,7 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-**`kawarimi.json` をディスク上で編集したあと**、サーバーへ再読込（`204`。`**X-Kawarimi-Reload**` が `applied` または `unchanged`）:
+**`kawarimi.json` をディスク上で編集したあと**、サーバーへ再読込（`200` + overrides JSON。`**X-Kawarimi-Reload**` が `applied` または `unchanged`）:
 
 ```bash
 curl -i -X POST http://localhost:8080/api/__kawarimi/reload

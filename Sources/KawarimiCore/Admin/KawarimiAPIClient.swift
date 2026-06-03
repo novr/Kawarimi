@@ -74,6 +74,24 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
 
+    /// Upserts one override, then returns the current override list (`POST …/configure` + `GET …/status`).
+    public func configureAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await configure(override: override)
+        return try await fetchOverrides()
+    }
+
+    /// Removes one override row, then returns the current override list (`POST …/remove` + `GET …/status`).
+    public func removeAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await removeOverride(override: override)
+        return try await fetchOverrides()
+    }
+
+    /// Clears all overrides, then returns the current override list (`POST …/reset` + `GET …/status`).
+    public func resetAndFetchOverrides() async throws -> [MockOverride] {
+        try await reset()
+        return try await fetchOverrides()
+    }
+
     /// Upserts one override. JSON may include `exampleId` (or `null`/omit for the default example); see Henge docs.
     public func configure(override: MockOverride) async throws {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .configure)
@@ -130,8 +148,8 @@ public struct KawarimiAPIClient: Sendable {
         try validateHTTPStatus(response, data: nil)
     }
 
-    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode` and `X-Kawarimi-Reload`.
-    public func reload() async throws -> KawarimiConfigReloadResult {
+    /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode`, `X-Kawarimi-Reload`, and a JSON override array (same as ``fetchOverrides()``).
+    public func reload() async throws -> KawarimiConfigReloadResponse {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reload)
         var request = URLRequest(url: url)
         request.httpMethod = KawarimiAdminRoute.reload.httpMethod.rawValue
@@ -146,6 +164,7 @@ public struct KawarimiAPIClient: Sendable {
         guard let result = KawarimiConfigReloadResult(httpHeaderValue: raw) else {
             throw KawarimiAPIError(statusCode: http.statusCode, data: data)
         }
-        return result
+        let overrides = try JSONDecoder().decode([MockOverride].self, from: data)
+        return KawarimiConfigReloadResponse(result: result, overrides: overrides)
     }
 }
