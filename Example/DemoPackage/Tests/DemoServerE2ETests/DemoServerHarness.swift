@@ -64,15 +64,20 @@ struct DemoServerHarness {
 
     func resetOverrides() async throws {
         let resetURL = kawarimiBaseURL.appending(path: KawarimiAdminRoute.reset.relativePath)
-        let (response, _) = try await DemoServerHTTP.postJSON(
-            resetURL,
-            body: Data("{}".utf8)
-        )
+        let (response, data) = try await DemoServerHTTP.postEmpty(resetURL)
         guard response.statusCode == KawarimiAdminRoute.reset.successStatusCode else {
             throw HarnessError.unexpectedHTTPStatus(
                 response.statusCode,
                 url: resetURL,
                 stderr: stderrMonitor.snapshot()
+            )
+        }
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: data)
+        guard overrides.isEmpty else {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: resetURL,
+                stderr: "reset returned non-empty overrides: \(overrides.count)"
             )
         }
     }

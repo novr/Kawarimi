@@ -132,3 +132,44 @@ private final class MockKawarimiReloadURLProtocol: URLProtocol {
     #expect(unchanged.result == .unchanged)
     #expect(unchanged.overrides.count == 1)
 }
+
+/// Responds with `200` and a JSON override array for admin mutation routes.
+private final class MockKawarimiMutationURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let body = """
+            [{"path":"/api/items","method":"GET","statusCode":200,"isEnabled":true}]
+            """.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: KawarimiAdminRoute.configure.successStatusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": KawarimiAdminHeaders.jsonContentType]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Test func kawarimiAPIClientConfigureDecodesOverridesFromResponseBody() async throws {
+    URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiMutationURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/")!, session: session)
+    let override = MockOverride(path: "/api/items", method: "GET", statusCode: 200, isEnabled: true)!
+    let overrides = try await client.configure(override: override)
+    #expect(overrides.count == 1)
+    #expect(overrides[0].path == "/api/items")
+}

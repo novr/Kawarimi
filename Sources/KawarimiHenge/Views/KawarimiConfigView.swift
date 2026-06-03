@@ -10,9 +10,9 @@ public struct KawarimiConfigView: View {
         securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     )
     private let fetchOverrides: () async throws -> [MockOverride]
-    private let configureOverride: (MockOverride) async throws -> Void
-    private let removeOverride: (MockOverride) async throws -> Void
-    private let resetAllOverrides: () async throws -> Void
+    private let configureOnServer: (MockOverride) async throws -> [MockOverride]
+    private let removeOnServer: (MockOverride) async throws -> [MockOverride]
+    private let resetAllOnServer: () async throws -> [MockOverride]
     private let reloadFromDisk: () async throws -> KawarimiConfigReloadResponse
 
     @State private var serverURL: String
@@ -41,9 +41,9 @@ public struct KawarimiConfigView: View {
             )
         }
         fetchOverrides = { try await client.fetchOverrides() }
-        configureOverride = { try await client.configure(override: $0) }
-        removeOverride = { try await client.removeOverride(override: $0) }
-        resetAllOverrides = { try await client.reset() }
+        configureOnServer = { try await client.configure(override: $0) }
+        removeOnServer = { try await client.removeOverride(override: $0) }
+        resetAllOnServer = { try await client.reset() }
         reloadFromDisk = { try await client.reload() }
     }
 
@@ -75,15 +75,16 @@ public struct KawarimiConfigView: View {
             specLoadID: specLoadID,
             overridesRevision: overridesRevision,
             configureOverride: { override in
+                var list = overridesSnapshot
                 if override.isEnabled {
-                    try await disableConflictingStatusMocks(saved: override)
+                    list = try await disableConflictingStatusMocks(saved: override, starting: list)
                 }
-                try await configureOverride(override)
-                return try await refreshOverridesOnly()
+                list = try await configureOnServer(override)
+                return applyOverridesSnapshot(list)
             },
             removeOverride: { override in
-                try await removeOverride(override)
-                return try await refreshOverridesOnly()
+                let list = try await removeOnServer(override)
+                return applyOverridesSnapshot(list)
             },
             errorMessage: $errorMessage
         )
@@ -113,8 +114,8 @@ public struct KawarimiConfigView: View {
 
     private func performResetAll() async throws {
         reloadNoticeMessage = nil
-        try await resetAllOverrides()
-        await loadSpecAndOverrides()
+        _ = applyOverridesSnapshot(try await resetAllOnServer())
+        specLoadID += 1
     }
 
     private func performReloadFromDisk() async {
@@ -126,18 +127,15 @@ public struct KawarimiConfigView: View {
         do {
             let response = try await reloadFromDisk()
             reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
-            overridesSnapshot = response.overrides
-            overridesRevision += 1
+            _ = applyOverridesSnapshot(response.overrides)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    /// Fetches overrides, updates ``overridesSnapshot`` / ``overridesRevision``, and returns the **same** array for callers that must resync without re-reading `@State`.
     @discardableResult
-    private func refreshOverridesOnly() async throws -> [MockOverride] {
+    private func applyOverridesSnapshot(_ list: [MockOverride]) -> [MockOverride] {
         errorMessage = nil
-        let list = try await fetchOverrides()
         overridesSnapshot = list
         overridesRevision += 1
         return list
@@ -145,17 +143,21 @@ public struct KawarimiConfigView: View {
 
     /// When saving an enabled mock, turn off every **other** enabled override for the same OpenAPI operation
     /// (different status **or** same status with a different `exampleId`) so only one row stays active.
-    private func disableConflictingStatusMocks(saved: MockOverride) async throws {
+    private func disableConflictingStatusMocks(
+        saved: MockOverride,
+        starting: [MockOverride]
+    ) async throws -> [MockOverride] {
         let pathPrefix = meta?.apiPathPrefix ?? ""
-        let all = try await fetchOverrides()
-        for other in all where OverrideListQueries.peerShouldBeDisabledWhenSavingEnabledRow(
+        var list = starting
+        for other in list where OverrideListQueries.peerShouldBeDisabledWhenSavingEnabledRow(
             saved: saved,
             peer: other,
             pathPrefix: pathPrefix
         ) {
             var dis = other
             dis.isEnabled = false
-            try await configureOverride(dis)
+            list = try await configureOnServer(dis)
         }
+        return list
     }
 }

@@ -20,11 +20,13 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
-**2.7.0 → 次リリース**（破壊的 — reload）:
+**2.7.0 → 次リリース**（破壊的 — admin ミューテーション）:
 
 1. リリースタグ公開後に pin を上げる — **[CHANGELOG.md](../../CHANGELOG.md)** の **`[Unreleased]`** を参照。
-2. **カスタム admin サーバー**: **`POST …/__kawarimi/reload`** は **`204 No Content`** ではなく、**`GET …/status` と同型**の JSON オーバーライド配列 + **`X-Kawarimi-Reload: applied|unchanged`** で **`200`** を返す。**`reloadFromDisk()`** 後に **`store.overrides()`** をエンコードする。
-3. **`KawarimiAPIClient.reload()`** は **`KawarimiConfigReloadResult`** ではなく **`KawarimiConfigReloadResponse`**（結果 + overrides）を返す。
+2. **カスタム admin サーバー**:
+   - **`POST …/__kawarimi/reload`**: **`204`** ではなく JSON overrides + **`X-Kawarimi-Reload`** で **`200`**。**`reloadFromDisk()`** 後に **`store.overrides()`** をエンコード。
+   - **`POST …/__kawarimi/configure`** / **`remove`** / **`reset`**: 空 **`200`** ではなく **`GET …/status` 同型** JSON で **`200`**。ミューテーション後に **`store.overrides()`** をエンコード。
+3. **`KawarimiAPIClient`**: **`reload()`** は **`KawarimiConfigReloadResponse`**；**`configure`** / **`removeOverride`** / **`reset`** は **`Void`** ではなく **`[MockOverride]`** ([#147](https://github.com/novr/Kawarimi/issues/147))。
 
 **2.6.0 → 2.7.0**（追加のみ）:
 
