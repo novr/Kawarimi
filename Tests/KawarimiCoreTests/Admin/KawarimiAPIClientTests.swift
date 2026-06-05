@@ -173,3 +173,73 @@ private final class MockKawarimiMutationURLProtocol: URLProtocol {
     #expect(overrides.count == 1)
     #expect(overrides[0].path == "/api/items")
 }
+
+@Test func kawarimiAPIClientRemoveDecodesOverridesFromResponseBody() async throws {
+    URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiMutationURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/")!, session: session)
+    let override = MockOverride(path: "/api/items", method: "GET", statusCode: 200, isEnabled: true)!
+    let overrides = try await client.removeOverride(override: override)
+    #expect(overrides.count == 1)
+    #expect(overrides[0].path == "/api/items")
+}
+
+@Test func kawarimiAPIClientResetDecodesOverridesFromResponseBody() async throws {
+    URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiMutationURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/")!, session: session)
+    let overrides = try await client.reset()
+    #expect(overrides.count == 1)
+    #expect(overrides[0].path == "/api/items")
+}
+
+/// Returns `200` with a non-JSON body so mutation decode should fail.
+private final class MockKawarimiMutationInvalidBodyURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let body = "not a json array".data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: KawarimiAdminRoute.configure.successStatusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "text/plain"]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Test func kawarimiAPIClientMutationThrowsWhenResponseBodyIsNotOverridesJSON() async throws {
+    URLProtocol.registerClass(MockKawarimiMutationInvalidBodyURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiMutationInvalidBodyURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiMutationInvalidBodyURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/")!, session: session)
+    let override = MockOverride(path: "/api/items", method: "GET", statusCode: 200, isEnabled: true)!
+
+    do {
+        _ = try await client.configure(override: override)
+        #expect(Bool(false), "expected decode failure")
+    } catch {
+        #expect(true)
+    }
+}
