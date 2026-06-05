@@ -175,10 +175,10 @@ API 対応:
 
 | エンドポイント | 説明 |
 |---|---|
-| `POST {pathPrefix}/__kawarimi/configure` | path/method/statusCode（および名前付き例なら `exampleId`）で 1 行を upsert。`isEnabled`・`body`・`contentType` などを指定 |
-| `POST {pathPrefix}/__kawarimi/remove` | `configure` と同じ同一視（正規化後の path・メソッド・`statusCode`・`exampleId`）で 1 行を削除。べき等 |
+| `POST {pathPrefix}/__kawarimi/configure` | 1 行 upsert。**`200`** + **`GET …/status` 同型**の JSON オーバーライド配列。 |
+| `POST {pathPrefix}/__kawarimi/remove` | 1 行削除（`configure` と同じ同一視）。**`200`** + JSON オーバーライド配列。べき等 |
 | `GET {pathPrefix}/__kawarimi/status` | 有効なオーバーライド一覧を取得 |
-| `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除 |
+| `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除。**`200`** + JSON オーバーライド配列（通常 `[]`） |
 | `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**（ファイル監視の reload と同じ）。`**200**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）、および **`GET …/status` と同型**の JSON オーバーライド配列。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
 
@@ -194,9 +194,9 @@ API 対応:
 | `POST …/remove` | `400` | プレーンテキスト（**`MockOverride`** JSON として不正な body） |
 | `POST …/remove` | `500` | プレーンテキスト（ストア失敗） |
 
-成功時の JSON 応答（**`GET …/status`**、**`GET …/spec`**、**`POST …/reload`**）は **`Content-Type: application/json`**（**`KawarimiAdminHeaders.jsonContentType`**）。**`POST …/configure`** / **`remove`** / **`reset`** の成功は空 **`200`**。
+成功時の JSON 応答（**`GET …/status`**、**`GET …/spec`**、**`POST …/configure`**、**`POST …/remove`**、**`POST …/reset`**、**`POST …/reload`**）は **`Content-Type: application/json`**（**`KawarimiAdminHeaders.jsonContentType`**）。**`POST …/reload`** は **`X-Kawarimi-Reload`** も付与。
 
-**`KawarimiAPIClient`** には **`configureAndFetchOverrides`** / **`removeAndFetchOverrides`** / **`resetAndFetchOverrides`** もある（ミューテーション後に **`GET …/status`**。HTTP 契約は変えない additive API）。
+**`KawarimiAPIClient`**: **`configure`** / **`removeOverride`** / **`reset`** はレスポンス body から overrides をデコード。**`configureAndFetchOverrides`** 等はエイリアス（追加 **`GET …/status`** なし）。
 
 **KawarimiHenge（`KawarimiConfigView`）:** 管理 API の **`baseURL`** に揃えた **`KawarimiAPIClient`** のみ渡します（例: `http://127.0.0.1:8080/api`）。Spec とエンドポイントは **`GET …/__kawarimi/spec`**（`HengeSpecSnapshot`）で取得します。
 
@@ -220,7 +220,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 2. **エディタのドラフト（選択中）** — **`OverrideEditorStore`**（`@Observable`）が **`OverrideDetailDraft`**（**`mock`**・**`isDirty`**・**`pinnedNumberedResponseChip`** など）を保持。配列全体のコピーではなく、**開いている行の編集バッファ**。**退避** — 別エンドポイントへ移るとき **`isDirty`** なら **`pendingDraftsByRowKey`** に退避し、同じ行を再度選ぶと復元（**Spec 再取得**で退避は消える）。
 
-3. **ミューテーションの橋渡し** — 子へ渡す **`configureOverride`** / **`removeOverride`** は **`(MockOverride) async throws -> [MockOverride]`**。親ラッパー（**`KawarimiConfigView`**）が **`disableConflictingStatusMocks`** のあと **`KawarimiAPIClient`** の **`configure`** / **`remove`** を呼び、**`refreshOverridesOnly()`** で **`overridesSnapshot`** を更新し、**fetch で得た同じ `[MockOverride]` を `return`**（この戻り値用に **`@State` を二度読みしない**）。**`OverrideEditorStore`** は成功経路で **`markSavedClean()`** の直後にその配列で **`resyncDetailAfterOverridesRefresh`** を呼び、ドラフトをサーバー一覧と揃える。
+3. **ミューテーションの橋渡し** — 子へ渡す **`configureOverride`** / **`removeOverride`** は **`(MockOverride) async throws -> [MockOverride]`**。親ラッパー（**`KawarimiConfigView`**）が **`disableConflictingStatusMocks`** のあと **`KawarimiAPIClient`** の **`configure`** / **`remove`** を呼び、**レスポンス body** から **`overridesSnapshot`** を更新する（追加 **`GET …/status`** なし）。**`OverrideEditorStore`** は成功経路で **`markSavedClean()`** の直後にその配列で **`resyncDetailAfterOverridesRefresh`** を呼び、ドラフトをサーバー一覧と揃える。
 
 <a id="henge-dirty-vs-unsaved"></a>
 

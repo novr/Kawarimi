@@ -99,6 +99,8 @@ handlerStubPolicy: throw
 
 ## Henge API を試す（DemoServer）
 
+成功時の **`POST …/__kawarimi/configure`** / **`…/remove`** / **`…/reset`** は **`200`** と **`GET …/status` 同型**の JSON オーバーライド配列を返します。
+
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -H "Content-Type: application/json" \

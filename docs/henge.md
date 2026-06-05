@@ -176,10 +176,10 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 | Endpoint | Description |
 |---|---|
-| `POST {pathPrefix}/__kawarimi/configure` | Upsert an override for a path/method/statusCode (and optional `exampleId`). Set `isEnabled` / `body` / `contentType` as needed. |
-| `POST {pathPrefix}/__kawarimi/remove` | Remove one override row that matches the same identity as `configure` (normalized path, method, `statusCode`, `exampleId`). Idempotent. |
+| `POST {pathPrefix}/__kawarimi/configure` | Upsert an override. Returns **`200`** with a JSON override array (same shape as **`GET …/status`**). |
+| `POST {pathPrefix}/__kawarimi/remove` | Remove one override row (same identity as `configure`). Returns **`200`** with a JSON override array. Idempotent. |
 | `GET {pathPrefix}/__kawarimi/status` | List active overrides |
-| `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides |
+| `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides. Returns **`200`** with a JSON override array (typically `[]`). |
 | `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`200`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory), and a JSON override array (same shape as **`GET …/status`**). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
 
@@ -195,9 +195,9 @@ Reference behavior from **DemoServer** ([`KawarimiRoutes.swift`](../Example/Demo
 | `POST …/remove` | `400` | Plain text when the body is not valid **`MockOverride`** JSON |
 | `POST …/remove` | `500` | Plain text for store failures |
 
-Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`POST …/reload`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/configure`**, **`POST …/remove`**, and **`POST …/reset`** return empty **`200`** on success.
+Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`POST …/configure`**, **`POST …/remove`**, **`POST …/reset`**, **`POST …/reload`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/reload`** also sets **`X-Kawarimi-Reload`**.
 
-**KawarimiAPIClient** also offers **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** — each performs the mutation then **`GET …/status`** (additive; HTTP contract unchanged).
+**`KawarimiAPIClient`**: **`configure`**, **`removeOverride`**, and **`reset`** decode the post-mutation override list from the response body. **`configureAndFetchOverrides`** and similar names remain as aliases (no extra **`GET …/status`**).
 
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
 
@@ -221,7 +221,7 @@ The SwiftUI mock UI is **`OverrideEditorView`** in **KawarimiHenge** (endpoint e
 
 2. **Editor draft (per selection)** — **`OverrideEditorStore`** (`@Observable`) holds an optional **`OverrideDetailDraft`** for the **open** row: **`mock`**, **`isDirty`**, **`pinnedNumberedResponseChip`**, **`validationMessage`**. It is **not** a copy of the whole overrides array. **Stashed drafts** — when you switch endpoints with **`isDirty`**, the previous row’s draft is copied into **`pendingDraftsByRowKey`**; selecting that row again restores it (spec reload clears stashes).
 
-3. **Mutation bridge** — The child receives **`configureOverride`** / **`removeOverride`** typed as **`(MockOverride) async throws -> [MockOverride]`**. The parent’s wrapper (on **`KawarimiConfigView`**) may call **`disableConflictingStatusMocks`**, then the bare **`KawarimiAPIClient`** **`configure`** / **`remove`**, then **`refreshOverridesOnly()`**, which assigns **`overridesSnapshot`** and **`return`s the same `[MockOverride]`** produced by the fetch (so the return value never re-reads **`@State`** for that array). **`OverrideEditorStore`** uses that returned array in **`resyncDetailAfterOverridesRefresh`** immediately after a successful **Save** / **Reset** / **Del → remove** path (**`markSavedClean()`** first), so the draft matches the server response without relying on SwiftUI scheduling.
+3. **Mutation bridge** — The child receives **`configureOverride`** / **`removeOverride`** typed as **`(MockOverride) async throws -> [MockOverride]`**. The parent’s wrapper (on **`KawarimiConfigView`**) may call **`disableConflictingStatusMocks`**, then the bare **`KawarimiAPIClient`** **`configure`** / **`remove`**, and assigns **`overridesSnapshot`** from the **response body** (no follow-up **`GET …/status`**). **`OverrideEditorStore`** uses that returned array in **`resyncDetailAfterOverridesRefresh`** immediately after a successful **Save** / **Reset** / **Del → remove** path (**`markSavedClean()`** first), so the draft matches the server response without relying on SwiftUI scheduling.
 
 <a id="henge-dirty-vs-unsaved"></a>
 

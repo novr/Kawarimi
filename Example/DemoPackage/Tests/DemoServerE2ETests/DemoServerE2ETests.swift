@@ -38,24 +38,20 @@ final class DemoServerE2ETests {
             "body":"{\\"message\\":\\"From E2E test\\"}","contentType":"application/json"}
             """.utf8
         )
-        let (configureResponse, _) = try await DemoServerHTTP.postJSON(
+        let (configureResponse, configureData) = try await DemoServerHTTP.postJSON(
             server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath),
             body: configureBody
         )
         #expect(configureResponse.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(configureResponse))
+        let configuredOverrides = try DemoServerE2EJSON.decodeOverrides(from: configureData)
+        #expect(configuredOverrides.count == 1)
+        #expect(configuredOverrides.first?.path == greetPath)
 
         let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(greetResponse.statusCode == 200)
         let greetJSON = try DemoServerE2EJSON.decodeGreeting(from: greetData)
         #expect(greetJSON.message == "From E2E test")
-
-        let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
-        )
-        #expect(statusResponse.statusCode == 200)
-        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
-        #expect(overrides.count == 1)
-        #expect(overrides.first?.path == greetPath)
     }
 
     @Test func hengeResetClearsOverrides() async throws {
@@ -74,7 +70,12 @@ final class DemoServerE2ETests {
         )
         #expect(configureResponse.statusCode == 200)
 
-        try await server.resetOverrides()
+        let resetURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.reset.relativePath)
+        let (resetResponse, resetData) = try await DemoServerHTTP.postEmpty(resetURL)
+        #expect(resetResponse.statusCode == KawarimiAdminRoute.reset.successStatusCode)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(resetResponse))
+        let resetOverrides = try DemoServerE2EJSON.decodeOverrides(from: resetData)
+        #expect(resetOverrides.isEmpty)
 
         let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(greetResponse.statusCode == 200)
@@ -102,18 +103,19 @@ final class DemoServerE2ETests {
         )
         #expect(configureResponse.statusCode == 200)
 
-        let (removeResponse, _) = try await DemoServerHTTP.postJSON(
+        let (removeResponse, removeData) = try await DemoServerHTTP.postJSON(
             server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath),
             body: Data(row.utf8)
         )
         #expect(removeResponse.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(removeResponse))
+        let removedOverrides = try DemoServerE2EJSON.decodeOverrides(from: removeData)
+        #expect(removedOverrides.isEmpty)
 
-        let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
-        )
-        #expect(statusResponse.statusCode == 200)
-        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
-        #expect(overrides.isEmpty)
+        let (greetResponse, greetData) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
+        #expect(greetResponse.statusCode == 200)
+        let greetJSON = try DemoServerE2EJSON.decodeGreeting(from: greetData)
+        #expect(greetJSON.message == "Hello from API")
     }
 
     @Test func hengeRemoveDeletesOverrideRow() async throws {
@@ -129,18 +131,14 @@ final class DemoServerE2ETests {
         )
         #expect(configureResponse.statusCode == 200)
 
-        let (removeResponse, _) = try await DemoServerHTTP.postJSON(
+        let (removeResponse, removeData) = try await DemoServerHTTP.postJSON(
             server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.remove.relativePath),
             body: Data(row.utf8)
         )
         #expect(removeResponse.statusCode == 200)
-
-        let (statusResponse, statusData) = try await DemoServerHTTP.get(
-            server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.status.relativePath)
-        )
-        #expect(statusResponse.statusCode == 200)
-        let overrides = try DemoServerE2EJSON.decodeOverrides(from: statusData)
-        #expect(overrides.isEmpty)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(removeResponse))
+        let removedOverrides = try DemoServerE2EJSON.decodeOverrides(from: removeData)
+        #expect(removedOverrides.isEmpty)
     }
 
     @Test func hengeReloadReturns200WithOverridesAndReloadHeader() async throws {

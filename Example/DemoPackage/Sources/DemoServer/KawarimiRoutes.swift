@@ -28,7 +28,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
                 do {
                     try await store.configure(override)
-                    return Response(status: adminSuccessHTTPStatus(for: .configure))
+                    return try await adminOverridesJSONResponse(overrides: store.overrides(), route: .configure)
                 } catch let e as KawarimiConfigStoreError {
                     if case .bodyTooLong = e {
                         return Response(status: .payloadTooLarge, body: .init(string: "\(e)"))
@@ -48,7 +48,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
                 }
                 do {
                     try await store.removeOverride(override)
-                    return Response(status: adminSuccessHTTPStatus(for: .remove))
+                    return try await adminOverridesJSONResponse(overrides: store.overrides(), route: .remove)
                 } catch {
                     return Response(status: .internalServerError, body: .init(string: "\(error)"))
                 }
@@ -60,7 +60,7 @@ func registerKawarimiRoutes(app: Application, store: KawarimiConfigStore) async 
 
             kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.reset.relativePath)) { _ async throws -> Response in
                 try await store.reset()
-                return Response(status: adminSuccessHTTPStatus(for: .reset))
+                return try await adminOverridesJSONResponse(overrides: store.overrides(), route: .reset)
             }
 
             kawarimi.post(PathComponent(stringLiteral: KawarimiAdminRoute.reload.relativePath)) { _ async throws -> Response in

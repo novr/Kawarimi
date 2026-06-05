@@ -118,6 +118,8 @@ Override merge / tie-break rules and empty-body normalization: [henge.md](../doc
 
 ## Try the Henge API (DemoServer)
 
+Successful **`POST …/__kawarimi/configure`**, **`…/remove`**, and **`…/reset`** return **`200`** with a JSON override array (same shape as **`GET …/status`**).
+
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -H "Content-Type: application/json" \

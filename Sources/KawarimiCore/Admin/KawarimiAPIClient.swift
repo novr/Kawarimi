@@ -74,44 +74,47 @@ public struct KawarimiAPIClient: Sendable {
         return try JSONDecoder().decode([MockOverride].self, from: data)
     }
 
-    /// Upserts one override, then returns the current override list (`POST …/configure` + `GET …/status`).
-    public func configureAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
-        try await configure(override: override)
-        return try await fetchOverrides()
-    }
-
-    /// Removes one override row, then returns the current override list (`POST …/remove` + `GET …/status`).
-    public func removeAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
-        try await removeOverride(override: override)
-        return try await fetchOverrides()
-    }
-
-    /// Clears all overrides, then returns the current override list (`POST …/reset` + `GET …/status`).
-    public func resetAndFetchOverrides() async throws -> [MockOverride] {
-        try await reset()
-        return try await fetchOverrides()
-    }
-
-    /// Upserts one override. JSON may include `exampleId` (or `null`/omit for the default example); see Henge docs.
-    public func configure(override: MockOverride) async throws {
+    /// Upserts one override and returns the current override list (`POST …/configure`).
+    public func configure(override: MockOverride) async throws -> [MockOverride] {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .configure)
         var request = URLRequest(url: url)
         request.httpMethod = KawarimiAdminRoute.configure.httpMethod.rawValue
         request.setValue(KawarimiAdminHeaders.jsonContentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(override)
-        let (data, response) = try await session.data(for: request)
-        try validateHTTPStatus(response, data: data)
+        return try await performMutation(route: .configure, request: request)
     }
 
-    /// Removes one override row from config (same identity as ``configure(override:)``).
-    public func removeOverride(override: MockOverride) async throws {
+    /// Removes one override row and returns the current override list (`POST …/remove`).
+    public func removeOverride(override: MockOverride) async throws -> [MockOverride] {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .remove)
         var request = URLRequest(url: url)
         request.httpMethod = KawarimiAdminRoute.remove.httpMethod.rawValue
         request.setValue(KawarimiAdminHeaders.jsonContentType, forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(override)
-        let (data, response) = try await session.data(for: request)
-        try validateHTTPStatus(response, data: data)
+        return try await performMutation(route: .remove, request: request)
+    }
+
+    /// Clears all overrides and returns the current override list (`POST …/reset`).
+    public func reset() async throws -> [MockOverride] {
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reset)
+        var request = URLRequest(url: url)
+        request.httpMethod = KawarimiAdminRoute.reset.httpMethod.rawValue
+        return try await performMutation(route: .reset, request: request)
+    }
+
+    /// Alias for ``configure(override:)`` — admin mutations return overrides in the response body ([#147](https://github.com/novr/Kawarimi/issues/147)); no separate ``GET …/status``.
+    public func configureAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await configure(override: override)
+    }
+
+    /// Alias for ``removeOverride(override:)`` — see ``configureAndFetchOverrides(override:)``.
+    public func removeAndFetchOverrides(override: MockOverride) async throws -> [MockOverride] {
+        try await removeOverride(override: override)
+    }
+
+    /// Alias for ``reset()`` — see ``configureAndFetchOverrides(override:)``.
+    public func resetAndFetchOverrides() async throws -> [MockOverride] {
+        try await reset()
     }
 
     /// Convenience wrapper for `configure(override:)` with an explicit `exampleId` (`nil` = default example row).
@@ -124,7 +127,7 @@ public struct KawarimiAPIClient: Sendable {
         body: String? = nil,
         contentType: String? = nil,
         delayMs: Int? = nil
-    ) async throws {
+    ) async throws -> [MockOverride] {
         guard let override = MockOverride(
             path: path,
             method: method,
@@ -137,15 +140,7 @@ public struct KawarimiAPIClient: Sendable {
         ) else {
             throw MockOverride.InvalidMethodStringError(rawMethod: method)
         }
-        try await configure(override: override)
-    }
-
-    public func reset() async throws {
-        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .reset)
-        var request = URLRequest(url: url)
-        request.httpMethod = KawarimiAdminRoute.reset.httpMethod.rawValue
-        let (_, response) = try await session.data(for: request)
-        try validateHTTPStatus(response, data: nil)
+        return try await configure(override: override)
     }
 
     /// Re-reads overrides from disk (`POST …/__kawarimi/reload`). Expects ``KawarimiAdminRoute/reload`` `successStatusCode`, `X-Kawarimi-Reload`, and a JSON override array (same as ``fetchOverrides()``).
@@ -154,17 +149,33 @@ public struct KawarimiAPIClient: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = KawarimiAdminRoute.reload.httpMethod.rawValue
         let (data, response) = try await session.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw KawarimiAPIError(statusCode: 0, data: data)
-        }
-        guard http.statusCode == KawarimiAdminRoute.reload.successStatusCode else {
-            throw KawarimiAPIError(statusCode: http.statusCode, data: data)
-        }
+        let http = try validateMutationHTTP(response, data: data, route: .reload)
         let raw = http.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) ?? ""
         guard let result = KawarimiConfigReloadResult(httpHeaderValue: raw) else {
             throw KawarimiAPIError(statusCode: http.statusCode, data: data)
         }
-        let overrides = try JSONDecoder().decode([MockOverride].self, from: data)
+        let overrides = try decodeOverrides(from: data)
         return KawarimiConfigReloadResponse(result: result, overrides: overrides)
+    }
+
+    private func performMutation(route: KawarimiAdminRoute, request: URLRequest) async throws -> [MockOverride] {
+        let (data, response) = try await session.data(for: request)
+        _ = try validateMutationHTTP(response, data: data, route: route)
+        return try decodeOverrides(from: data)
+    }
+
+    @discardableResult
+    private func validateMutationHTTP(_ response: URLResponse?, data: Data?, route: KawarimiAdminRoute) throws -> HTTPURLResponse {
+        guard let http = response as? HTTPURLResponse else {
+            throw KawarimiAPIError(statusCode: 0, data: data)
+        }
+        guard http.statusCode == route.successStatusCode else {
+            throw KawarimiAPIError(statusCode: http.statusCode, data: data)
+        }
+        return http
+    }
+
+    private func decodeOverrides(from data: Data) throws -> [MockOverride] {
+        try JSONDecoder().decode([MockOverride].self, from: data)
     }
 }

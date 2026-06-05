@@ -20,11 +20,13 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
-**2.7.0 → next release** (breaking — reload):
+**2.7.0 → next release** (breaking — admin mutations):
 
 1. Bump pin when the release tag is published — see **[CHANGELOG.md](../CHANGELOG.md)** `[Unreleased]`.
-2. **Custom admin servers**: **`POST …/__kawarimi/reload`** must return **`200`** with a JSON override array (same as **`GET …/status`**) and **`X-Kawarimi-Reload: applied|unchanged`**, not **`204 No Content`**. Encode **`store.overrides()`** after **`reloadFromDisk()`**.
-3. **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** (outcome + overrides), not **`KawarimiConfigReloadResult`**.
+2. **Custom admin servers**:
+   - **`POST …/__kawarimi/reload`**: **`200`** + JSON override array + **`X-Kawarimi-Reload`**, not **`204`**. Encode **`store.overrides()`** after **`reloadFromDisk()`**.
+   - **`POST …/__kawarimi/configure`** / **`remove`** / **`reset`**: **`200`** + JSON override array (same as **`GET …/status`**), not empty **`200`**. Encode **`store.overrides()`** after the mutation.
+3. **`KawarimiAPIClient`**: **`reload()`** returns **`KawarimiConfigReloadResponse`**; **`configure`** / **`removeOverride`** / **`reset`** return **`[MockOverride]`** instead of **`Void`** ([#147](https://github.com/novr/Kawarimi/issues/147)).
 
 **2.6.0 → 2.7.0** (additive):
 
