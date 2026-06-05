@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiHenge**: **Reload kawarimi.json** in the explorer chrome — **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** (outcome + overrides in one call) and shows **`applied`** / **`unchanged`** under the button ([#130](https://github.com/novr/Kawarimi/issues/130)).
 - **KawarimiCore**: **`KawarimiConfigReloadResponse`** — reload outcome plus post-reload override list from **`POST …/__kawarimi/reload`**.
 - **KawarimiCore**: **`configureAndFetchOverrides`**, **`removeAndFetchOverrides`**, and **`resetAndFetchOverrides`** on **`KawarimiAPIClient`** — aliases for mutation methods that now return overrides in the response body ([#147](https://github.com/novr/Kawarimi/issues/147)).
+- **KawarimiHenge**: operation-level cleanup action in detail header to remove all **disabled** override rows for the selected operation in one step ([#129](https://github.com/novr/Kawarimi/issues/129)).
 
 ### Changed
 
@@ -21,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Docs
 
 - **henge.md** / **integration.md** (EN/JA): admin error responses (DemoServer reference); **`2.7.0 → next release`** admin migration.
+- **henge-detail-column-regression.md** (EN/JA): post-#120 regression checks for one-step **Del** and **inactive chip + Save** behavior ([#127](https://github.com/novr/Kawarimi/issues/127)).
+- **henge.md** / **ja/henge.md**: documented operation-level bulk remove of disabled overrides ([#129](https://github.com/novr/Kawarimi/issues/129)).
 
 ### Breaking
 

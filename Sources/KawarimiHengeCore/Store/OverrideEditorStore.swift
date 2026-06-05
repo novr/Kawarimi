@@ -396,4 +396,34 @@ package final class OverrideEditorStore {
         }
     }
 
+    package func removeDisabledOverridesForOperation(
+        endpointItem: SpecEndpointItem,
+        pathPrefix: String,
+        overrides: [MockOverride],
+        endpoints: [any SpecEndpointProviding] = [],
+        removeOverride: @escaping (MockOverride) async throws -> [MockOverride],
+        setErrorMessage: @escaping (String?) -> Void
+    ) async {
+        setErrorMessage(nil)
+        let endpoint = endpointItem.endpoint
+        let disabledRows = OverrideListQueries.disabledOverridesForOperation(
+            rowKey: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: pathPrefix,
+            in: overrides
+        )
+        guard !disabledRows.isEmpty else { return }
+        do {
+            var refreshed = overrides
+            for stored in disabledRows {
+                refreshed = try await removeOverride(
+                    OverrideListQueries.removeIdentity(for: stored, operationId: endpoint.operationId)
+                )
+            }
+            resyncDetailAfterOverridesRefresh(pathPrefix: pathPrefix, endpoints: endpoints, overrides: refreshed)
+        } catch {
+            setErrorMessage(error.localizedDescription)
+        }
+    }
+
 }
