@@ -31,6 +31,8 @@ Not in Preview: mock off, dirty/save errors, chip apply, sheets — exercise in 
 | `getGreeting` | Same as sparse row above on a live server |
 | `listItems` | Toolbar fixed while the header scrolls |
 | Long JSON on any op | Toolbar fixed; editor body scrolls |
+| Del on a saved row | One tap removes the matching saved row on the server (no extra disable-then-delete step) |
+| Turn off but keep row | Inactive chip + Save keeps the row disabled with JSON preserved |
 
 ## See also
 

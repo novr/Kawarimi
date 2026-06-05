@@ -96,11 +96,13 @@ private struct DetailColumnChromePreviewHost: View {
                         tightVertical: false,
                         showResponseBodyHeading: true,
                         selectedResponseDocumentation: nil,
-                        canRemoveCurrentMockRow: false
+                        canRemoveCurrentMockRow: false,
+                        disabledOverridesCount: 0
                     ),
                     actions: DetailColumnHeaderActions(
                         onApplyChip: { _ in },
                         onDisableCurrentMock: {},
+                        onRemoveDisabledOverrides: {},
                         onPresentAddCustom: {}
                     ),
                     bindings: DetailColumnHeaderBindings(
@@ -178,11 +180,13 @@ private struct DetailColumnHeaderPreviewHost: View {
                 tightVertical: false,
                 showResponseBodyHeading: true,
                 selectedResponseDocumentation: nil,
-                canRemoveCurrentMockRow: false
+                canRemoveCurrentMockRow: false,
+                disabledOverridesCount: 0
             ),
             actions: DetailColumnHeaderActions(
                 onApplyChip: { _ in },
                 onDisableCurrentMock: {},
+                onRemoveDisabledOverrides: {},
                 onPresentAddCustom: {}
             ),
             bindings: DetailColumnHeaderBindings(

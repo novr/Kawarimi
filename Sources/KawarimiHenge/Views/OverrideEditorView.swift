@@ -426,6 +426,7 @@ struct OverrideEditorView: View {
                 onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
+                onRemoveDisabledOverrides: { Task { await removeDisabledOverridesForOperation(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: d.endpointRowKey),
                 onResponseChipSelected: syncPinnedNumberedResponseChip(afterSelecting:)
             )
@@ -461,6 +462,7 @@ struct OverrideEditorView: View {
                 onSave: { Task { await applyWithBody(endpointItem: item) } },
                 onReset: { Task { await clearOverride(endpointItem: item) } },
                 onDisableCurrentMock: { Task { await disableCurrentMockRow(endpointItem: item) } },
+                onRemoveDisabledOverrides: { Task { await removeDisabledOverridesForOperation(endpointItem: item) } },
                 pinnedNumberedResponseChip: store.pinnedNumberedResponseChip(for: key),
                 onResponseChipSelected: syncPinnedNumberedResponseChip(afterSelecting:)
             )
@@ -575,6 +577,17 @@ struct OverrideEditorView: View {
             overrides: overrides,
             endpoints: endpoints,
             configureOverride: configureOverride,
+            removeOverride: removeOverride,
+            setErrorMessage: { errorMessage.wrappedValue = $0 }
+        )
+    }
+
+    private func removeDisabledOverridesForOperation(endpointItem: SpecEndpointItem) async {
+        await store.removeDisabledOverridesForOperation(
+            endpointItem: endpointItem,
+            pathPrefix: specPathPrefix,
+            overrides: overrides,
+            endpoints: endpoints,
             removeOverride: removeOverride,
             setErrorMessage: { errorMessage.wrappedValue = $0 }
         )

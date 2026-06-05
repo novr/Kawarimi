@@ -20,6 +20,7 @@ struct OverrideDetailColumnView: View {
     let onSave: () -> Void
     let onReset: () -> Void
     let onDisableCurrentMock: () -> Void
+    let onRemoveDisabledOverrides: () -> Void
     let pinnedNumberedResponseChip: Bool
     let onResponseChipSelected: (ResponseChip) -> Void
 
@@ -114,6 +115,15 @@ struct OverrideDetailColumnView: View {
             )
     }
 
+    private var disabledOverridesCountForOperation: Int {
+        OverrideListQueries.disabledOverridesForOperation(
+            rowKey: endpointItem.rowKey,
+            operationId: endpoint.operationId,
+            pathPrefix: apiPathPrefix,
+            in: overrides
+        ).count
+    }
+
     private var bodyTextBinding: Binding<String> {
         Binding(
             get: { mock.body ?? "" },
@@ -190,7 +200,8 @@ struct OverrideDetailColumnView: View {
             tightVertical: detailTightVertical,
             showResponseBodyHeading: shouldShowResponseBodySection,
             selectedResponseDocumentation: selectedResponseDocumentation,
-            canRemoveCurrentMockRow: canRemoveCurrentMockRow
+            canRemoveCurrentMockRow: canRemoveCurrentMockRow,
+            disabledOverridesCount: disabledOverridesCountForOperation
         )
     }
 
@@ -198,6 +209,7 @@ struct OverrideDetailColumnView: View {
         DetailColumnHeaderActions(
             onApplyChip: applyResponseChip,
             onDisableCurrentMock: onDisableCurrentMock,
+            onRemoveDisabledOverrides: onRemoveDisabledOverrides,
             onPresentAddCustom: presentAddCustomSheet
         )
     }

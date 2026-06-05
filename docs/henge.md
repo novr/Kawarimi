@@ -261,6 +261,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 | Persist JSON but **do not** make it the active mock | Choose a chip whose row is **off** (e.g. copy from a stored disabled row), edit body, **Save** — sends **`isEnabled: false`** with **body** / **contentType** preserved. |
 | Turn the mock off but keep the row in `kawarimi.json` | Select an **inactive** chip row and **Save** ( **`isEnabled: false`** with body preserved). |
 | Remove the saved row for the **current** chip | **Del** when a matching saved row exists (calls **`remove`** in one step, whether the row is enabled or disabled). |
+| Remove all **disabled** rows for this operation | Tap the **trash** action in the detail header (removes every disabled row for the selected operation; enabled rows stay untouched). |
 | Clear an **unsaved** draft only | **Del** when no saved row exists for the chip but the editor differs from the server snapshot (no HTTP). |
 | Reset the **default** row to “off + cleared” and align the editor | **Reset** in the bottom bar — same Spec-only path as **Save** on **Spec**: **`remove`** when a matching default stored row exists, else **`configure`**. **Other** chips’ rows for the same operation stay in `kawarimi.json` until you **Del** each. |
 | Clear every override | **Reset all overrides** in the explorer chrome (with confirmation). |

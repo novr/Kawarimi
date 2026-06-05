@@ -13,11 +13,13 @@ struct DetailColumnHeaderModel {
     let showResponseBodyHeading: Bool
     let selectedResponseDocumentation: ResponseDocumentation?
     let canRemoveCurrentMockRow: Bool
+    let disabledOverridesCount: Int
 }
 
 struct DetailColumnHeaderActions {
     let onApplyChip: (ResponseChip) -> Void
     let onDisableCurrentMock: () -> Void
+    let onRemoveDisabledOverrides: () -> Void
     let onPresentAddCustom: () -> Void
 }
 

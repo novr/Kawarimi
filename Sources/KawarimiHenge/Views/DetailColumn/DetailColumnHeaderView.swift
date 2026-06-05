@@ -239,6 +239,16 @@ struct DetailColumnHeaderView: View {
                     .buttonStyle(.plain)
                     .disabled(!model.canRemoveCurrentMockRow)
                     .accessibilityLabel("Remove saved row, or clear unsaved draft")
+
+                    Button(action: actions.onRemoveDisabledOverrides) {
+                        Image(systemName: "trash.circle.fill")
+                            .font(.title3)
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(model.disabledOverridesCount > 0 ? Color.orange : Color.secondary.opacity(0.35))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(model.disabledOverridesCount == 0)
+                    .accessibilityLabel("Remove all disabled rows for this operation")
                 }
                 .padding(.top, 2)
             }

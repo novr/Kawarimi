@@ -31,6 +31,8 @@ Preview で見ない項目: mock off、dirty/save error、チップ適用、shee
 | `getGreeting` | 上記「メタデータ少なめ」と同様 |
 | `listItems` | ヘッダーがスクロールしてもツールバーは固定 |
 | 任意 operation の長文 JSON | ツールバー固定、エディタ本文のみスクロール |
+| 保存済み行で Del | 1 回で一致する保存行をサーバーから削除できる（disable→再Del の 2 段階にならない） |
+| 行を残してオフ | 無効チップ + Save で JSON を保持したまま disabled 行として残る |
 
 ## 関連
 

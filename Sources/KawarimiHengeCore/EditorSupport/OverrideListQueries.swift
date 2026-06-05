@@ -100,6 +100,19 @@ package enum OverrideListQueries {
         ).count >= 2
     }
 
+    /// All **disabled** overrides for this OpenAPI operation.
+    package static func disabledOverridesForOperation(
+        rowKey: EndpointRowKey,
+        operationId: String?,
+        pathPrefix: String,
+        in overrides: [MockOverride]
+    ) -> [MockOverride] {
+        overrides.filter { ov in
+            !ov.isEnabled
+                && overrideMatchesRow(ov, rowKey: rowKey, pathPrefix: pathPrefix, operationId: operationId)
+        }
+    }
+
     // MARK: - Spec endpoint lookup
 
     package static func endpoint(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> (any SpecEndpointProviding)? {

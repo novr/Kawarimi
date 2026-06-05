@@ -425,3 +425,83 @@ private enum TestAsyncError: LocalizedError {
     )
     #expect(err == "kaboom")
 }
+
+@MainActor
+@Test func removeDisabledOverridesForOperationSkipsWhenNone() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    var removeCalls = 0
+    await store.removeDisabledOverridesForOperation(
+        endpointItem: item,
+        pathPrefix: "",
+        overrides: [
+            MockOverride(name: "op", path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: "{}", contentType: "application/json")
+        ],
+        endpoints: [endpoint],
+        removeOverride: { _ in
+            removeCalls += 1
+            return []
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(removeCalls == 0)
+}
+
+@MainActor
+@Test func removeDisabledOverridesForOperationRemovesAllMatchingRows() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let disabledA = MockOverride(name: "op", path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: "{}", contentType: "application/json")
+    let disabledB = MockOverride(name: "op", path: "/p", method: .get, statusCode: 503, exampleId: "ex", isEnabled: false, body: "{\"error\":true}", contentType: "application/json")
+    let enabled = MockOverride(name: "op", path: "/p", method: .get, statusCode: 201, exampleId: nil, isEnabled: true, body: "{}", contentType: "application/json")
+    var removedKeys: [MockOverride] = []
+    await store.removeDisabledOverridesForOperation(
+        endpointItem: item,
+        pathPrefix: "",
+        overrides: [disabledA, disabledB, enabled],
+        endpoints: [endpoint],
+        removeOverride: { key in
+            removedKeys.append(key)
+            return [enabled]
+        },
+        setErrorMessage: { _ in }
+    )
+    #expect(removedKeys.count == 2)
+    #expect(removedKeys.allSatisfy { !$0.isEnabled })
+    #expect(removedKeys.map(\.statusCode).sorted() == [200, 503])
+}
+
+@MainActor
+@Test func removeDisabledOverridesForOperationPropagatesRemoveErrors() async {
+    let store = OverrideEditorStore()
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let item = SpecEndpointItem(endpoint)
+    let disabled = MockOverride(name: "op", path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
+    var err: String?
+    await store.removeDisabledOverridesForOperation(
+        endpointItem: item,
+        pathPrefix: "",
+        overrides: [disabled],
+        endpoints: [endpoint],
+        removeOverride: { _ in throw TestAsyncError.kaboom },
+        setErrorMessage: { err = $0 }
+    )
+    #expect(err == "kaboom")
+}
