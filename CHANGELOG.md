@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-06-05
+
 ### Added
 
 - **KawarimiHenge**: **Reload kawarimi.json** in the explorer chrome — **`KawarimiAPIClient.reload()`** returns **`KawarimiConfigReloadResponse`** (outcome + overrides in one call) and shows **`applied`** / **`unchanged`** under the button ([#130](https://github.com/novr/Kawarimi/issues/130)).
@@ -391,6 +393,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.0.0]: https://github.com/novr/Kawarimi/releases/tag/v3.0.0
 [2.7.0]: https://github.com/novr/Kawarimi/releases/tag/v2.7.0
 [2.6.0]: https://github.com/novr/Kawarimi/releases/tag/v2.6.0
 [2.5.0]: https://github.com/novr/Kawarimi/releases/tag/v2.5.0
