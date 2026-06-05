@@ -20,9 +20,9 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
-**2.7.0 → next release** (breaking — admin mutations):
+**2.7.0 → 3.0.0** (breaking — admin mutations):
 
-1. Bump pin when the release tag is published — see **[CHANGELOG.md](../CHANGELOG.md)** `[Unreleased]`.
+1. Bump pin to **`from: "3.0.0"`**.
 2. **Custom admin servers**:
    - **`POST …/__kawarimi/reload`**: **`200`** + JSON override array + **`X-Kawarimi-Reload`**, not **`204`**. Encode **`store.overrides()`** after **`reloadFromDisk()`**.
    - **`POST …/__kawarimi/configure`** / **`remove`** / **`reset`**: **`200`** + JSON override array (same as **`GET …/status`**), not empty **`200`**. Encode **`store.overrides()`** after the mutation.
@@ -83,7 +83,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.7.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "3.0.0"),
 ],
 targets: [
     .target(

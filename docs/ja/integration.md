@@ -20,9 +20,9 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
-**2.7.0 → 次リリース**（破壊的 — admin ミューテーション）:
+**2.7.0 → 3.0.0**（破壊的 — admin ミューテーション）:
 
-1. リリースタグ公開後に pin を上げる — **[CHANGELOG.md](../../CHANGELOG.md)** の **`[Unreleased]`** を参照。
+1. pin を **`from: "3.0.0"`** に上げる。
 2. **カスタム admin サーバー**:
    - **`POST …/__kawarimi/reload`**: **`204`** ではなく JSON overrides + **`X-Kawarimi-Reload`** で **`200`**。**`reloadFromDisk()`** 後に **`store.overrides()`** をエンコード。
    - **`POST …/__kawarimi/configure`** / **`remove`** / **`reset`**: 空 **`200`** ではなく **`GET …/status` 同型** JSON で **`200`**。ミューテーション後に **`store.overrides()`** をエンコード。
@@ -83,7 +83,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "2.7.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "3.0.0"),
 ],
 targets: [
     .target(
