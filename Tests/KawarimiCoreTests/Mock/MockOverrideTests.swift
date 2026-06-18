@@ -120,6 +120,29 @@ import Testing
     #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "", contentType: nil)!.hasEffectiveCustomBody == false)
 }
 
+@Test func mockOverrideNormalizedRowIdAcceptsUUIDOnly() {
+    let id = "550E8400-E29B-41D4-A716-446655440000"
+    #expect(MockOverrideRowID(rawValue: id)?.rawValue == "550e8400-e29b-41d4-a716-446655440000")
+    #expect(MockOverrideRowID(rawValue: "not-uuid") == nil)
+    #expect(MockOverrideRowID(rawValue: "   ") == nil)
+}
+
+@Test func mockOverrideDecodeFallsBackToNilForMalformedRowId() throws {
+    let json = """
+    {
+      "rowId": "not-a-uuid",
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "isEnabled": true
+    }
+    """
+    let decoded = try JSONDecoder().decode(MockOverride.self, from: Data(json.utf8))
+    #expect(decoded.rowId == nil)
+    #expect(decoded.path == "/api/greet")
+    #expect(decoded.statusCode == 200)
+}
+
 @Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
@@ -154,6 +177,166 @@ import Testing
     try await store.removeOverride(MockOverride(path: "/greet", method: "GET", statusCode: 503, exampleId: "abc")!)
     #expect((await store.overrides()).isEmpty)
     try? FileManager.default.removeItem(at: url)
+}
+
+@Test func hengeConfigStoreConfigureAssignsRowIdWhenMissing() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    let store = try KawarimiConfigStore(configPath: url.path)
+    defer { try? FileManager.default.removeItem(at: url) }
+    try await store.configure(MockOverride(rowId: nil, path: "/api/greet", method: "GET", statusCode: 200)!)
+    let overrides = await store.overrides()
+    #expect(overrides.count == 1)
+    #expect(overrides[0].rowId != nil)
+}
+
+@Test func hengeConfigStoreConfigureRowIdMatchWinsOverLegacyFirstHit() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let store = try KawarimiConfigStore(configPath: url.path)
+    let targetId = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
+    try await store.configure(
+        MockOverride(
+            rowId: nil,
+            path: "/api/greet",
+            method: "GET",
+            statusCode: 200,
+            exampleId: "same",
+            body: "{\"v\":1}",
+            contentType: "application/json"
+        )!
+    )
+    try await store.configure(
+        MockOverride(
+            rowId: targetId,
+            path: "/api/greet",
+            method: "GET",
+            statusCode: 200,
+            exampleId: "same",
+            body: "{\"v\":2}",
+            contentType: "application/json"
+        )!
+    )
+    try await store.configure(
+        MockOverride(
+            rowId: targetId,
+            path: "/api/greet",
+            method: "GET",
+            statusCode: 404,
+            exampleId: "same",
+            body: "{\"v\":3}",
+            contentType: "application/json"
+        )!
+    )
+    let overrides = await store.overrides()
+    let target = try #require(overrides.first { $0.rowId == targetId })
+    #expect(target.statusCode == 404)
+    #expect(target.body == "{\"v\":3}")
+}
+
+@Test func hengeConfigStoreConfigurePromotesLegacyRowAndKeepsStableRowId() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let store = try KawarimiConfigStore(configPath: url.path)
+    try await store.configure(
+        MockOverride(
+            rowId: nil,
+            path: "/api/items",
+            method: "GET",
+            statusCode: 200,
+            exampleId: nil,
+            body: "{\"phase\":1}",
+            contentType: "application/json"
+        )!
+    )
+    let first = try #require(await store.overrides().first)
+    let firstRowId = try #require(first.rowId)
+    try await store.configure(
+        MockOverride(
+            rowId: firstRowId,
+            path: "/api/items",
+            method: "GET",
+            statusCode: 200,
+            exampleId: nil,
+            body: "{\"phase\":2}",
+            contentType: "application/json"
+        )!
+    )
+    _ = await store.reloadFromDisk()
+    try await store.configure(
+        MockOverride(
+            rowId: firstRowId,
+            path: "/api/items",
+            method: "GET",
+            statusCode: 200,
+            exampleId: nil,
+            body: "{\"phase\":3}",
+            contentType: "application/json"
+        )!
+    )
+    let final = try #require(await store.overrides().first)
+    #expect(final.rowId == firstRowId)
+    #expect(final.body == "{\"phase\":3}")
+}
+
+@Test func hengeConfigStoreReloadNormalizesUppercaseRowIdAndMatchesByRowId() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let uppercaseRowId = "550E8400-E29B-41D4-A716-446655440000"
+    let uppercaseRowIdVO = try #require(MockOverrideRowID(rawValue: uppercaseRowId))
+    let config = KawarimiConfig(overrides: [
+        MockOverride(
+            rowId: uppercaseRowIdVO,
+            path: "/api/r",
+            method: "GET",
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"v\":1}",
+            contentType: "application/json"
+        )!,
+    ])
+    let data = try JSONEncoder().encode(config)
+    try data.write(to: url, options: .atomic)
+    let store = try KawarimiConfigStore(configPath: url.path)
+    let loaded = try #require(await store.overrides().first)
+    #expect(loaded.rowId?.rawValue == uppercaseRowId.lowercased())
+
+    try await store.configure(
+        MockOverride(
+            rowId: uppercaseRowIdVO,
+            path: "/api/r",
+            method: "GET",
+            statusCode: 404,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"v\":2}",
+            contentType: "application/json"
+        )!
+    )
+    let final = try #require(await store.overrides().first)
+    #expect(final.statusCode == 404)
+    #expect(final.body == "{\"v\":2}")
+    #expect(final.rowId?.rawValue == uppercaseRowId.lowercased())
+}
+
+@Test func hengeConfigStoreRemoveUsesRowIdBeforeLegacy() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let store = try KawarimiConfigStore(configPath: url.path)
+    let rowIdA = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
+    let rowIdB = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
+    try await store.configure(
+        MockOverride(rowId: rowIdA, path: "/api/r", method: "GET", statusCode: 200, exampleId: "same", body: "{\"id\":\"a\"}", contentType: "application/json")!
+    )
+    try await store.configure(
+        MockOverride(rowId: rowIdB, path: "/api/r", method: "GET", statusCode: 200, exampleId: "same", body: "{\"id\":\"b\"}", contentType: "application/json")!
+    )
+    try await store.removeOverride(
+        MockOverride(rowId: rowIdB, path: "/api/r", method: "GET", statusCode: 200, exampleId: "same")!
+    )
+    let remaining = await store.overrides()
+    #expect(remaining.count == 1)
+    #expect(remaining[0].rowId == rowIdA)
 }
 
 @Test func kawarimiConfigStoreThrowsInvalidConfigPath() throws {

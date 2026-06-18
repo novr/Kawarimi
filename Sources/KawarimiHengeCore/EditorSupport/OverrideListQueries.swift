@@ -193,6 +193,7 @@ package enum OverrideListQueries {
     package static func removeIdentity(for stored: MockOverride, operationId: String) -> MockOverride {
         MockOverride(
             name: stored.name ?? operationId,
+            rowId: stored.rowId,
             path: stored.path,
             method: stored.method,
             statusCode: stored.statusCode,
@@ -318,8 +319,15 @@ package enum OverrideListQueries {
         return pa == pb
     }
 
-    /// Same persisted row identity as `configure` / `remove` (path + method + status + example id).
+    /// Same persisted row identity as `configure` / `remove`:
+    /// rowId first, then legacy identity (`path + method + status + exampleId`) when both rowIds are nil.
     package static func isSameOverrideRow(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
+        let aRowId = a.rowId
+        let bRowId = b.rowId
+        if let aRowId, let bRowId {
+            return aRowId == bRowId
+        }
+        guard aRowId == nil, bRowId == nil else { return false }
         guard a.method == b.method else { return false }
         guard a.statusCode == b.statusCode else { return false }
         guard MockExamplePresentation.exampleIdsEqual(a.exampleId, b.exampleId) else { return false }

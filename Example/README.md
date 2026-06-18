@@ -142,13 +142,18 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-**Remove** that row entirely (same path/method/status/`exampleId` identity as `configure`; include `exampleId` when the row used a named example):
+**Remove** that row entirely:
+
+- Recommended: send `rowId` (UUID) from the stored row.
+- Compatibility (legacy clients): if the incoming row omits `rowId`, server falls back to path/method/status/`exampleId` identity.
 
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -H "Content-Type: application/json" \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
+
+Legacy fallback will be removed in a future migration phase; prefer carrying `rowId` end-to-end.
 
 After editing **`kawarimi.json` on disk**, re-read it into the server (`200` + override JSON; check **`X-Kawarimi-Reload`** — `applied` or `unchanged`):
 

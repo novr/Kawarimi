@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore**: optional **`MockOverride.rowId`** (UUID) for stable row identity; `KawarimiConfigStore.configure` now guarantees server-side rowId assignment when missing.
+
+### Changed
+
+- **KawarimiCore**: override identity for `configure` / `removeOverride` now checks **`rowId` first**, then uses legacy `path + method + statusCode + exampleId` matching only when the incoming row omits `rowId` (deterministic first-hit fallback).
+- **KawarimiHengeCore**: `removeIdentity` now carries persisted `rowId` and row comparisons use rowId-first behavior during staged migration.
+
+### Docs
+
+- **henge.md** / **ja/henge.md** / **mock-json.md** / **ja/mock-json.md** / **Example README** (EN/JA): documented rowId-first identity, legacy fallback compatibility, and migration direction away from fallback.
+
 ## [3.0.0] - 2026-06-05
 
 ### Added

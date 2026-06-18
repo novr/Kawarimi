@@ -1,6 +1,34 @@
 import Foundation
 import HTTPTypes
 
+public struct MockOverrideRowID: RawRepresentable, Codable, Hashable, Sendable {
+    public let rawValue: String
+
+    public init?(rawValue: String) {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let uuid = UUID(uuidString: trimmed) else { return nil }
+        self.rawValue = uuid.uuidString.lowercased()
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        guard let id = Self(rawValue: raw) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid MockOverrideRowID UUID string")
+        }
+        self = id
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public static func generate() -> Self {
+        Self(rawValue: UUID().uuidString)!
+    }
+}
+
 public struct MockOverride: Codable, Sendable, Equatable {
     /// Thrown by APIs that build a ``MockOverride`` from a raw method string when parsing fails.
     public struct InvalidMethodStringError: Error, Sendable, LocalizedError {
@@ -13,6 +41,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
     }
 
     public var name: String?
+    /// Optional stable row identifier for update/remove identity during staged migration.
+    public var rowId: MockOverrideRowID?
     public var path: String
     public var method: HTTPRequest.Method
     public var statusCode: Int
@@ -32,6 +62,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
 
     public init(
         name: String? = nil,
+        rowId: MockOverrideRowID? = nil,
         path: String,
         method: HTTPRequest.Method,
         statusCode: Int,
@@ -42,6 +73,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         delayMs: Int? = nil
     ) {
         self.name = name
+        self.rowId = rowId
         self.path = path
         self.method = method
         self.statusCode = statusCode
@@ -55,6 +87,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
     /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
     public init?(
         name: String? = nil,
+        rowId: MockOverrideRowID? = nil,
         path: String,
         method methodString: String,
         statusCode: Int,
@@ -68,6 +101,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         guard let m = HTTPRequest.Method(normalized) else { return nil }
         self.init(
             name: name,
+            rowId: rowId,
             path: path,
             method: m,
             statusCode: statusCode,
@@ -77,6 +111,52 @@ public struct MockOverride: Codable, Sendable, Equatable {
             contentType: contentType,
             delayMs: delayMs
         )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case rowId
+        case path
+        case method
+        case statusCode
+        case exampleId
+        case isEnabled
+        case body
+        case contentType
+        case delayMs
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decodeIfPresent(String.self, forKey: .name)
+        if let rawRowId = try container.decodeIfPresent(String.self, forKey: .rowId) {
+            // Staged rollout: tolerate malformed rowId and treat it as absent.
+            self.rowId = MockOverrideRowID(rawValue: rawRowId)
+        } else {
+            self.rowId = nil
+        }
+        self.path = try container.decode(String.self, forKey: .path)
+        self.method = try container.decode(HTTPRequest.Method.self, forKey: .method)
+        self.statusCode = try container.decode(Int.self, forKey: .statusCode)
+        self.exampleId = try container.decodeIfPresent(String.self, forKey: .exampleId)
+        self.isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        self.body = try container.decodeIfPresent(String.self, forKey: .body)
+        self.contentType = try container.decodeIfPresent(String.self, forKey: .contentType)
+        self.delayMs = try container.decodeIfPresent(Int.self, forKey: .delayMs)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(rowId?.rawValue, forKey: .rowId)
+        try container.encode(path, forKey: .path)
+        try container.encode(method, forKey: .method)
+        try container.encode(statusCode, forKey: .statusCode)
+        try container.encodeIfPresent(exampleId, forKey: .exampleId)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encodeIfPresent(body, forKey: .body)
+        try container.encodeIfPresent(contentType, forKey: .contentType)
+        try container.encodeIfPresent(delayMs, forKey: .delayMs)
     }
 }
 

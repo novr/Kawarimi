@@ -123,13 +123,18 @@ curl -X POST http://localhost:8080/api/__kawarimi/configure \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
 
-その行を**配列から削除**する（`configure` と同じ path / メソッド / status / `exampleId` の同一視。名前付き例の行なら `exampleId` を含める）:
+その行を**配列から削除**する:
+
+- 推奨: 保存済み行の `rowId`（UUID）を送る。
+- 互換（legacy クライアント）: 入力行の `rowId` が無い場合、path / method / status / `exampleId` 同一視にフォールバック。
 
 ```bash
 curl -X POST http://localhost:8080/api/__kawarimi/remove \
   -H "Content-Type: application/json" \
   -d '{"path":"/api/greet","method":"GET","statusCode":200,"isEnabled":false}'
 ```
+
+この legacy fallback は将来の移行フェーズで削除予定のため、`rowId` の受け渡しを推奨します。
 
 **`kawarimi.json` をディスク上で編集したあと**、サーバーへ再読込（`200` + overrides JSON。`**X-Kawarimi-Reload**` が `applied` または `unchanged`）:
 

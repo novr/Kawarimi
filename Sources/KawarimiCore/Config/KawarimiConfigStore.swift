@@ -114,19 +114,32 @@ public actor KawarimiConfigStore {
         if let body = normalized.body, body.utf8.count > MockOverride.maxBodyLength {
             throw KawarimiConfigStoreError.bodyTooLong(actual: body.utf8.count, limit: MockOverride.maxBodyLength)
         }
-        if let index = cachedOverrides.firstIndex(where: { matches($0, normalized) }) {
-            cachedOverrides[index] = normalized
+        if let index = matchingIndex(for: normalized) {
+            var updated = normalized
+            if updated.rowId == nil {
+                updated.rowId = cachedOverrides[index].rowId
+            }
+            if updated.rowId == nil {
+                updated.rowId = .generate()
+            }
+            cachedOverrides[index] = updated
         } else {
-            cachedOverrides.append(normalized)
+            var inserted = normalized
+            if inserted.rowId == nil {
+                inserted.rowId = .generate()
+            }
+            cachedOverrides.append(inserted)
         }
         try persist()
     }
 
-    /// Drops the first override that matches the same identity as ``configure`` (path, method, status, example id).
+    /// Drops the first override matching configure identity in this order:
+    /// 1) `rowId` exact match,
+    /// 2) legacy identity (`path + method + statusCode + exampleId`) only when the incoming row has nil `rowId`.
     /// No-op when nothing matches (idempotent).
     public func removeOverride(_ override: MockOverride) throws {
         let normalized = normalize(override)
-        if let index = cachedOverrides.firstIndex(where: { matches($0, normalized) }) {
+        if let index = matchingIndex(for: normalized) {
             cachedOverrides.remove(at: index)
             try persist()
         }
@@ -168,8 +181,19 @@ public actor KawarimiConfigStore {
         return result
     }
 
-    private func matches(_ existing: MockOverride, _ new: MockOverride) -> Bool {
-        existing.path == new.path
+    private func matchingIndex(for incoming: MockOverride) -> Int? {
+        if let rowId = incoming.rowId,
+           let rowIdMatch = cachedOverrides.firstIndex(where: {
+               $0.rowId == rowId
+           }) {
+            return rowIdMatch
+        }
+        guard incoming.rowId == nil else { return nil }
+        return cachedOverrides.firstIndex(where: { matchesLegacy($0, incoming) })
+    }
+
+    private func matchesLegacy(_ existing: MockOverride, _ new: MockOverride) -> Bool {
+        return existing.path == new.path
             && existing.method == new.method
             && existing.statusCode == new.statusCode
             && normalizedExampleId(existing.exampleId) == normalizedExampleId(new.exampleId)
