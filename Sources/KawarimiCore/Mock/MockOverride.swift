@@ -178,12 +178,6 @@ public struct KawarimiConfig: Codable, Sendable {
 }
 
 extension MockOverride {
-    @available(*, deprecated, message: "Use MockOverrideRowID(rawValue:) directly.")
-    public static func normalizedRowId(_ raw: String?) -> MockOverrideRowID? {
-        guard let raw else { return nil }
-        return MockOverrideRowID(rawValue: raw)
-    }
-
     /// Deterministic ordering; first match wins when several overrides qualify.
     public static func sortedForOverrideTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
         hits.sorted { overrideTieBreakKey($0) < overrideTieBreakKey($1) }

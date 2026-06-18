@@ -122,9 +122,9 @@ import Testing
 
 @Test func mockOverrideNormalizedRowIdAcceptsUUIDOnly() {
     let id = "550E8400-E29B-41D4-A716-446655440000"
-    #expect(MockOverride.normalizedRowId(id)?.rawValue == "550e8400-e29b-41d4-a716-446655440000")
-    #expect(MockOverride.normalizedRowId("not-uuid") == nil)
-    #expect(MockOverride.normalizedRowId("   ") == nil)
+    #expect(MockOverrideRowID(rawValue: id)?.rawValue == "550e8400-e29b-41d4-a716-446655440000")
+    #expect(MockOverrideRowID(rawValue: "not-uuid") == nil)
+    #expect(MockOverrideRowID(rawValue: "   ") == nil)
 }
 
 @Test func mockOverrideDecodeFallsBackToNilForMalformedRowId() throws {

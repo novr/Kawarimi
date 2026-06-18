@@ -98,11 +98,7 @@ public actor KawarimiConfigStore {
         }
         do {
             let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
-            return config.overrides.map { loaded in
-                var normalized = loaded
-            normalized.rowId = loaded.rowId
-                return normalized
-            }
+            return config.overrides
         } catch {
             logInvalidKawarimiConfig(at: absolute, error: error)
             return []
