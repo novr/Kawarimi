@@ -72,3 +72,4 @@
 
 - `MockOverride.exampleId` を省略したときの **`__default` 扱い**。
 - ランタイムのオーバーライドと `kawarimi.json`。
+- `exampleId` は意味キーであり、行同一視キーではない（保存行の同一視は任意 `rowId` 優先）。

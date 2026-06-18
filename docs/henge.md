@@ -84,11 +84,15 @@ The string **`__default` is reserved by Kawarimi** for:
 
 An override may still set `exampleId` to the literal `"__default"` to target that map entry explicitly; the usual pattern is to omit `exampleId` for the default example.
 
-`KawarimiConfigStore.configure` treats overrides as distinct when **`path`, HTTP method, `statusCode`, and normalized `exampleId`** match.
+`KawarimiConfigStore.configure` matches rows in this order:
+
+1. **`rowId` match first** (UUID string, case-insensitive after normalization).
+2. **Legacy fallback** only when the **incoming row has no `rowId`**: `path` + HTTP method + `statusCode` + normalized `exampleId`.
+3. If several legacy rows still qualify, the **first row wins** (stable, deterministic).
 
 `configure` **upserts** one row: set `isEnabled: false` to turn a mock off while **keeping** that row in `kawarimi.json`.
 
-**`KawarimiConfigStore.removeOverride`** deletes the first row with the **same identity** (after the same normalization as `configure`). Calling `removeOverride` when nothing matches is a **no-op** (idempotent).
+**`KawarimiConfigStore.removeOverride`** uses the same identity order as `configure` (`rowId` first, then legacy fallback for nil `rowId` rows). Calling `removeOverride` when nothing matches is a **no-op** (idempotent).
 
 Two enabled overrides for the same path/method but different examples are distinguished by `exampleId`.
 
@@ -286,7 +290,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 | Endpoint list row | `EndpointRowKey` + `SpecEndpointItem` | Selection is by `EndpointRowKey`. |
 | First draft when opening a row (no stash) | `OverrideExplorerDraftBootstrap.makeFreshDetail` | Placeholder → primary overlay → `resyncMockFromServer`. |
 | Detail editor | One `MockOverride` in `OverrideDetailDraft` | Snapshot for the selected logical row, not the whole overrides array. |
-| Server / config row | `MockOverride` in `kawarimi.json` | Same identity as configure/remove: **`path` + `method` + `statusCode` + normalized `exampleId`**. |
+| Server / config row | `MockOverride` in `kawarimi.json` | Identity is **`rowId` first** (UUID). Legacy fallback: **`path` + `method` + `statusCode` + normalized `exampleId`** only when incoming `rowId` is nil. |
 | Default / unnamed example | `exampleId` nil (after trim) | Lookup uses reserved **`__default`**; UI “no example id”. |
 
 **Response chips:** OpenAPI **numbered** rows (status + named example) are always listed from the spec. **Supplemental** chips appear only for **stored** overrides that are not already represented (e.g. custom status codes). Disabled no-body “spec-follow” ghost rows are hidden from supplemental chips (**`OverrideListQueries.isSpecFollowGhostRow`**). **`ResponseChips.chipIsSelected`** (mock off) treats **`draftRepresentsSpecOnlyRowForSave`** like **Save** (empty or template-matching body) for highlighting **Spec**, unless **`OverrideDetailDraft.pinnedNumberedResponseChip`** is set (cleared on resync, successful **Save**, reset, and whenever the store changes the draft body or mock fields — `applyMockEdit`, **Format**).

@@ -72,3 +72,4 @@ See [henge.md](henge.md) for:
 
 - Runtime overrides and `kawarimi.json`.
 - How Henge and interceptors use **`__default`** when `MockOverride.exampleId` is omitted.
+- `exampleId` meaning only (not row identity; persisted row identity uses optional `rowId` first).
