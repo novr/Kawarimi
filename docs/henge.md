@@ -159,7 +159,7 @@ API summary:
 
 | What | Behavior |
 | --- | --- |
-| **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads do **not** run `configure` normalization. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
+| **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads still skip full `configure` normalization, but `rowId` is normalized (trim + lowercase UUID validation) during load. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
 | **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware

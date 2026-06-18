@@ -158,7 +158,7 @@ API 対応:
 
 | 対象 | 挙動 |
 | --- | --- |
-| **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の正規化を行わない。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
+| **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の全正規化は行わないが、`rowId` は読み込み時に正規化（trim + UUID 検証 + lowercase）する。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
 | **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware

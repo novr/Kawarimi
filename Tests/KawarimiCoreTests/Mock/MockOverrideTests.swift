@@ -262,6 +262,46 @@ import Testing
     #expect(final.body == "{\"phase\":3}")
 }
 
+@Test func hengeConfigStoreReloadNormalizesUppercaseRowIdAndMatchesByRowId() async throws {
+    let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
+    defer { try? FileManager.default.removeItem(at: url) }
+    let uppercaseRowId = "550E8400-E29B-41D4-A716-446655440000"
+    let config = KawarimiConfig(overrides: [
+        MockOverride(
+            rowId: uppercaseRowId,
+            path: "/api/r",
+            method: "GET",
+            statusCode: 200,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"v\":1}",
+            contentType: "application/json"
+        )!,
+    ])
+    let data = try JSONEncoder().encode(config)
+    try data.write(to: url, options: .atomic)
+    let store = try KawarimiConfigStore(configPath: url.path)
+    let loaded = try #require(await store.overrides().first)
+    #expect(loaded.rowId == uppercaseRowId.lowercased())
+
+    try await store.configure(
+        MockOverride(
+            rowId: uppercaseRowId.lowercased(),
+            path: "/api/r",
+            method: "GET",
+            statusCode: 404,
+            exampleId: nil,
+            isEnabled: true,
+            body: "{\"v\":2}",
+            contentType: "application/json"
+        )!
+    )
+    let final = try #require(await store.overrides().first)
+    #expect(final.statusCode == 404)
+    #expect(final.body == "{\"v\":2}")
+    #expect(final.rowId == uppercaseRowId.lowercased())
+}
+
 @Test func hengeConfigStoreRemoveUsesRowIdBeforeLegacy() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }

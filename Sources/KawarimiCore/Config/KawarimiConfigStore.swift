@@ -98,7 +98,11 @@ public actor KawarimiConfigStore {
         }
         do {
             let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
-            return config.overrides
+            return config.overrides.map { loaded in
+                var normalized = loaded
+                normalized.rowId = MockOverride.normalizedRowId(loaded.rowId)
+                return normalized
+            }
         } catch {
             logInvalidKawarimiConfig(at: absolute, error: error)
             return []
@@ -184,7 +188,9 @@ public actor KawarimiConfigStore {
 
     private func matchingIndex(for incoming: MockOverride) -> Int? {
         if let rowId = incoming.rowId,
-           let rowIdMatch = cachedOverrides.firstIndex(where: { $0.rowId == rowId }) {
+           let rowIdMatch = cachedOverrides.firstIndex(where: {
+               MockOverride.normalizedRowId($0.rowId) == rowId
+           }) {
             return rowIdMatch
         }
         guard incoming.rowId == nil else { return nil }
