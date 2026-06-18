@@ -122,7 +122,7 @@ import Testing
 
 @Test func mockOverrideNormalizedRowIdAcceptsUUIDOnly() {
     let id = "550E8400-E29B-41D4-A716-446655440000"
-    #expect(MockOverride.normalizedRowId(id) == "550e8400-e29b-41d4-a716-446655440000")
+    #expect(MockOverride.normalizedRowId(id)?.rawValue == "550e8400-e29b-41d4-a716-446655440000")
     #expect(MockOverride.normalizedRowId("not-uuid") == nil)
     #expect(MockOverride.normalizedRowId("   ") == nil)
 }
@@ -170,14 +170,14 @@ import Testing
     try await store.configure(MockOverride(rowId: nil, path: "/api/greet", method: "GET", statusCode: 200)!)
     let overrides = await store.overrides()
     #expect(overrides.count == 1)
-    #expect(MockOverride.normalizedRowId(overrides[0].rowId) == overrides[0].rowId)
+    #expect(overrides[0].rowId != nil)
 }
 
 @Test func hengeConfigStoreConfigureRowIdMatchWinsOverLegacyFirstHit() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
-    let targetId = UUID().uuidString.lowercased()
+    let targetId = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
     try await store.configure(
         MockOverride(
             rowId: nil,
@@ -266,9 +266,10 @@ import Testing
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let uppercaseRowId = "550E8400-E29B-41D4-A716-446655440000"
+    let uppercaseRowIdVO = try #require(MockOverrideRowID(rawValue: uppercaseRowId))
     let config = KawarimiConfig(overrides: [
         MockOverride(
-            rowId: uppercaseRowId,
+            rowId: uppercaseRowIdVO,
             path: "/api/r",
             method: "GET",
             statusCode: 200,
@@ -282,11 +283,11 @@ import Testing
     try data.write(to: url, options: .atomic)
     let store = try KawarimiConfigStore(configPath: url.path)
     let loaded = try #require(await store.overrides().first)
-    #expect(loaded.rowId == uppercaseRowId.lowercased())
+    #expect(loaded.rowId?.rawValue == uppercaseRowId.lowercased())
 
     try await store.configure(
         MockOverride(
-            rowId: uppercaseRowId.lowercased(),
+            rowId: uppercaseRowIdVO,
             path: "/api/r",
             method: "GET",
             statusCode: 404,
@@ -299,15 +300,15 @@ import Testing
     let final = try #require(await store.overrides().first)
     #expect(final.statusCode == 404)
     #expect(final.body == "{\"v\":2}")
-    #expect(final.rowId == uppercaseRowId.lowercased())
+    #expect(final.rowId?.rawValue == uppercaseRowId.lowercased())
 }
 
 @Test func hengeConfigStoreRemoveUsesRowIdBeforeLegacy() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
-    let rowIdA = UUID().uuidString.lowercased()
-    let rowIdB = UUID().uuidString.lowercased()
+    let rowIdA = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
+    let rowIdB = try #require(MockOverrideRowID(rawValue: UUID().uuidString))
     try await store.configure(
         MockOverride(rowId: rowIdA, path: "/api/r", method: "GET", statusCode: 200, exampleId: "same", body: "{\"id\":\"a\"}", contentType: "application/json")!
     )

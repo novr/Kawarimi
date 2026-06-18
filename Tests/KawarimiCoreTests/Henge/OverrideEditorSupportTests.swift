@@ -344,7 +344,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @Test func removeIdentityUsesStoredPathAndExampleId() {
-    let rowId = UUID().uuidString.lowercased()
+    let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let stored = MockOverride(
         name: "getGreeting",
         rowId: rowId,
@@ -366,7 +366,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @Test func isSameOverrideRowUsesRowIdWhenBothPresent() {
-    let rowId = UUID().uuidString.lowercased()
+    let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let a = MockOverride(
         rowId: rowId,
         path: "/api/one",
@@ -387,7 +387,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @Test func isSameOverrideRowRejectsMixedRowIdPresence() {
-    let rowId = UUID().uuidString.lowercased()
+    let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let withRowId = MockOverride(
         rowId: rowId,
         path: "/api/p",

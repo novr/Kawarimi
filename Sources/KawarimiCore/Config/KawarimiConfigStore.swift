@@ -100,7 +100,7 @@ public actor KawarimiConfigStore {
             let config = try JSONDecoder().decode(KawarimiConfig.self, from: data)
             return config.overrides.map { loaded in
                 var normalized = loaded
-                normalized.rowId = MockOverride.normalizedRowId(loaded.rowId)
+            normalized.rowId = loaded.rowId
                 return normalized
             }
         } catch {
@@ -124,13 +124,13 @@ public actor KawarimiConfigStore {
                 updated.rowId = cachedOverrides[index].rowId
             }
             if updated.rowId == nil {
-                updated.rowId = UUID().uuidString.lowercased()
+                updated.rowId = .generate()
             }
             cachedOverrides[index] = updated
         } else {
             var inserted = normalized
             if inserted.rowId == nil {
-                inserted.rowId = UUID().uuidString.lowercased()
+                inserted.rowId = .generate()
             }
             cachedOverrides.append(inserted)
         }
@@ -175,7 +175,6 @@ public actor KawarimiConfigStore {
         if result.exampleId?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
             result.exampleId = nil
         }
-        result.rowId = MockOverride.normalizedRowId(result.rowId)
         if let ms = result.delayMs {
             if ms <= 0 {
                 result.delayMs = nil
@@ -189,7 +188,7 @@ public actor KawarimiConfigStore {
     private func matchingIndex(for incoming: MockOverride) -> Int? {
         if let rowId = incoming.rowId,
            let rowIdMatch = cachedOverrides.firstIndex(where: {
-               MockOverride.normalizedRowId($0.rowId) == rowId
+               $0.rowId == rowId
            }) {
             return rowIdMatch
         }

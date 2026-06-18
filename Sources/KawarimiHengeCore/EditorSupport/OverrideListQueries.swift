@@ -322,8 +322,8 @@ package enum OverrideListQueries {
     /// Same persisted row identity as `configure` / `remove`:
     /// rowId first, then legacy identity (`path + method + status + exampleId`) when both rowIds are nil.
     package static func isSameOverrideRow(_ a: MockOverride, _ b: MockOverride, pathPrefix: String) -> Bool {
-        let aRowId = MockOverride.normalizedRowId(a.rowId)
-        let bRowId = MockOverride.normalizedRowId(b.rowId)
+        let aRowId = a.rowId
+        let bRowId = b.rowId
         if let aRowId, let bRowId {
             return aRowId == bRowId
         }

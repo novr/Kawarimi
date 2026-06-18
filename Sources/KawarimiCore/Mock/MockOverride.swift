@@ -1,6 +1,34 @@
 import Foundation
 import HTTPTypes
 
+public struct MockOverrideRowID: RawRepresentable, Codable, Hashable, Sendable {
+    public let rawValue: String
+
+    public init?(rawValue: String) {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let uuid = UUID(uuidString: trimmed) else { return nil }
+        self.rawValue = uuid.uuidString.lowercased()
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        guard let id = Self(rawValue: raw) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid MockOverrideRowID UUID string")
+        }
+        self = id
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+
+    public static func generate() -> Self {
+        Self(rawValue: UUID().uuidString)!
+    }
+}
+
 public struct MockOverride: Codable, Sendable, Equatable {
     /// Thrown by APIs that build a ``MockOverride`` from a raw method string when parsing fails.
     public struct InvalidMethodStringError: Error, Sendable, LocalizedError {
@@ -14,7 +42,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
 
     public var name: String?
     /// Optional stable row identifier for update/remove identity during staged migration.
-    public var rowId: String?
+    public var rowId: MockOverrideRowID?
     public var path: String
     public var method: HTTPRequest.Method
     public var statusCode: Int
@@ -34,7 +62,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
 
     public init(
         name: String? = nil,
-        rowId: String? = nil,
+        rowId: MockOverrideRowID? = nil,
         path: String,
         method: HTTPRequest.Method,
         statusCode: Int,
@@ -59,7 +87,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
     /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
     public init?(
         name: String? = nil,
-        rowId: String? = nil,
+        rowId: MockOverrideRowID? = nil,
         path: String,
         method methodString: String,
         statusCode: Int,
@@ -104,12 +132,9 @@ public struct KawarimiConfig: Codable, Sendable {
 }
 
 extension MockOverride {
-    public static func normalizedRowId(_ raw: String?) -> String? {
-        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
-            return nil
-        }
-        guard UUID(uuidString: trimmed) != nil else { return nil }
-        return trimmed.lowercased()
+    public static func normalizedRowId(_ raw: String?) -> MockOverrideRowID? {
+        guard let raw else { return nil }
+        return MockOverrideRowID(rawValue: raw)
     }
 
     /// Deterministic ordering; first match wins when several overrides qualify.
