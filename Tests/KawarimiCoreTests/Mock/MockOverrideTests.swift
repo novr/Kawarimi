@@ -127,6 +127,22 @@ import Testing
     #expect(MockOverride.normalizedRowId("   ") == nil)
 }
 
+@Test func mockOverrideDecodeFallsBackToNilForMalformedRowId() throws {
+    let json = """
+    {
+      "rowId": "not-a-uuid",
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "isEnabled": true
+    }
+    """
+    let decoded = try JSONDecoder().decode(MockOverride.self, from: Data(json.utf8))
+    #expect(decoded.rowId == nil)
+    #expect(decoded.path == "/api/greet")
+    #expect(decoded.statusCode == 200)
+}
+
 @Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path

@@ -112,6 +112,52 @@ public struct MockOverride: Codable, Sendable, Equatable {
             delayMs: delayMs
         )
     }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case rowId
+        case path
+        case method
+        case statusCode
+        case exampleId
+        case isEnabled
+        case body
+        case contentType
+        case delayMs
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decodeIfPresent(String.self, forKey: .name)
+        if let rawRowId = try container.decodeIfPresent(String.self, forKey: .rowId) {
+            // Staged rollout: tolerate malformed rowId and treat it as absent.
+            self.rowId = MockOverrideRowID(rawValue: rawRowId)
+        } else {
+            self.rowId = nil
+        }
+        self.path = try container.decode(String.self, forKey: .path)
+        self.method = try container.decode(HTTPRequest.Method.self, forKey: .method)
+        self.statusCode = try container.decode(Int.self, forKey: .statusCode)
+        self.exampleId = try container.decodeIfPresent(String.self, forKey: .exampleId)
+        self.isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        self.body = try container.decodeIfPresent(String.self, forKey: .body)
+        self.contentType = try container.decodeIfPresent(String.self, forKey: .contentType)
+        self.delayMs = try container.decodeIfPresent(Int.self, forKey: .delayMs)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(rowId?.rawValue, forKey: .rowId)
+        try container.encode(path, forKey: .path)
+        try container.encode(method, forKey: .method)
+        try container.encode(statusCode, forKey: .statusCode)
+        try container.encodeIfPresent(exampleId, forKey: .exampleId)
+        try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encodeIfPresent(body, forKey: .body)
+        try container.encodeIfPresent(contentType, forKey: .contentType)
+        try container.encodeIfPresent(delayMs, forKey: .delayMs)
+    }
 }
 
 public struct KawarimiConfig: Codable, Sendable {
@@ -132,6 +178,7 @@ public struct KawarimiConfig: Codable, Sendable {
 }
 
 extension MockOverride {
+    @available(*, deprecated, message: "Use MockOverrideRowID(rawValue:) directly.")
     public static func normalizedRowId(_ raw: String?) -> MockOverrideRowID? {
         guard let raw else { return nil }
         return MockOverrideRowID(rawValue: raw)
