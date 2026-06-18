@@ -13,6 +13,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
     }
 
     public var name: String?
+    /// Optional stable row identifier for update/remove identity during staged migration.
+    public var rowId: String?
     public var path: String
     public var method: HTTPRequest.Method
     public var statusCode: Int
@@ -32,6 +34,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
 
     public init(
         name: String? = nil,
+        rowId: String? = nil,
         path: String,
         method: HTTPRequest.Method,
         statusCode: Int,
@@ -42,6 +45,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         delayMs: Int? = nil
     ) {
         self.name = name
+        self.rowId = rowId
         self.path = path
         self.method = method
         self.statusCode = statusCode
@@ -55,6 +59,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
     /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
     public init?(
         name: String? = nil,
+        rowId: String? = nil,
         path: String,
         method methodString: String,
         statusCode: Int,
@@ -68,6 +73,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         guard let m = HTTPRequest.Method(normalized) else { return nil }
         self.init(
             name: name,
+            rowId: rowId,
             path: path,
             method: m,
             statusCode: statusCode,
@@ -98,6 +104,14 @@ public struct KawarimiConfig: Codable, Sendable {
 }
 
 extension MockOverride {
+    public static func normalizedRowId(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        guard UUID(uuidString: trimmed) != nil else { return nil }
+        return trimmed.lowercased()
+    }
+
     /// Deterministic ordering; first match wins when several overrides qualify.
     public static func sortedForOverrideTieBreak(_ hits: [MockOverride]) -> [MockOverride] {
         hits.sorted { overrideTieBreakKey($0) < overrideTieBreakKey($1) }

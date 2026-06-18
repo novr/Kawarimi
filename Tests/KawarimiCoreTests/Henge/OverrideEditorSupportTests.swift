@@ -1,3 +1,4 @@
+import Foundation
 import HTTPTypes
 import KawarimiCore
 import Testing
@@ -343,8 +344,10 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @Test func removeIdentityUsesStoredPathAndExampleId() {
+    let rowId = UUID().uuidString.lowercased()
     let stored = MockOverride(
         name: "getGreeting",
+        rowId: rowId,
         path: "/api/wrong-path",
         method: .get,
         statusCode: 200,
@@ -355,10 +358,51 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     let wire = OverrideListQueries.removeIdentity(for: stored, operationId: "getGreeting")
     #expect(wire.path == "/api/wrong-path")
+    #expect(wire.rowId == rowId)
     #expect(wire.exampleId == "success")
     #expect(wire.statusCode == 200)
     #expect(wire.isEnabled == false)
     #expect(wire.body == nil)
+}
+
+@Test func isSameOverrideRowUsesRowIdWhenBothPresent() {
+    let rowId = UUID().uuidString.lowercased()
+    let a = MockOverride(
+        rowId: rowId,
+        path: "/api/one",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true
+    )
+    let b = MockOverride(
+        rowId: rowId,
+        path: "/api/two",
+        method: .post,
+        statusCode: 404,
+        exampleId: "x",
+        isEnabled: false
+    )
+    #expect(OverrideListQueries.isSameOverrideRow(a, b, pathPrefix: "/api"))
+}
+
+@Test func isSameOverrideRowRejectsMixedRowIdPresence() {
+    let rowId = UUID().uuidString.lowercased()
+    let withRowId = MockOverride(
+        rowId: rowId,
+        path: "/api/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil
+    )
+    let withoutRowId = MockOverride(
+        rowId: nil,
+        path: "/api/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil
+    )
+    #expect(!OverrideListQueries.isSameOverrideRow(withRowId, withoutRowId, pathPrefix: "/api"))
 }
 
 @Test func storedOverrideForDelFindsLegacyRowWithoutExampleId() {
