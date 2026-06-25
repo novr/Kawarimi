@@ -177,6 +177,70 @@ API 対応:
 
 ヘッダーを付けない、または空白のみのときは絞り込みしません。
 
+### シナリオオーケストレーション（`kawarimi-scenarios.json`）
+
+**複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。**`KawarimiConfigStore`** 初期化の `scenariosPath:` でパスを上書きできます。
+
+`POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。
+
+#### ファイル形式
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **`scenarioId`** — シナリオ選択（HTTP ヘッダー `X-Kawarimi-Scenario-Id`）。
+- **`initial`** — クライアントが `X-Kawarimi-Id` を省略したときの最初のステップ。
+- **`cases[]`** — 各ステップ: **`kawarimiId`**、任意の **`next`**（終端では省略）、**`rowId`**（`kawarimi.json` の `MockOverride.rowId` と一致必須）、**`endpoint`**（着信リクエストおよび override 行と整合必須）。
+- レスポンス本文はシナリオファイルではなく **`rowId`** の override（または `responseMap` フォールバック）から解決します。
+
+#### HTTP ヘッダー（`KawarimiScenarioHeaders`）
+
+| ヘッダー | 方向 | 役割 |
+| --- | --- | --- |
+| `X-Kawarimi-Scenario-Id` | リクエスト | シナリオ選択 |
+| `X-Kawarimi-Id` | リクエスト | 現在ステップ。初回は省略 |
+| `X-Next-Kawarimi-Id` | レスポンス | クライアントが次に送るステップ。`next` 未設定時は省略 |
+
+#### サーバ（`KawarimiServerMiddleware`）
+
+**`X-Kawarimi-Scenario-Id`** があるとき、**`KawarimiScenarioResolver`** が `X-Kawarimi-Example-Id` / 通常の override マッチより**先**に実行されます。
+
+- **マッチ** — `rowId` の override を返し、case に `next` があれば **`X-Next-Kawarimi-Id`** を付与。
+- **非マッチ**（未知シナリオ、同一 `scenarioId`+`endpoint`+`kawarimiId` の重複、override 欠落、endpoint 不整合、不正ヘッダー）— **既存の override 解決へフォールバック**（`503` は返さない）。
+
+#### クライアント（`KawarimiClientOrchestrationMiddleware`）
+
+**KawarimiServer** の OpenAPI **`ClientMiddleware`**（swift-openapi-runtime 依存）:
+
+- **`scenarioIdProvider`** — アプリがリクエストごとにアクティブな scenario id を返す（任意）。
+- リクエストの **`X-Kawarimi-Scenario-Id`** は provider より優先。
+- scenario id があるときのみ、シナリオ別 state から **`X-Kawarimi-Id`** を注入（レスポンスの **`X-Next-Kawarimi-Id`** で更新）。
+- 終端レスポンス（**`X-Next-Kawarimi-Id` なし**）で当該シナリオの state を破棄。
+- テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
+
+サンプル **`kawarimi-scenarios.json`** と curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
+
 | エンドポイント | 説明 |
 |---|---|
 | `POST {pathPrefix}/__kawarimi/configure` | 1 行 upsert。**`200`** + **`GET …/status` 同型**の JSON オーバーライド配列。 |

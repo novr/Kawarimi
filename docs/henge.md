@@ -178,6 +178,70 @@ If narrowing would match **no** overrides, the middleware **ignores** the header
 
 Omit the header or send whitespace-only to apply **no** narrowing.
 
+### Scenario orchestration (`kawarimi-scenarios.json`)
+
+**Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Pass a custom path to **`KawarimiConfigStore`** init (`scenariosPath:`).
+
+`POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`.
+
+#### File shape
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **`scenarioId`** — selects the scenario (HTTP header `X-Kawarimi-Scenario-Id`).
+- **`initial`** — first step when the client omits `X-Kawarimi-Id`.
+- **`cases[]`** — each step: **`kawarimiId`**, optional **`next`** (omit at terminal steps), **`rowId`** (must match a `MockOverride.rowId` in `kawarimi.json`), **`endpoint`** (`method` + `path` must match the incoming request and the override row).
+- Response bodies come from the **`rowId`** override (or `responseMap` fallback), not from the scenario file.
+
+#### HTTP headers (`KawarimiScenarioHeaders`)
+
+| Header | Direction | Role |
+| --- | --- | --- |
+| `X-Kawarimi-Scenario-Id` | Request | Select scenario |
+| `X-Kawarimi-Id` | Request | Current step; omit on first request |
+| `X-Next-Kawarimi-Id` | Response | Next step for the client; omitted when `next` is unset |
+
+#### Server (`KawarimiServerMiddleware`)
+
+When **`X-Kawarimi-Scenario-Id`** is present, **`KawarimiScenarioResolver`** runs **before** `X-Kawarimi-Example-Id` / standard override matching.
+
+- **Matched** — return the override for `rowId` and attach **`X-Next-Kawarimi-Id`** when the case defines `next`.
+- **Not matched** (unknown scenario, duplicate `scenarioId`+`endpoint`+`kawarimiId`, missing override, endpoint mismatch, invalid headers) — **fall back** to existing override resolution (no `503`).
+
+#### Client (`KawarimiClientOrchestrationMiddleware`)
+
+OpenAPI **`ClientMiddleware`** in **KawarimiServer** (depends on swift-openapi-runtime):
+
+- **`scenarioIdProvider`** — your app supplies the active scenario id per request (optional).
+- Request header **`X-Kawarimi-Scenario-Id`** wins over the provider when both are set.
+- When a scenario id is active, inject **`X-Kawarimi-Id`** from per-scenario state (updated from **`X-Next-Kawarimi-Id`** on responses).
+- Terminal response (no **`X-Next-Kawarimi-Id`**) clears state for that scenario.
+- **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
+
+Sample **`kawarimi-scenarios.json`** and curl notes: [Example/README.md](../Example/README.md).
+
 | Endpoint | Description |
 |---|---|
 | `POST {pathPrefix}/__kawarimi/configure` | Upsert an override. Returns **`200`** with a JSON override array (same shape as **`GET …/status`**). |

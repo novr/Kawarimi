@@ -114,6 +114,59 @@ Example override with response delay (`delayMs` in milliseconds):
 
 Override merge / tie-break rules and empty-body normalization: [henge.md](../docs/henge.md#kawarimijson--kawarimi_config).
 
+## kawarimi-scenarios.json (sample)
+
+Scenario orchestration definitions are stored separately from overrides. **`KawarimiConfigStore`** loads **`kawarimi-scenarios.json`** from the same directory as `kawarimi.json` (override with init `scenariosPath:`). Empty starter:
+
+```json
+{
+  "scenarios": []
+}
+```
+
+Each case references a **`rowId`** that must exist on a `MockOverride` in `kawarimi.json` (configure via Henge or `POST …/__kawarimi/configure`). Example two-step flow:
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+First API call (scenario only):
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "X-Kawarimi-Scenario-Id: login"
+```
+
+Follow-up (client middleware injects `X-Kawarimi-Id` automatically; manual curl):
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "X-Kawarimi-Scenario-Id: login" \
+  -H "X-Kawarimi-Id: locked"
+```
+
+Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`**: [henge.md](../docs/henge.md).
+
 <a id="try-the-henge-api-demoserver"></a>
 
 ## Try the Henge API (DemoServer)
