@@ -40,13 +40,19 @@ public enum KawarimiConfigDefaults {
 public actor KawarimiConfigStore {
     /// Always absolute; relative `file://` URLs can make `Data.write(to:)` fail (e.g. 518).
     private let configPath: String
+    private let scenariosPath: String
     private let prefix: String
     private var cachedOverrides: [MockOverride]
+    private var cachedScenarios: [KawarimiScenario]
     private var fileWatcher: KawarimiConfigFileWatcher?
 
     public var pathPrefix: String { prefix }
 
-    public init(configPath: String, pathPrefix: String = "") throws {
+    public init(
+        configPath: String,
+        pathPrefix: String = "",
+        scenariosPath: String? = nil
+    ) throws {
         let components = (configPath as NSString).pathComponents
         if components.contains("..") {
             throw KawarimiConfigStoreError.invalidConfigPath(configPath)
@@ -60,18 +66,27 @@ public actor KawarimiConfigStore {
             absolute = (cwd as NSString).appendingPathComponent(expanded)
         }
         self.configPath = absolute
+        if let scenariosPath {
+            self.scenariosPath = Self.absolutePath(from: scenariosPath)
+        } else {
+            let baseDir = (absolute as NSString).deletingLastPathComponent
+            self.scenariosPath = (baseDir as NSString).appendingPathComponent(KawarimiScenarioDefaults.fileName)
+        }
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
         self.cachedOverrides = Self.loadOverridesFromDisk(at: absolute)
+        self.cachedScenarios = Self.loadScenariosFromDisk(at: self.scenariosPath)
     }
 
     /// Re-reads `kawarimi.json` using the same rules as ``init(configPath:pathPrefix:)``.
     /// Returns ``KawarimiConfigReloadResult/unchanged`` when the decoded overrides match the in-memory cache.
     public func reloadFromDisk() -> KawarimiConfigReloadResult {
         let loaded = Self.loadOverridesFromDisk(at: configPath)
-        if loaded == cachedOverrides {
+        let loadedScenarios = Self.loadScenariosFromDisk(at: scenariosPath)
+        if loaded == cachedOverrides && loadedScenarios == cachedScenarios {
             return .unchanged
         }
         cachedOverrides = loaded
+        cachedScenarios = loadedScenarios
         return .applied
     }
 
@@ -105,8 +120,25 @@ public actor KawarimiConfigStore {
         }
     }
 
+    private static func loadScenariosFromDisk(at absolute: String) -> [KawarimiScenario] {
+        guard let data = FileManager.default.contents(atPath: absolute) else {
+            return []
+        }
+        do {
+            let config = try JSONDecoder().decode(KawarimiScenariosFile.self, from: data)
+            return config.scenarios
+        } catch {
+            logInvalidKawarimiConfig(at: absolute, error: error)
+            return []
+        }
+    }
+
     public func overrides() -> [MockOverride] {
         cachedOverrides
+    }
+
+    public func scenarios() -> [KawarimiScenario] {
+        cachedScenarios
     }
 
     public func configure(_ override: MockOverride) throws {
@@ -211,5 +243,14 @@ public actor KawarimiConfigStore {
         let data = try encoder.encode(config)
         let url = URL(fileURLWithPath: configPath, isDirectory: false)
         try data.write(to: url, options: .atomic)
+    }
+
+    private static func absolutePath(from path: String) -> String {
+        let expanded = (path as NSString).expandingTildeInPath
+        if (expanded as NSString).isAbsolutePath {
+            return (expanded as NSString).standardizingPath
+        }
+        let cwd = FileManager.default.currentDirectoryPath
+        return (cwd as NSString).appendingPathComponent(expanded)
     }
 }
