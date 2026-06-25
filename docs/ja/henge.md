@@ -22,6 +22,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 | OpenAPI からのコード生成 | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge の設定ストア・マッチング | **KawarimiCore**（本パッケージ） |
 | サーバ operation への動的モック | **KawarimiServer**（`KawarimiServerMiddleware`） |
+| OpenAPI クライアントのシナリオオーケストレーション | **KawarimiClient**（`KawarimiClientOrchestrationMiddleware`） |
 
 本リポジトリの **`DemoPackage` の構成** と **`DemoServer` のエントリポイント**: [Example/README_JA.md](../../Example/README_JA.md)。
 
@@ -181,7 +182,7 @@ API 対応:
 
 **複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。**`KawarimiConfigStore`** 初期化の `scenariosPath:` でパスを上書きできます。
 
-`POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。
+`POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
 #### ファイル形式
 
@@ -213,6 +214,7 @@ API 対応:
 - **`initial`** — クライアントが `X-Kawarimi-Id` を省略したときの最初のステップ。
 - **`cases[]`** — 各ステップ: **`kawarimiId`**、任意の **`next`**（終端では省略）、**`rowId`**（`kawarimi.json` の `MockOverride.rowId` と一致必須）、**`endpoint`**（着信リクエストおよび override 行と整合必須）。
 - レスポンス本文はシナリオファイルではなく **`rowId`** の override（または `responseMap` フォールバック）から解決します。
+- **`MockOverride.isEnabled`** は OpenAPI operation の**プライマリ／占有フラグ**です（通常の Henge 利用では operation あたり enabled 行は1つ）。シナリオ解決は **`rowId` で override を引く**ため、**`isEnabled` に関係なく**プリセット行（`isEnabled: false`）もステップに使えます。
 
 #### HTTP ヘッダー（`KawarimiScenarioHeaders`）
 
@@ -231,13 +233,16 @@ API 対応:
 
 #### クライアント（`KawarimiClientOrchestrationMiddleware`）
 
-**KawarimiServer** の OpenAPI **`ClientMiddleware`**（swift-openapi-runtime 依存）:
+**KawarimiClient** の OpenAPI **`ClientMiddleware`**（swift-openapi-runtime 依存）:
 
 - **`scenarioIdProvider`** — アプリがリクエストごとにアクティブな scenario id を返す（任意）。
 - リクエストの **`X-Kawarimi-Scenario-Id`** は provider より優先。
 - scenario id があるときのみ、シナリオ別 state から **`X-Kawarimi-Id`** を注入（レスポンスの **`X-Next-Kawarimi-Id`** で更新）。
-- 終端レスポンス（**`X-Next-Kawarimi-Id` なし**）で当該シナリオの state を破棄。
+- 終端レスポンス（**`X-Next-Kawarimi-Id` なし**）で当該シナリオの state を破棄 — next ヘッダーのないエラー応答も同様（次リクエストはサーバー上で `initial` から）。
+- **並行リクエスト**で同一 `scenarioId` を共有する場合、state は1つ。最後に返った **`X-Next-Kawarimi-Id`** が勝つ（並列 UI／テスト向けの文書化された挙動）。
 - テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
+
+ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**（重複 `scenarioId`、orphan `rowId`、endpoint 不整合など）。リクエストは従来の override 解決へフォールバックします。
 
 サンプル **`kawarimi-scenarios.json`** と curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
 

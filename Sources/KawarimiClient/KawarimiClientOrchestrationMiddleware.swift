@@ -72,7 +72,7 @@ public struct KawarimiClientOrchestrationMiddleware: ClientMiddleware {
 
         if let scenarioId {
             let nextField = HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!
-            if let nextKawarimiId = normalizedHeaderValue(response.headerFields[nextField]) {
+            if let nextKawarimiId = KawarimiScenarioTokens.normalize(response.headerFields[nextField]) {
                 state.setKawarimiId(nextKawarimiId, for: scenarioId)
                 onNextKawarimiId?(scenarioId, nextKawarimiId)
             } else {
@@ -89,19 +89,12 @@ public struct KawarimiClientOrchestrationMiddleware: ClientMiddleware {
         operationID: String,
         scenarioIdField: HTTPField.Name
     ) -> String? {
-        if let existing = normalizedHeaderValue(request.headerFields[scenarioIdField]) {
+        if let existing = KawarimiScenarioTokens.normalize(request.headerFields[scenarioIdField]) {
             return existing
         }
         guard let scenarioIdProvider else { return nil }
         let context = KawarimiScenarioContext(request: request, operationID: operationID)
-        return scenarioIdProvider(context).flatMap(normalizedHeaderValue)
-    }
-
-    private func normalizedHeaderValue(_ raw: String?) -> String? {
-        guard let token = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !token.isEmpty else {
-            return nil
-        }
-        return token
+        return scenarioIdProvider(context).flatMap(KawarimiScenarioTokens.normalize)
     }
 }
 

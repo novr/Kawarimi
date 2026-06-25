@@ -22,6 +22,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge file store + matching | **KawarimiCore** (this package) |
 | Dynamic mock on server operations | **KawarimiServer** (`KawarimiServerMiddleware`) |
+| Scenario orchestration on OpenAPI client | **KawarimiClient** (`KawarimiClientOrchestrationMiddleware`) |
 
 `DemoPackage` layout and `DemoServer` entrypoints: [Example/README.md](../Example/README.md).
 
@@ -182,7 +183,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 **Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Pass a custom path to **`KawarimiConfigStore`** init (`scenariosPath:`).
 
-`POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`.
+`POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
 #### File shape
 
@@ -214,6 +215,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 - **`initial`** — first step when the client omits `X-Kawarimi-Id`.
 - **`cases[]`** — each step: **`kawarimiId`**, optional **`next`** (omit at terminal steps), **`rowId`** (must match a `MockOverride.rowId` in `kawarimi.json`), **`endpoint`** (`method` + `path` must match the incoming request and the override row).
 - Response bodies come from the **`rowId`** override (or `responseMap` fallback), not from the scenario file.
+- **`MockOverride.isEnabled`** is the **primary / occupation flag** for an OpenAPI operation (only one enabled row is “active” per operation in normal Henge use). Scenario resolution looks up overrides **by `rowId` regardless of `isEnabled`**, so preset rows (`isEnabled: false`) can still be scenario steps.
 
 #### HTTP headers (`KawarimiScenarioHeaders`)
 
@@ -232,13 +234,16 @@ When **`X-Kawarimi-Scenario-Id`** is present, **`KawarimiScenarioResolver`** run
 
 #### Client (`KawarimiClientOrchestrationMiddleware`)
 
-OpenAPI **`ClientMiddleware`** in **KawarimiServer** (depends on swift-openapi-runtime):
+OpenAPI **`ClientMiddleware`** in **KawarimiClient** (depends on swift-openapi-runtime):
 
 - **`scenarioIdProvider`** — your app supplies the active scenario id per request (optional).
 - Request header **`X-Kawarimi-Scenario-Id`** wins over the provider when both are set.
 - When a scenario id is active, inject **`X-Kawarimi-Id`** from per-scenario state (updated from **`X-Next-Kawarimi-Id`** on responses).
-- Terminal response (no **`X-Next-Kawarimi-Id`**) clears state for that scenario.
+- Terminal response (no **`X-Next-Kawarimi-Id`**) clears state for that scenario — including error responses without a next header (the next request restarts from `initial` on the server).
+- **Concurrent requests** for the same `scenarioId` share one state map; the last response’s **`X-Next-Kawarimi-Id`** wins (documented behavior for parallel UI/tests).
 - **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
+
+Invalid scenario JSON on disk logs **warnings** at load/reload (duplicate `scenarioId`, orphan `rowId`, endpoint mismatch, etc.); requests still fall back to standard override resolution.
 
 Sample **`kawarimi-scenarios.json`** and curl notes: [Example/README.md](../Example/README.md).
 

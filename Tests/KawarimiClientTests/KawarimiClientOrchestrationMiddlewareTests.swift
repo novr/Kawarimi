@@ -4,7 +4,7 @@ import KawarimiCore
 import OpenAPIRuntime
 import Testing
 
-@testable import KawarimiServer
+@testable import KawarimiClient
 
 @Suite("KawarimiClientOrchestrationMiddleware")
 struct KawarimiClientOrchestrationMiddlewareTests {
@@ -110,6 +110,42 @@ struct KawarimiClientOrchestrationMiddlewareTests {
             next: { req, _, _ in
                 #expect(req.headerFields[HTTPField.Name(KawarimiScenarioHeaders.kawarimiId)!] == nil)
                 return (HTTPResponse(status: .created), nil)
+            }
+        )
+    }
+
+    @Test func errorResponseWithoutNextClearsScenarioState() async throws {
+        let middleware = KawarimiClientOrchestrationMiddleware(
+            scenarioIdProvider: { _ in "login" }
+        )
+
+        var firstResponse = HTTPResponse(status: .ok)
+        firstResponse.headerFields[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] = "locked"
+        let responseWithNext = firstResponse
+        _ = try await middleware.intercept(
+            HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/login"),
+            body: nil,
+            baseURL: URL(string: "https://example.com/api")!,
+            operationID: "login",
+            next: { _, _, _ in (responseWithNext, nil) }
+        )
+
+        _ = try await middleware.intercept(
+            HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/login"),
+            body: nil,
+            baseURL: URL(string: "https://example.com/api")!,
+            operationID: "login",
+            next: { _, _, _ in (HTTPResponse(status: .internalServerError), nil) }
+        )
+
+        _ = try await middleware.intercept(
+            HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/login"),
+            body: nil,
+            baseURL: URL(string: "https://example.com/api")!,
+            operationID: "login",
+            next: { req, _, _ in
+                #expect(req.headerFields[HTTPField.Name(KawarimiScenarioHeaders.kawarimiId)!] == nil)
+                return (HTTPResponse(status: .ok), nil)
             }
         )
     }

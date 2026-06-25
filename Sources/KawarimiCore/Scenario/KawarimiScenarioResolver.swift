@@ -26,20 +26,20 @@ public enum KawarimiScenarioResolver {
         scenarioIdHeaderRaw: String?,
         kawarimiIdHeaderRaw: String?
     ) -> KawarimiScenarioResolution {
-        guard let scenarioId = normalizeToken(scenarioIdHeaderRaw) else {
+        guard let scenarioId = KawarimiScenarioTokens.normalize(scenarioIdHeaderRaw) else {
             return .fallback(reason: scenarioIdHeaderRaw == nil ? .scenarioHeaderMissing : .invalidHeader)
         }
-        guard let scenario = scenarios.first(where: { normalizeToken($0.scenarioId) == scenarioId }) else {
+        guard let scenario = scenarios.first(where: { KawarimiScenarioTokens.normalize($0.scenarioId) == scenarioId }) else {
             return .fallback(reason: .scenarioNotFound)
         }
 
-        guard let kawarimiId = normalizeToken(kawarimiIdHeaderRaw) ?? normalizeToken(scenario.initial) else {
+        guard let kawarimiId = KawarimiScenarioTokens.normalize(kawarimiIdHeaderRaw) ?? KawarimiScenarioTokens.normalize(scenario.initial) else {
             return .fallback(reason: .invalidHeader)
         }
         let pathOnly = KawarimiRequestPath.pathOnly(requestPath)
 
         let matches = scenario.cases.filter { scase in
-            guard normalizeToken(scase.kawarimiId) == kawarimiId else { return false }
+            guard KawarimiScenarioTokens.normalize(scase.kawarimiId) == kawarimiId else { return false }
             guard scase.endpoint.normalizedMethod() == method else { return false }
             return scase.endpoint.normalizedPath() == pathOnly
         }
@@ -67,19 +67,8 @@ public enum KawarimiScenarioResolver {
 
         return .matched(
             response: resolved,
-            nextKawarimiId: normalizeToken(matchedCase.next),
+            nextKawarimiId: KawarimiScenarioTokens.normalize(matchedCase.next),
             delayMs: override.delayMs
         )
-    }
-
-    private static func normalizeToken(_ raw: String?) -> String? {
-        guard let token = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !token.isEmpty else {
-            return nil
-        }
-        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
-        guard token.unicodeScalars.allSatisfy({ allowed.contains($0) }) else {
-            return nil
-        }
-        return token
     }
 }

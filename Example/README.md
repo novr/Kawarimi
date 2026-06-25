@@ -165,7 +165,7 @@ curl -X POST http://localhost:8080/api/login \
   -H "X-Kawarimi-Id: locked"
 ```
 
-Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`**: [henge.md](../docs/henge.md).
+Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [henge.md](../docs/henge.md).
 
 <a id="try-the-henge-api-demoserver"></a>
 
