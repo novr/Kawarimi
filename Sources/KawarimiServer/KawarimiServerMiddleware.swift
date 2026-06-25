@@ -36,6 +36,36 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
         let requestPath = KawarimiRequestPath.pathOnly(request.path)
         let pathPrefix = await store.pathPrefix
         let overrides = await store.overrides()
+        let scenarios = await store.scenarios()
+
+        let scenarioIdField = HTTPField.Name(KawarimiScenarioHeaders.scenarioId)!
+        if request.headerFields[scenarioIdField] != nil {
+            let kawarimiIdField = HTTPField.Name(KawarimiScenarioHeaders.kawarimiId)!
+            let resolution = KawarimiScenarioResolver.resolve(
+                scenarios: scenarios,
+                overrides: overrides,
+                responseMap: responseMap,
+                requestPath: requestPath,
+                method: request.method,
+                scenarioIdHeaderRaw: request.headerFields[scenarioIdField],
+                kawarimiIdHeaderRaw: request.headerFields[kawarimiIdField]
+            )
+            if case .matched(let resolved, let nextKawarimiId, let delayMs) = resolution {
+                if let ms = delayMs, ms > 0 {
+                    try await Task.sleep(for: .milliseconds(ms))
+                }
+                var response = HTTPResponse(status: .init(code: resolved.statusCode))
+                response.headerFields[.contentType] = resolved.contentType
+                if let nextKawarimiId {
+                    response.headerFields[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] = nextKawarimiId
+                }
+                return (response, HTTPBody(resolved.body))
+            }
+            if case .fallback(let reason) = resolution {
+                logScenarioFallback(reason: reason, requestPath: requestPath, method: request.method)
+            }
+        }
+
         let exampleIdField = HTTPField.Name(KawarimiMockRequestHeaders.exampleId)!
         let exampleIdHeader = request.headerFields[exampleIdField]
         let hits = MockOverrideRequestMatching.matchingEnabledOverrides(
@@ -70,5 +100,19 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
         var response = HTTPResponse(status: .init(code: resolved.statusCode))
         response.headerFields[.contentType] = resolved.contentType
         return (response, HTTPBody(resolved.body))
+    }
+
+    private func logScenarioFallback(
+        reason: KawarimiScenarioResolutionReason,
+        requestPath: String,
+        method: HTTPRequest.Method
+    ) {
+        let message =
+            "Scenario fallback (\(reason.rawValue)) for \(requestPath) \(method.rawValue); using standard override resolution"
+#if canImport(OSLog)
+        kawarimiServerMiddlewareLog.debug("\(message, privacy: .public)")
+#else
+        StandardError.write("KawarimiServerMiddleware: \(message)")
+#endif
     }
 }
