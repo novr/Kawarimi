@@ -22,6 +22,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 | OpenAPI からのコード生成 | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge の設定ストア・マッチング | **KawarimiCore**（本パッケージ） |
 | サーバ operation への動的モック | **KawarimiServer**（`KawarimiServerMiddleware`） |
+| OpenAPI クライアントのシナリオオーケストレーション | **KawarimiClient**（`KawarimiClientOrchestrationMiddleware`） |
 
 本リポジトリの **`DemoPackage` の構成** と **`DemoServer` のエントリポイント**: [Example/README_JA.md](../../Example/README_JA.md)。
 
@@ -159,6 +160,7 @@ API 対応:
 | 対象 | 挙動 |
 | --- | --- |
 | **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の全正規化は行わないが、`rowId` は読み込み時に正規化（trim + UUID 検証 + lowercase）する。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
+| **シナリオ（`kawarimi-scenarios.json`）** | ランタイムは読み取り専用（Henge 管理 API なし）。起動時・**`POST …/reload`**・ファイル監視有効時に overrides と同時に読み込み。パス: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json のディレクトリ}/kawarimi-scenarios.json`。無効 JSON → 空の scenarios。構造上の問題は **`KawarimiScenarioValidation`** が **warning** ログ。macOS では**既存ファイル**への atomic 上書きが vnode 監視で拾えないことがある — 反映されないときは **`POST …/reload`** を使う。 |
 | **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware
@@ -176,6 +178,74 @@ API 対応:
 絞り込み結果が **0 件**のときはヘッダーを無視し、従来どおり全候補からタイブレークします。
 
 ヘッダーを付けない、または空白のみのときは絞り込みしません。
+
+### シナリオオーケストレーション（`kawarimi-scenarios.json`）
+
+**複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。パスは init **`scenariosPath:`** または **`KAWARIMI_SCENARIOS_CONFIG`** で上書き。
+
+`POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
+
+#### ファイル形式
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **`scenarioId`** — シナリオ選択（HTTP ヘッダー `X-Kawarimi-Scenario-Id`）。
+- **`initial`** — クライアントが `X-Kawarimi-Id` を省略したときの最初のステップ。
+- **`cases[]`** — 各ステップ: **`kawarimiId`**、任意の **`next`**（終端では省略）、**`rowId`**（`kawarimi.json` の `MockOverride.rowId` と一致必須）、**`endpoint`**（着信リクエストおよび override 行と整合必須）。
+- レスポンス本文はシナリオファイルではなく **`rowId`** の override（または `responseMap` フォールバック）から解決します。
+- **`MockOverride.isEnabled`** は OpenAPI operation の**プライマリ／占有フラグ**です（通常の Henge 利用では operation あたり enabled 行は1つ）。シナリオ解決は **`rowId` で override を引く**ため、**`isEnabled` に関係なく**プリセット行（`isEnabled: false`）もステップに使えます。
+
+#### HTTP ヘッダー（`KawarimiScenarioHeaders`）
+
+| ヘッダー | 方向 | 役割 |
+| --- | --- | --- |
+| `X-Kawarimi-Scenario-Id` | リクエスト | シナリオ選択 |
+| `X-Kawarimi-Id` | リクエスト | 現在ステップ。初回は省略 |
+| `X-Next-Kawarimi-Id` | レスポンス | クライアントが次に送るステップ。`next` 未設定時は省略 |
+
+#### サーバ（`KawarimiServerMiddleware`）
+
+**`X-Kawarimi-Scenario-Id`** があるとき、**`KawarimiScenarioResolver`** が `X-Kawarimi-Example-Id` / 通常の override マッチより**先**に実行されます。
+
+- **マッチ** — `rowId` の override を返し、case に `next` があれば **`X-Next-Kawarimi-Id`** を付与。
+- **非マッチ**（未知シナリオ、同一 `scenarioId`+`endpoint`+`kawarimiId` の重複、override 欠落、endpoint 不整合、不正ヘッダー）— **既存の override 解決へフォールバック**（`503` は返さない）。
+
+#### クライアント（`KawarimiClientOrchestrationMiddleware`）
+
+**KawarimiClient** の OpenAPI **`ClientMiddleware`**（swift-openapi-runtime 依存）:
+
+- **`scenarioIdProvider`** — アプリがリクエストごとにアクティブな scenario id を返す（任意）。
+- リクエストの **`X-Kawarimi-Scenario-Id`** は provider より優先。
+- scenario id があるときのみ、シナリオ別 state から **`X-Kawarimi-Id`** を注入（レスポンスの **`X-Next-Kawarimi-Id`** で更新）。
+- 終端レスポンス（**`X-Next-Kawarimi-Id` なし**）で当該シナリオの state を破棄 — next ヘッダーのないエラー応答も同様（次リクエストはサーバー上で `initial` から）。
+- **並行リクエスト**で同一 `scenarioId` を共有する場合、state は1つ。最後に返った **`X-Next-Kawarimi-Id`** が勝つ（並列 UI／テスト向けの文書化された挙動）。
+- テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
+
+ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**（重複 `scenarioId`、orphan `rowId`、endpoint 不整合など）。リクエストは従来の override 解決へフォールバックします。
+
+サンプル **`kawarimi-scenarios.json`** と curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
 
 | エンドポイント | 説明 |
 |---|---|
@@ -330,6 +400,14 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
+
+### `kawarimi-scenarios.json` / `KAWARIMI_SCENARIOS_CONFIG`
+
+シナリオ定義は同一ストアが読み込みます（読み取り専用。`configure` では書き込まない）。パス解決の優先順:
+
+1. **`KawarimiConfigStore`** init の `scenariosPath:`（非空のとき）
+2. 環境変数 **`KAWARIMI_SCENARIOS_CONFIG`**
+3. 解決済み `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**
 
 `kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` と `generateKawarimi` / `generateHandler` / `generateSpec` は `kawarimi-generator-config.yaml`）。
 

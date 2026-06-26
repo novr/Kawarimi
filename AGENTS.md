@@ -33,6 +33,7 @@
 - `KawarimiPlugin`: Build Tool Plugin（CLI 実行と入出力パス境界）。
 - `KawarimiHenge`: ランタイム機能（生成パスと分離）。
 - `KawarimiServer`: OpenAPI サーバ向け動的モック。
+- `KawarimiClient`: OpenAPI クライアント向けシナリオオーケストレーション middleware。
 - 実 API サーバ実装やサーバ内部要件はスコープ外。
 
 ## GIT

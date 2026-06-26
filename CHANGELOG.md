@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore**: scenario orchestration — **`kawarimi-scenarios.json`**, **`KawarimiScenarioResolver`**, **`KawarimiScenarioHeaders`**, **`KawarimiScenarioValidation`** (load warnings), and **`KawarimiConfigStore.scenarios()`** / reload integration ([#166](https://github.com/novr/Kawarimi/issues/166)).
+- **KawarimiServer**: **`KawarimiServerMiddleware`** resolves scenario headers before **`X-Kawarimi-Example-Id`** ([#167](https://github.com/novr/Kawarimi/issues/167)).
+- **KawarimiClient**: **`KawarimiClientOrchestrationMiddleware`** tracks per-scenario **`X-Kawarimi-Id`** state from **`X-Next-Kawarimi-Id`** ([#168](https://github.com/novr/Kawarimi/issues/168)).
+
+### Changed
+
+- **KawarimiConfigStore**: file watch now monitors **`kawarimi-scenarios.json`** as well as **`kawarimi.json`**; **`scenariosPath`** rejects `..` like **`configPath`**. Scenario path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → default next to `kawarimi.json`.
+
+### Docs
+
+- **henge.md** / **ja/henge.md** / **Example README** (EN/JA): scenario orchestration (`rowId` references, headers, server/client middleware).
+
 ## [3.1.0] - 2026-06-19
 
 ### Added

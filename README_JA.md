@@ -20,8 +20,19 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | [Roadmap.md](Roadmap.md) | プロジェクトのゴール（未来の方向）。バックログは GitHub Issues、リリースは CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | リリース・破壊的変更（SemVer） |
 | [導入・統合](docs/ja/integration.md) | SwiftPM、OpenAPI の配置、設定、テスト |
-| [ダイナミックモック（Henge）](docs/ja/henge.md) | ランタイムモック、`__kawarimi` API、Vapor、`kawarimi.json` |
+| [ダイナミックモック（Henge）](docs/ja/henge.md) | ランタイムモック、`__kawarimi` API、Vapor、`kawarimi.json`、シナリオオーケストレーション |
 | [モック JSON の決め方](docs/ja/mock-json.md) | 埋め込みモック JSON の優先順位 |
+
+## SwiftPM プロダクト（ランタイム）
+
+| プロダクト | 役割 |
+| --- | --- |
+| **KawarimiCore** | 共有モデル、`KawarimiConfigStore`、`KawarimiAPIClient`、シナリオ resolver |
+| **KawarimiServer** | `KawarimiServerMiddleware` — サーバ側動的モック |
+| **KawarimiClient** | `KawarimiClientOrchestrationMiddleware` — OpenAPI クライアントのシナリオヘッダー state |
+| **KawarimiHenge** | SwiftUI 管理 UI（macOS） |
+
+詳細: [導入・統合](docs/ja/integration.md)、[Henge](docs/ja/henge.md)。
 
 **English:** [docs/README.md](docs/README.md)
 

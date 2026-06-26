@@ -22,6 +22,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge file store + matching | **KawarimiCore** (this package) |
 | Dynamic mock on server operations | **KawarimiServer** (`KawarimiServerMiddleware`) |
+| Scenario orchestration on OpenAPI client | **KawarimiClient** (`KawarimiClientOrchestrationMiddleware`) |
 
 `DemoPackage` layout and `DemoServer` entrypoints: [Example/README.md](../Example/README.md).
 
@@ -160,6 +161,7 @@ API summary:
 | What | Behavior |
 | --- | --- |
 | **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads still skip full `configure` normalization, but `rowId` is normalized (trim + lowercase UUID validation) during load. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
+| **Scenarios (`kawarimi-scenarios.json`)** | Read-only at runtime (no Henge admin API). Loaded with overrides on startup, **`POST …/reload`**, and file watch when enabled. Path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json directory}/kawarimi-scenarios.json`. Invalid JSON → empty scenarios; structural issues log **warnings** via **`KawarimiScenarioValidation`**. Saving an **existing** scenarios file via atomic replace may not trigger vnode watch on macOS — use **`POST …/reload`** if edits do not apply. |
 | **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware
@@ -177,6 +179,74 @@ When **several enabled overrides** match the same path and method, a non-empty h
 If narrowing would match **no** overrides, the middleware **ignores** the header and uses all candidates (then tie-break as usual).
 
 Omit the header or send whitespace-only to apply **no** narrowing.
+
+### Scenario orchestration (`kawarimi-scenarios.json`)
+
+**Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Override path with init **`scenariosPath:`** or **`KAWARIMI_SCENARIOS_CONFIG`**.
+
+`POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
+
+#### File shape
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+- **`scenarioId`** — selects the scenario (HTTP header `X-Kawarimi-Scenario-Id`).
+- **`initial`** — first step when the client omits `X-Kawarimi-Id`.
+- **`cases[]`** — each step: **`kawarimiId`**, optional **`next`** (omit at terminal steps), **`rowId`** (must match a `MockOverride.rowId` in `kawarimi.json`), **`endpoint`** (`method` + `path` must match the incoming request and the override row).
+- Response bodies come from the **`rowId`** override (or `responseMap` fallback), not from the scenario file.
+- **`MockOverride.isEnabled`** is the **primary / occupation flag** for an OpenAPI operation (only one enabled row is “active” per operation in normal Henge use). Scenario resolution looks up overrides **by `rowId` regardless of `isEnabled`**, so preset rows (`isEnabled: false`) can still be scenario steps.
+
+#### HTTP headers (`KawarimiScenarioHeaders`)
+
+| Header | Direction | Role |
+| --- | --- | --- |
+| `X-Kawarimi-Scenario-Id` | Request | Select scenario |
+| `X-Kawarimi-Id` | Request | Current step; omit on first request |
+| `X-Next-Kawarimi-Id` | Response | Next step for the client; omitted when `next` is unset |
+
+#### Server (`KawarimiServerMiddleware`)
+
+When **`X-Kawarimi-Scenario-Id`** is present, **`KawarimiScenarioResolver`** runs **before** `X-Kawarimi-Example-Id` / standard override matching.
+
+- **Matched** — return the override for `rowId` and attach **`X-Next-Kawarimi-Id`** when the case defines `next`.
+- **Not matched** (unknown scenario, duplicate `scenarioId`+`endpoint`+`kawarimiId`, missing override, endpoint mismatch, invalid headers) — **fall back** to existing override resolution (no `503`).
+
+#### Client (`KawarimiClientOrchestrationMiddleware`)
+
+OpenAPI **`ClientMiddleware`** in **KawarimiClient** (depends on swift-openapi-runtime):
+
+- **`scenarioIdProvider`** — your app supplies the active scenario id per request (optional).
+- Request header **`X-Kawarimi-Scenario-Id`** wins over the provider when both are set.
+- When a scenario id is active, inject **`X-Kawarimi-Id`** from per-scenario state (updated from **`X-Next-Kawarimi-Id`** on responses).
+- Terminal response (no **`X-Next-Kawarimi-Id`**) clears state for that scenario — including error responses without a next header (the next request restarts from `initial` on the server).
+- **Concurrent requests** for the same `scenarioId` share one state map; the last response’s **`X-Next-Kawarimi-Id`** wins (documented behavior for parallel UI/tests).
+- **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
+
+Invalid scenario JSON on disk logs **warnings** at load/reload (duplicate `scenarioId`, orphan `rowId`, endpoint mismatch, etc.); requests still fall back to standard override resolution.
+
+Sample **`kawarimi-scenarios.json`** and curl notes: [Example/README.md](../Example/README.md).
 
 | Endpoint | Description |
 |---|---|
@@ -331,6 +401,14 @@ The file format uses `KawarimiConfig` (overrides array).
 Set `KAWARIMI_CONFIG` to override the config file path.
 
 `KAWARIMI_CONFIG_WATCH` controls automatic reload when the config file changes on disk: **unset** or **`1`** → watch enabled; **`0`** → disabled. Values such as **`false`** are treated as enabled (only **`0`** turns watch off). **DemoServer** calls `startFileWatchIfEnabled()` at startup; other hosts should do the same if they want the same behavior.
+
+### `kawarimi-scenarios.json` / `KAWARIMI_SCENARIOS_CONFIG`
+
+Scenario definitions are loaded by the same store (read-only; not written by `configure`). Path resolution order:
+
+1. `scenariosPath:` argument to **`KawarimiConfigStore`** init (when non-empty)
+2. **`KAWARIMI_SCENARIOS_CONFIG`** environment variable
+3. **`kawarimi-scenarios.json`** next to the resolved `kawarimi.json` path
 
 `kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy` and codegen toggles (`generateKawarimi`, `generateHandler`, `generateSpec`).
 

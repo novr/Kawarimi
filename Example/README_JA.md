@@ -95,6 +95,59 @@ handlerStubPolicy: throw
 
 オーバーライドのマージ・タイブレークや空 body の扱いは [henge.md](../docs/ja/henge.md#kawarimijson--kawarimi_config) を参照してください。
 
+## kawarimi-scenarios.json（サンプル）
+
+シナリオオーケストレーションの定義はオーバーライドとは別ファイルです。**`KawarimiConfigStore`** は init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`** の順で読み込みます。空の初期ファイル:
+
+```json
+{
+  "scenarios": []
+}
+```
+
+各 case の **`rowId`** は `kawarimi.json` の `MockOverride.rowId` と一致させます（Henge または `POST …/__kawarimi/configure` で作成）。2 ステップの例:
+
+```json
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        },
+        {
+          "kawarimiId": "locked",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "POST", "path": "/api/login" }
+        }
+      ]
+    }
+  ]
+}
+```
+
+初回 API 呼び出し（シナリオ ID のみ）:
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "X-Kawarimi-Scenario-Id: login"
+```
+
+継続（クライアント middleware が `X-Kawarimi-Id` を注入。手動 curl の例）:
+
+```bash
+curl -X POST http://localhost:8080/api/login \
+  -H "X-Kawarimi-Scenario-Id: login" \
+  -H "X-Kawarimi-Id: locked"
+```
+
+ヘッダー規約と **`KawarimiClientOrchestrationMiddleware`**（**KawarimiClient**）: [henge.md](../docs/ja/henge.md)。
+
 <a id="henge-api-demoserver"></a>
 
 ## Henge API を試す（DemoServer）
