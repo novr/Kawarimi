@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-06-26
+
 ### Added
 
 - **KawarimiCore**: scenario orchestration — **`kawarimi-scenarios.json`**, **`KawarimiScenarioResolver`**, **`KawarimiScenarioHeaders`**, **`KawarimiScenarioValidation`** (load warnings), and **`KawarimiConfigStore.scenarios()`** / reload integration ([#166](https://github.com/novr/Kawarimi/issues/166)).
@@ -422,6 +424,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.2.0]: https://github.com/novr/Kawarimi/releases/tag/v3.2.0
 [3.1.0]: https://github.com/novr/Kawarimi/releases/tag/v3.1.0
 [3.0.0]: https://github.com/novr/Kawarimi/releases/tag/v3.0.0
 [2.7.0]: https://github.com/novr/Kawarimi/releases/tag/v2.7.0
