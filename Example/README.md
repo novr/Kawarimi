@@ -116,7 +116,7 @@ Override merge / tie-break rules and empty-body normalization: [henge.md](../doc
 
 ## kawarimi-scenarios.json (sample)
 
-Scenario orchestration definitions are stored separately from overrides. **`KawarimiConfigStore`** loads **`kawarimi-scenarios.json`** from the same directory as `kawarimi.json` (override with init `scenariosPath:`). Empty starter:
+Scenario orchestration definitions are stored separately from overrides. **`KawarimiConfigStore`** loads **`kawarimi-scenarios.json`** using init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → file next to `kawarimi.json`. Empty starter:
 
 ```json
 {

@@ -161,6 +161,7 @@ API summary:
 | What | Behavior |
 | --- | --- |
 | **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads still skip full `configure` normalization, but `rowId` is normalized (trim + lowercase UUID validation) during load. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
+| **Scenarios (`kawarimi-scenarios.json`)** | Read-only at runtime (no Henge admin API). Loaded with overrides on startup, **`POST …/reload`**, and file watch when enabled. Path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json directory}/kawarimi-scenarios.json`. Invalid JSON → empty scenarios; structural issues log **warnings** via **`KawarimiScenarioValidation`**. Saving an **existing** scenarios file via atomic replace may not trigger vnode watch on macOS — use **`POST …/reload`** if edits do not apply. |
 | **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware
@@ -181,7 +182,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 ### Scenario orchestration (`kawarimi-scenarios.json`)
 
-**Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Pass a custom path to **`KawarimiConfigStore`** init (`scenariosPath:`).
+**Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Override path with init **`scenariosPath:`** or **`KAWARIMI_SCENARIOS_CONFIG`**.
 
 `POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
@@ -400,6 +401,14 @@ The file format uses `KawarimiConfig` (overrides array).
 Set `KAWARIMI_CONFIG` to override the config file path.
 
 `KAWARIMI_CONFIG_WATCH` controls automatic reload when the config file changes on disk: **unset** or **`1`** → watch enabled; **`0`** → disabled. Values such as **`false`** are treated as enabled (only **`0`** turns watch off). **DemoServer** calls `startFileWatchIfEnabled()` at startup; other hosts should do the same if they want the same behavior.
+
+### `kawarimi-scenarios.json` / `KAWARIMI_SCENARIOS_CONFIG`
+
+Scenario definitions are loaded by the same store (read-only; not written by `configure`). Path resolution order:
+
+1. `scenariosPath:` argument to **`KawarimiConfigStore`** init (when non-empty)
+2. **`KAWARIMI_SCENARIOS_CONFIG`** environment variable
+3. **`kawarimi-scenarios.json`** next to the resolved `kawarimi.json` path
 
 `kawarimi.json` holds runtime `overrides` only; use `kawarimi-generator-config.yaml` for `handlerStubPolicy` and codegen toggles (`generateKawarimi`, `generateHandler`, `generateSpec`).
 

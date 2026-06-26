@@ -3,6 +3,26 @@ import HTTPTypes
 
 public enum KawarimiScenarioDefaults {
     public static let fileName = "kawarimi-scenarios.json"
+    public static let environmentKey = "KAWARIMI_SCENARIOS_CONFIG"
+
+    /// Resolution order: `explicit` → ``environmentKey`` → `{config directory}/``fileName````.
+    public static func resolvedPath(
+        explicit: String? = nil,
+        configAbsolutePath: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> String {
+        if let explicit {
+            let trimmed = explicit.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                return trimmed
+            }
+        }
+        if let env = environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines), !env.isEmpty {
+            return env
+        }
+        let baseDir = (configAbsolutePath as NSString).deletingLastPathComponent
+        return (baseDir as NSString).appendingPathComponent(fileName)
+    }
 }
 
 public struct KawarimiScenariosFile: Codable, Sendable, Equatable {

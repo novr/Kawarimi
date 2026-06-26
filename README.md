@@ -20,8 +20,19 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | [Roadmap.md](Roadmap.md) | Project goals (future direction); backlog on GitHub Issues, releases in CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | Releases and breaking changes (SemVer) |
 | [Integration](docs/integration.md) | SwiftPM, OpenAPI layout, configs, tests |
-| [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, `kawarimi.json` |
+| [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, `kawarimi.json`, scenario orchestration |
 | [Mock JSON rules](docs/mock-json.md) | How embedded mock JSON is chosen |
+
+## SwiftPM products (runtime)
+
+| Product | Role |
+| --- | --- |
+| **KawarimiCore** | Shared models, `KawarimiConfigStore`, `KawarimiAPIClient`, scenario resolver |
+| **KawarimiServer** | `KawarimiServerMiddleware` — server-side dynamic mocks |
+| **KawarimiClient** | `KawarimiClientOrchestrationMiddleware` — scenario header state on OpenAPI clients |
+| **KawarimiHenge** | SwiftUI admin UI (macOS) |
+
+Details: [Integration](docs/integration.md), [Henge](docs/henge.md).
 
 ## KawarimiHandler — witness style (`on…` closures)
 

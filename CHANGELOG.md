@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **KawarimiConfigStore**: file watch now monitors **`kawarimi-scenarios.json`** as well as **`kawarimi.json`**; **`scenariosPath`** rejects `..` like **`configPath`**.
+- **KawarimiConfigStore**: file watch now monitors **`kawarimi-scenarios.json`** as well as **`kawarimi.json`**; **`scenariosPath`** rejects `..` like **`configPath`**. Scenario path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → default next to `kawarimi.json`.
 
 ### Docs
 

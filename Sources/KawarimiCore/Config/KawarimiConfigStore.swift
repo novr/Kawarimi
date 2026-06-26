@@ -70,16 +70,15 @@ public actor KawarimiConfigStore {
             absolute = (cwd as NSString).appendingPathComponent(expanded)
         }
         self.configPath = absolute
-        if let scenariosPath {
-            let scenarioComponents = (scenariosPath as NSString).pathComponents
-            if scenarioComponents.contains("..") {
-                throw KawarimiConfigStoreError.invalidScenariosPath(scenariosPath)
-            }
-            self.scenariosPath = Self.absolutePath(from: scenariosPath)
-        } else {
-            let baseDir = (absolute as NSString).deletingLastPathComponent
-            self.scenariosPath = (baseDir as NSString).appendingPathComponent(KawarimiScenarioDefaults.fileName)
+        let resolvedScenariosPath = KawarimiScenarioDefaults.resolvedPath(
+            explicit: scenariosPath,
+            configAbsolutePath: absolute
+        )
+        let scenarioComponents = (resolvedScenariosPath as NSString).pathComponents
+        if scenarioComponents.contains("..") {
+            throw KawarimiConfigStoreError.invalidScenariosPath(resolvedScenariosPath)
         }
+        self.scenariosPath = Self.absolutePath(from: resolvedScenariosPath)
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
         let loadedOverrides = Self.loadOverridesFromDisk(at: absolute)
         let loadedScenarios = Self.loadScenariosFromDisk(at: self.scenariosPath)

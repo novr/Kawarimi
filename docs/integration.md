@@ -75,6 +75,7 @@ SwiftPM products:
 - **KawarimiJutsu** — generator API (CLI/tests; OpenAPIKit).
 - **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
 - **KawarimiServer** — server dynamic mocks — [henge.md](henge.md).
+- **KawarimiClient** — client scenario orchestration middleware — [henge.md](henge.md).
 
 Targets with **KawarimiSpec.swift** need **`KawarimiCore`** and **`HTTPTypes`** as **direct** dependencies.
 
@@ -101,7 +102,7 @@ targets: [
 ]
 ```
 
-For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to `kawarimi.json` on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`).
+For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
 
 ### Admin route segments and spec wire validation
 

@@ -160,6 +160,7 @@ API 対応:
 | 対象 | 挙動 |
 | --- | --- |
 | **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の全正規化は行わないが、`rowId` は読み込み時に正規化（trim + UUID 検証 + lowercase）する。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
+| **シナリオ（`kawarimi-scenarios.json`）** | ランタイムは読み取り専用（Henge 管理 API なし）。起動時・**`POST …/reload`**・ファイル監視有効時に overrides と同時に読み込み。パス: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json のディレクトリ}/kawarimi-scenarios.json`。無効 JSON → 空の scenarios。構造上の問題は **`KawarimiScenarioValidation`** が **warning** ログ。macOS では**既存ファイル**への atomic 上書きが vnode 監視で拾えないことがある — 反映されないときは **`POST …/reload`** を使う。 |
 | **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware
@@ -180,7 +181,7 @@ API 対応:
 
 ### シナリオオーケストレーション（`kawarimi-scenarios.json`）
 
-**複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。**`KawarimiConfigStore`** 初期化の `scenariosPath:` でパスを上書きできます。
+**複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。パスは init **`scenariosPath:`** または **`KAWARIMI_SCENARIOS_CONFIG`** で上書き。
 
 `POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
@@ -399,6 +400,14 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
+
+### `kawarimi-scenarios.json` / `KAWARIMI_SCENARIOS_CONFIG`
+
+シナリオ定義は同一ストアが読み込みます（読み取り専用。`configure` では書き込まない）。パス解決の優先順:
+
+1. **`KawarimiConfigStore`** init の `scenariosPath:`（非空のとき）
+2. 環境変数 **`KAWARIMI_SCENARIOS_CONFIG`**
+3. 解決済み `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**
 
 `kawarimi.json` はランタイムの `overrides` のみを持ちます（生成の `handlerStubPolicy` と `generateKawarimi` / `generateHandler` / `generateSpec` は `kawarimi-generator-config.yaml`）。
 

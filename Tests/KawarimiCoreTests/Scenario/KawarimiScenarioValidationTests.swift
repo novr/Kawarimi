@@ -45,6 +45,33 @@ struct KawarimiScenarioValidationTests {
         #expect(warnings.contains(where: { $0.contains("initial 'missing' has no matching case") }))
     }
 
+    @Test func resolvesScenariosPathFromEnvironment() {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-env-\(UUID().uuidString)")
+        let configPath = dir.appendingPathComponent("kawarimi.json").path
+        let scenarioPath = dir.appendingPathComponent("custom-scenarios.json").path
+
+        let resolved = KawarimiScenarioDefaults.resolvedPath(
+            explicit: nil,
+            configAbsolutePath: configPath,
+            environment: [KawarimiScenarioDefaults.environmentKey: scenarioPath]
+        )
+        #expect(resolved == scenarioPath)
+    }
+
+    @Test func explicitScenariosPathOverridesEnvironment() {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-env-\(UUID().uuidString)")
+        let configPath = dir.appendingPathComponent("kawarimi.json").path
+        let explicitPath = dir.appendingPathComponent("explicit.json").path
+        let envPath = dir.appendingPathComponent("from-env.json").path
+
+        let resolved = KawarimiScenarioDefaults.resolvedPath(
+            explicit: explicitPath,
+            configAbsolutePath: configPath,
+            environment: [KawarimiScenarioDefaults.environmentKey: envPath]
+        )
+        #expect(resolved == explicitPath)
+    }
+
     @Test func rejectsInvalidScenariosPathWithParentTraversal() {
         #expect(throws: (any Error).self) {
             _ = try KawarimiConfigStore(

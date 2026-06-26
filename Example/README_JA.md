@@ -97,7 +97,7 @@ handlerStubPolicy: throw
 
 ## kawarimi-scenarios.json（サンプル）
 
-シナリオオーケストレーションの定義はオーバーライドとは別ファイルです。**`KawarimiConfigStore`** は `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`** を読み込みます（`scenariosPath:` で上書き可）。空の初期ファイル:
+シナリオオーケストレーションの定義はオーバーライドとは別ファイルです。**`KawarimiConfigStore`** は init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`** の順で読み込みます。空の初期ファイル:
 
 ```json
 {
