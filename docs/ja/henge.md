@@ -372,7 +372,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 **Del** — **`DisableMockPlanner`**（**`storedOverrideForDel`**）: チップに保存行あり → **`removeIdentity`** で **`remove`** ＋ Spec 寄せリセット。未 Save ドラフトのみ → **ローカルクリア**。それ以外は no-op。
 
-**自動テスト:** Henge エクスプローラのロジックは **`KawarimiCoreTests`**（`Tests/KawarimiCoreTests/Henge/`、モジュール **`KawarimiHengeCore`**）。ubuntu CI は **`KawarimiHengeCore`** のみ。SwiftUI の **`KawarimiHenge`** は macOS ローカルで確認。
+**自動テスト:** Henge エクスプローラのロジックは **`KawarimiHengeCoreTests`**（`Tests/KawarimiHengeCoreTests/`、モジュール **`KawarimiHengeCore`**）。ubuntu CI は **`KawarimiHengeCore`** のみ。SwiftUI の **`KawarimiHenge`** は macOS ローカルで確認。
 
 ## クライアント: 実サーバーと Kawarimi モック
 

@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **CI / structure:** merge internal **`KawarimiPluginSupport`** into **`KawarimiJutsu`** (`KawarimiGeneratorOutputOptions`, **`KawarimiGeneratorConfigLineParser`**); split tests into **`KawarimiJutsuTests`** and **`KawarimiHengeCoreTests`** (Henge logic was under **`Tests/KawarimiCoreTests/Henge/`**).
+
+### Docs
+
+- **henge.md** / **ja/henge.md**: Henge automated tests now **`KawarimiHengeCoreTests`** (`Tests/KawarimiHengeCoreTests/`).
+
 ## [3.2.0] - 2026-06-26
 
 ### Added
