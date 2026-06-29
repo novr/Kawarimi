@@ -1,1 +1,1 @@
-../../Sources/KawarimiPluginSupport/KawarimiGeneratorOutputOptions.swift
+../../Sources/KawarimiJutsu/Config/KawarimiGeneratorOutputOptions.swift

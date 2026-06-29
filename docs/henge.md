@@ -373,7 +373,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 
 **Del** — **`DisableMockPlanner`** via **`storedOverrideForDel`**: saved row for the chip → **`remove`** with **`removeIdentity`** (persisted path / exampleId) + draft reset toward spec; unsaved draft only → **local clear**; else **no-op**.
 
-**Automated tests:** Henge explorer logic in **`KawarimiCoreTests`** (`Tests/KawarimiCoreTests/Henge/`, module **`KawarimiHengeCore`**). Ubuntu CI runs **`KawarimiHengeCore`** only; full **`KawarimiHenge`** (SwiftUI) on macOS locally.
+**Automated tests:** Henge explorer logic in **`KawarimiHengeCoreTests`** (`Tests/KawarimiHengeCoreTests/`, module **`KawarimiHengeCore`**). Ubuntu CI runs **`KawarimiHengeCore`** only; full **`KawarimiHenge`** (SwiftUI) on macOS locally.
 
 ## Client: real server vs Kawarimi mock
 

@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiPluginSupport
+import KawarimiJutsu
 import Testing
 
 @Test func lineParserDefaultsWhenConfigMissing() throws {

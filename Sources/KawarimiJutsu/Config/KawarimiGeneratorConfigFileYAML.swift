@@ -1,6 +1,5 @@
 import Foundation
 import KawarimiCore
-import KawarimiPluginSupport
 import Yams
 
 public struct KawarimiGeneratorConfigFile: Equatable, Sendable {

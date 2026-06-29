@@ -1,1 +1,1 @@
-../../Sources/KawarimiPluginSupport/KawarimiGeneratorConfigLineParser.swift
+../../Sources/KawarimiJutsu/Config/KawarimiGeneratorConfigLineParser.swift
