@@ -134,4 +134,106 @@ struct KawarimiScenarioResolverTests {
 
         #expect(resolved == .fallback(reason: .invalidHeader))
     }
+
+    @Test func fallsBackWhenScenarioHeaderMissing() {
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: [],
+            overrides: [],
+            responseMap: [:],
+            requestPath: "/api/items",
+            method: .get,
+            scenarioIdHeaderRaw: nil,
+            kawarimiIdHeaderRaw: nil
+        )
+
+        #expect(resolved == .fallback(reason: .scenarioHeaderMissing))
+    }
+
+    @Test func fallsBackWhenScenarioIdHeaderInvalid() {
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: [],
+            overrides: [],
+            responseMap: [:],
+            requestPath: "/api/items",
+            method: .get,
+            scenarioIdHeaderRaw: "bad token!",
+            kawarimiIdHeaderRaw: nil
+        )
+
+        #expect(resolved == .fallback(reason: .invalidHeader))
+    }
+
+    @Test func fallsBackWhenScenarioNotFound() {
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: [],
+            overrides: [],
+            responseMap: [:],
+            requestPath: "/api/items",
+            method: .get,
+            scenarioIdHeaderRaw: "missing",
+            kawarimiIdHeaderRaw: nil
+        )
+
+        #expect(resolved == .fallback(reason: .scenarioNotFound))
+    }
+
+    @Test func fallsBackWhenCaseNotFound() {
+        let rowId = MockOverrideRowID.generate()
+        let scenarios = [
+            KawarimiScenario(
+                scenarioId: "login",
+                initial: "start",
+                cases: [
+                    .init(
+                        kawarimiId: "start",
+                        next: "locked",
+                        rowId: rowId,
+                        endpoint: .init(method: "POST", path: "/api/login")
+                    ),
+                ]
+            ),
+        ]
+
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: scenarios,
+            overrides: [],
+            responseMap: [:],
+            requestPath: "/api/login",
+            method: .post,
+            scenarioIdHeaderRaw: "login",
+            kawarimiIdHeaderRaw: "unknown"
+        )
+
+        #expect(resolved == .fallback(reason: .caseNotFound))
+    }
+
+    @Test func fallsBackWhenOverrideNotFound() {
+        let rowId = MockOverrideRowID.generate()
+        let scenarios = [
+            KawarimiScenario(
+                scenarioId: "login",
+                initial: "start",
+                cases: [
+                    .init(
+                        kawarimiId: "start",
+                        next: nil,
+                        rowId: rowId,
+                        endpoint: .init(method: "POST", path: "/api/login")
+                    ),
+                ]
+            ),
+        ]
+
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: scenarios,
+            overrides: [],
+            responseMap: [:],
+            requestPath: "/api/login",
+            method: .post,
+            scenarioIdHeaderRaw: "login",
+            kawarimiIdHeaderRaw: "start"
+        )
+
+        #expect(resolved == .fallback(reason: .overrideNotFound))
+    }
 }
