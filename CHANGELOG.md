@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Example**: committed **`kawarimi-scenarios.json`** two-step **`GET /api/greet`** sample and matching **`kawarimi.json.example`** fixed **`rowId`** overrides ([#176](https://github.com/novr/Kawarimi/issues/176)).
 - **Henge**: detail column shows persisted override **`rowId`** with **Copy** for hand-editing `kawarimi-scenarios.json` ([#178](https://github.com/novr/Kawarimi/issues/178)).
 
 ### Changed

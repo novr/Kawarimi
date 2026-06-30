@@ -97,7 +97,15 @@ handlerStubPolicy: throw
 
 ## kawarimi-scenarios.json（サンプル）
 
-シナリオオーケストレーションの定義はオーバーライドとは別ファイルです。**`KawarimiConfigStore`** は init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`** の順で読み込みます。空の初期ファイル:
+シナリオオーケストレーションの定義はオーバーライドとは別ファイルです。**`KawarimiConfigStore`** は init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`** の順で読み込みます。
+
+**`DemoPackage/`** には、2 ステップの **`GET /api/greet`** デモ用に **`rowId` が揃った** `kawarimi-scenarios.json` と **`kawarimi.json.example`** がコミット済みです（`success` → `formal`）。**`kawarimi.json`** 本体は gitignore（ローカル実行時の状態）。下の curl デモの前に、例の overrides をコピーしてください:
+
+```bash
+cp kawarimi.json.example kawarimi.json
+```
+
+空の初期ファイル例:
 
 ```json
 {
@@ -105,25 +113,25 @@ handlerStubPolicy: throw
 }
 ```
 
-各 case の **`rowId`** は `kawarimi.json` の `MockOverride.rowId` と一致させます（Henge または `POST …/__kawarimi/configure` で作成）。2 ステップの例:
+各 case の **`rowId`** は `kawarimi.json` の `MockOverride.rowId` と一致させます（Henge または `POST …/__kawarimi/configure` で作成）。2 ステップの例（**`DemoPackage`** のコミット内容と同型）:
 
 ```json
 {
   "scenarios": [
     {
-      "scenarioId": "login",
-      "initial": "start",
+      "scenarioId": "greet",
+      "initial": "success",
       "cases": [
         {
-          "kawarimiId": "start",
-          "next": "locked",
+          "kawarimiId": "success",
+          "next": "formal",
           "rowId": "00000000-0000-0000-0000-000000000001",
-          "endpoint": { "method": "POST", "path": "/api/login" }
+          "endpoint": { "method": "GET", "path": "/api/greet" }
         },
         {
-          "kawarimiId": "locked",
+          "kawarimiId": "formal",
           "rowId": "00000000-0000-0000-0000-000000000002",
-          "endpoint": { "method": "POST", "path": "/api/login" }
+          "endpoint": { "method": "GET", "path": "/api/greet" }
         }
       ]
     }
@@ -131,19 +139,50 @@ handlerStubPolicy: throw
 }
 ```
 
-初回 API 呼び出し（シナリオ ID のみ）:
+対応する override 行（2 ステップ目は無効プリセット — シナリオ解決は **`rowId`** で引くため利用可）:
 
-```bash
-curl -X POST http://localhost:8080/api/login \
-  -H "X-Kawarimi-Scenario-Id: login"
+```json
+{
+  "overrides": [
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "exampleId": "success",
+      "rowId": "00000000-0000-0000-0000-000000000001",
+      "isEnabled": true,
+      "body": "{\"message\":\"Hello from API\"}",
+      "contentType": "application/json"
+    },
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "exampleId": "formal",
+      "rowId": "00000000-0000-0000-0000-000000000002",
+      "isEnabled": false,
+      "body": "{\"message\":\"Good day from API\"}",
+      "contentType": "application/json"
+    }
+  ]
+}
 ```
 
-継続（クライアント middleware が `X-Kawarimi-Id` を注入。手動 curl の例）:
+**`DemoPackage/`** で **DemoServer** を起動（`swift run DemoServer`）したうえで:
+
+初回 API 呼び出し（シナリオ ID のみ — **`Hello from API`** と **`X-Next-Kawarimi-Id: formal`**）:
 
 ```bash
-curl -X POST http://localhost:8080/api/login \
-  -H "X-Kawarimi-Scenario-Id: login" \
-  -H "X-Kawarimi-Id: locked"
+curl -s -D - http://127.0.0.1:8080/api/greet \
+  -H "X-Kawarimi-Scenario-Id: greet"
+```
+
+継続（クライアント middleware が `X-Kawarimi-Id` を注入。手動 curl — **`Good day from API`**、next ヘッダーなし）:
+
+```bash
+curl -s -D - http://127.0.0.1:8080/api/greet \
+  -H "X-Kawarimi-Scenario-Id: greet" \
+  -H "X-Kawarimi-Id: formal"
 ```
 
 ヘッダー規約と **`KawarimiClientOrchestrationMiddleware`**（**KawarimiClient**）: [henge.md](../docs/ja/henge.md)。

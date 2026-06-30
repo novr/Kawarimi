@@ -1,3 +1,21 @@
 {
-  "scenarios": []
+  "scenarios": [
+    {
+      "scenarioId": "greet",
+      "initial": "success",
+      "cases": [
+        {
+          "kawarimiId": "success",
+          "next": "formal",
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "GET", "path": "/api/greet" }
+        },
+        {
+          "kawarimiId": "formal",
+          "rowId": "00000000-0000-0000-0000-000000000002",
+          "endpoint": { "method": "GET", "path": "/api/greet" }
+        }
+      ]
+    }
+  ]
 }
