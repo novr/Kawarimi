@@ -14,6 +14,7 @@ struct DetailColumnHeaderModel {
     let selectedResponseDocumentation: ResponseDocumentation?
     let canRemoveCurrentMockRow: Bool
     let disabledOverridesCount: Int
+    let persistedRowId: String?
 }
 
 struct DetailColumnHeaderActions {

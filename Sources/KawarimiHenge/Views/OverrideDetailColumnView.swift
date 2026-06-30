@@ -115,6 +115,17 @@ struct OverrideDetailColumnView: View {
             )
     }
 
+    private var persistedRowIdForSelection: String? {
+        RowIdPresentation.displayRowId(
+            mock: mock,
+            rowKey: endpointItem.rowKey,
+            endpoint: endpoint,
+            operationId: endpoint.operationId,
+            pathPrefix: apiPathPrefix,
+            in: overrides
+        )
+    }
+
     private var disabledOverridesCountForOperation: Int {
         OverrideListQueries.disabledOverridesForOperation(
             rowKey: endpointItem.rowKey,
@@ -201,7 +212,8 @@ struct OverrideDetailColumnView: View {
             showResponseBodyHeading: shouldShowResponseBodySection,
             selectedResponseDocumentation: selectedResponseDocumentation,
             canRemoveCurrentMockRow: canRemoveCurrentMockRow,
-            disabledOverridesCount: disabledOverridesCountForOperation
+            disabledOverridesCount: disabledOverridesCountForOperation,
+            persistedRowId: persistedRowIdForSelection
         )
     }
 
