@@ -97,7 +97,8 @@ private struct DetailColumnChromePreviewHost: View {
                         showResponseBodyHeading: true,
                         selectedResponseDocumentation: nil,
                         canRemoveCurrentMockRow: false,
-                        disabledOverridesCount: 0
+                        disabledOverridesCount: 0,
+                        persistedRowId: nil
                     ),
                     actions: DetailColumnHeaderActions(
                         onApplyChip: { _ in },
@@ -181,7 +182,8 @@ private struct DetailColumnHeaderPreviewHost: View {
                 showResponseBodyHeading: true,
                 selectedResponseDocumentation: nil,
                 canRemoveCurrentMockRow: false,
-                disabledOverridesCount: 0
+                disabledOverridesCount: 0,
+                persistedRowId: nil
             ),
             actions: DetailColumnHeaderActions(
                 onApplyChip: { _ in },

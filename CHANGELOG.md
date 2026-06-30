@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Henge**: detail column shows persisted override **`rowId`** with **Copy** for hand-editing `kawarimi-scenarios.json` ([#178](https://github.com/novr/Kawarimi/issues/178)).
+
 ### Changed
 
 - **CI / structure:** merge internal **`KawarimiPluginSupport`** into **`KawarimiJutsu`** (`KawarimiGeneratorOutputOptions`, **`KawarimiGeneratorConfigLineParser`**); split tests into **`KawarimiJutsuTests`** and **`KawarimiHengeCoreTests`** (Henge logic was under **`Tests/KawarimiCoreTests/Henge/`**).

@@ -19,6 +19,7 @@ struct DetailColumnHeaderView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: model.tightVertical ? 12 : 20) {
             operationIdSection
+            rowIdSection
             tagsDocumentationSection
             parametersDocumentationSection
             securityDocumentationSection
@@ -54,6 +55,43 @@ struct DetailColumnHeaderView: View {
                 .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
                 .allowsHitTesting(false)
         )
+    }
+
+    @ViewBuilder
+    private var rowIdSection: some View {
+        if let rowId = model.persistedRowId {
+            VStack(alignment: .leading, spacing: model.tightVertical ? 6 : 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("ROW ID")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .tracking(0.6)
+                    Spacer()
+                    Button {
+                        copyRowIdToPasteboard(rowId)
+                    } label: {
+                        Label("Copy", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .font(.caption)
+                }
+                Text(rowId)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.primary)
+                    .textSelection(.enabled)
+            }
+            .padding(model.tightVertical ? 10 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ExplorerPalette.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
+        }
     }
 
     @ViewBuilder
@@ -429,6 +467,15 @@ struct DetailColumnHeaderView: View {
 
     private var specChipIsServerEffective: Bool {
         model.primaryOverride == nil
+    }
+
+    private func copyRowIdToPasteboard(_ rowId: String) {
+        #if canImport(UIKit) && !os(watchOS)
+        UIPasteboard.general.string = rowId
+        #elseif canImport(AppKit) && !os(iOS)
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(rowId, forType: .string)
+        #endif
     }
 
     private func copyChipExampleIdToPasteboard(_ opt: ResponseChip) {

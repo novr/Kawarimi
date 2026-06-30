@@ -360,6 +360,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 | 行を初めて開く（退避なし） | `OverrideExplorerDraftBootstrap.makeFreshDetail` | プレースホルダ → プライマリ上書き → `resyncMockFromServer`。 |
 | 詳細の編集対象 | `OverrideDetailDraft` 内の `MockOverride` 1 件 | 選択中の論理行のスナップショット。 |
 | サーバー / 設定の 1 行 | `kawarimi.json` の `MockOverride` | 同一視は **`rowId` 優先**（UUID）。legacy fallback は **入力 `rowId` が nil のときのみ** `path + method + statusCode + 正規化後 exampleId`。 |
+| 保存済み row ID（詳細ヘッダ） | `RowIdPresentation.displayRowId` | 選択チップが **`rowId` 付きの保存行**と一致するとき表示。**Copy** で UUID をクリップボードへ（`kawarimi-scenarios.json` 編集用）。Spec のみ・未保存ドラフトでは非表示。 |
 | デフォルト / 無名の例 | `exampleId` が nil（空白正規化後も） | ルックアップは **`__default`**。 |
 
 **レスポンスチップ:** OpenAPI の**番号行**（ステータス＋名前付き例）は spec から常に表示。**追加チップ**は spec に無い**保存行**向け（カスタムステータス等）。本文なし無効の spec-follow ghost 行は追加チップから非表示（**`OverrideListQueries.isSpecFollowGhostRow`**）。**モックオフ**時の **`ResponseChips.chipIsSelected`** は **Save** と同じ **`draftRepresentsSpecOnlyRowForSave`**（本文空またはテンプレ一致）で **Spec** を光らせる。**`OverrideDetailDraft.pinnedNumberedResponseChip`** が立っていれば番号チップ優先（**再同期・Save 成功・Reset**、ストアが本文やモックを変えたとき — **`applyMockEdit`**、**整形（Format）** でクリア）。
