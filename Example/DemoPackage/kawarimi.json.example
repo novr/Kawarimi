@@ -1,0 +1,26 @@
+{
+  "overrides": [
+    {
+      "body": "{\"message\":\"Hello from API\"}",
+      "contentType": "application/json",
+      "exampleId": "success",
+      "isEnabled": true,
+      "method": "GET",
+      "name": "getGreeting",
+      "path": "/api/greet",
+      "rowId": "00000000-0000-0000-0000-000000000001",
+      "statusCode": 200
+    },
+    {
+      "body": "{\"message\":\"Good day from API\"}",
+      "contentType": "application/json",
+      "exampleId": "formal",
+      "isEnabled": false,
+      "method": "GET",
+      "name": "getGreeting",
+      "path": "/api/greet",
+      "rowId": "00000000-0000-0000-0000-000000000002",
+      "statusCode": 200
+    }
+  ]
+}

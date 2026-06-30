@@ -116,7 +116,15 @@ Override merge / tie-break rules and empty-body normalization: [henge.md](../doc
 
 ## kawarimi-scenarios.json (sample)
 
-Scenario orchestration definitions are stored separately from overrides. **`KawarimiConfigStore`** loads **`kawarimi-scenarios.json`** using init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → file next to `kawarimi.json`. Empty starter:
+Scenario orchestration definitions are stored separately from overrides. **`KawarimiConfigStore`** loads **`kawarimi-scenarios.json`** using init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → file next to `kawarimi.json`.
+
+**`DemoPackage/`** ships committed **`kawarimi-scenarios.json`** and **`kawarimi.json.example`** with matching fixed **`rowId`** values for a two-step **`GET /api/greet`** demo (`success` → `formal`). **`kawarimi.json`** itself is gitignored (local runtime state). Before the curl demo below, copy the example overrides:
+
+```bash
+cp kawarimi.json.example kawarimi.json
+```
+
+Empty starter:
 
 ```json
 {
@@ -124,25 +132,25 @@ Scenario orchestration definitions are stored separately from overrides. **`Kawa
 }
 ```
 
-Each case references a **`rowId`** that must exist on a `MockOverride` in `kawarimi.json` (configure via Henge or `POST …/__kawarimi/configure`). Example two-step flow:
+Each case references a **`rowId`** that must exist on a `MockOverride` in `kawarimi.json` (configure via Henge or `POST …/__kawarimi/configure`). Example two-step flow (same shape as the committed **`DemoPackage`** files):
 
 ```json
 {
   "scenarios": [
     {
-      "scenarioId": "login",
-      "initial": "start",
+      "scenarioId": "greet",
+      "initial": "success",
       "cases": [
         {
-          "kawarimiId": "start",
-          "next": "locked",
+          "kawarimiId": "success",
+          "next": "formal",
           "rowId": "00000000-0000-0000-0000-000000000001",
-          "endpoint": { "method": "POST", "path": "/api/login" }
+          "endpoint": { "method": "GET", "path": "/api/greet" }
         },
         {
-          "kawarimiId": "locked",
+          "kawarimiId": "formal",
           "rowId": "00000000-0000-0000-0000-000000000002",
-          "endpoint": { "method": "POST", "path": "/api/login" }
+          "endpoint": { "method": "GET", "path": "/api/greet" }
         }
       ]
     }
@@ -150,19 +158,50 @@ Each case references a **`rowId`** that must exist on a `MockOverride` in `kawar
 }
 ```
 
-First API call (scenario only):
+Matching override rows (step 2 is a disabled preset — scenario resolution still uses it by **`rowId`**):
 
-```bash
-curl -X POST http://localhost:8080/api/login \
-  -H "X-Kawarimi-Scenario-Id: login"
+```json
+{
+  "overrides": [
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "exampleId": "success",
+      "rowId": "00000000-0000-0000-0000-000000000001",
+      "isEnabled": true,
+      "body": "{\"message\":\"Hello from API\"}",
+      "contentType": "application/json"
+    },
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "exampleId": "formal",
+      "rowId": "00000000-0000-0000-0000-000000000002",
+      "isEnabled": false,
+      "body": "{\"message\":\"Good day from API\"}",
+      "contentType": "application/json"
+    }
+  ]
+}
 ```
 
-Follow-up (client middleware injects `X-Kawarimi-Id` automatically; manual curl):
+From **`DemoPackage/`**, start **DemoServer** (`swift run DemoServer`), then:
+
+First API call (scenario only — returns **`Hello from API`** and **`X-Next-Kawarimi-Id: formal`**):
 
 ```bash
-curl -X POST http://localhost:8080/api/login \
-  -H "X-Kawarimi-Scenario-Id: login" \
-  -H "X-Kawarimi-Id: locked"
+curl -s -D - http://127.0.0.1:8080/api/greet \
+  -H "X-Kawarimi-Scenario-Id: greet"
+```
+
+Follow-up (client middleware injects `X-Kawarimi-Id` automatically; manual curl — returns **`Good day from API`**, no next header):
+
+```bash
+curl -s -D - http://127.0.0.1:8080/api/greet \
+  -H "X-Kawarimi-Scenario-Id: greet" \
+  -H "X-Kawarimi-Id: formal"
 ```
 
 Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [henge.md](../docs/henge.md).
