@@ -480,6 +480,8 @@ final class DemoServerE2ETests {
             try DemoServerE2EJSON.decodeGreeting(from: secondData).message
                 == DemoServerE2EScenarioSupport.step2Message
         )
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
     }
 
     @Test func scenarioUnknownIdFallsBackToPrimaryOverride() async throws {

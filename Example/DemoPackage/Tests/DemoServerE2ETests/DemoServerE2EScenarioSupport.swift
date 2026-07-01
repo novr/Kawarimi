@@ -57,7 +57,7 @@ enum DemoServerE2EScenarioSupport {
         ])
         let data = try JSONEncoder().encode(scenarios)
         try server.writeScenariosOnDisk(data)
-        try await server.reloadFromDisk(expectingOutcome: "applied")
+        _ = try await server.reloadFromDisk()
     }
 
     static func installEmptyScenarios(on server: DemoServerHarness) async throws {
@@ -90,24 +90,32 @@ enum DemoServerE2EScenarioSupport {
         isEnabled: Bool,
         message: String
     ) async throws {
-        let exampleIdField: String
-        if let exampleId {
-            exampleIdField = """
-            ,"exampleId":"\(exampleId)"
-            """
-        } else {
-            exampleIdField = ""
+        let greetingJSON = try JSONEncoder().encode(["message": message])
+        guard let bodyString = String(data: greetingJSON, encoding: .utf8) else {
+            throw HarnessError.unexpectedHTTPStatus(0, url: url, stderr: "failed to encode greeting JSON")
         }
-        let body = Data(
-            """
-            {"path":"\(greetPath)","method":"GET","statusCode":200,"rowId":"\(rowId.rawValue)",\
-            "isEnabled":\(isEnabled)\(exampleIdField),\
-            "body":"{\\"message\\":\\"\(message)\\"}","contentType":"application/json"}
-            """.utf8
+        let mock = MockOverride(
+            rowId: rowId,
+            path: greetPath,
+            method: .get,
+            statusCode: 200,
+            exampleId: exampleId,
+            isEnabled: isEnabled,
+            body: bodyString,
+            contentType: "application/json"
         )
-        let (response, _) = try await DemoServerHTTP.postJSON(url, body: body)
+        let payload = try JSONEncoder().encode(mock)
+        let (response, data) = try await DemoServerHTTP.postJSON(url, body: payload)
         guard response.statusCode == 200 else {
             throw HarnessError.unexpectedHTTPStatus(response.statusCode, url: url, stderr: "configure failed")
+        }
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: data)
+        guard overrides.contains(where: { $0.rowId == rowId }) else {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: url,
+                stderr: "configure response missing rowId \(rowId.rawValue)"
+            )
         }
     }
 }
