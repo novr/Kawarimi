@@ -449,5 +449,62 @@ final class DemoServerE2ETests {
         #expect(try DemoServerE2EJSON.decodeGreeting(from: greetData).message == "Delayed")
         #expect(elapsed >= .milliseconds(250))
     }
+
+    @Test func scenarioGreetTwoStepTimeline() async throws {
+        try await DemoServerE2EScenarioSupport.installGreetTwoStepScenario(on: server)
+
+        let greetURL = server.baseURL.appending(path: "greet")
+        let (firstResponse, firstData) = try await DemoServerHTTP.get(
+            greetURL,
+            headers: [KawarimiScenarioHeaders.scenarioId: DemoServerE2EScenarioSupport.scenarioId]
+        )
+        #expect(firstResponse.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(firstResponse))
+        #expect(firstResponse.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == "formal")
+        #expect(
+            try DemoServerE2EJSON.decodeGreeting(from: firstData).message
+                == DemoServerE2EScenarioSupport.step1Message
+        )
+
+        let (secondResponse, secondData) = try await DemoServerHTTP.get(
+            greetURL,
+            headers: [
+                KawarimiScenarioHeaders.scenarioId: DemoServerE2EScenarioSupport.scenarioId,
+                KawarimiScenarioHeaders.kawarimiId: "formal",
+            ]
+        )
+        #expect(secondResponse.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(secondResponse))
+        #expect(secondResponse.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == nil)
+        #expect(
+            try DemoServerE2EJSON.decodeGreeting(from: secondData).message
+                == DemoServerE2EScenarioSupport.step2Message
+        )
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
+    @Test func scenarioUnknownIdFallsBackToPrimaryOverride() async throws {
+        try await server.resetOverrides()
+        try await DemoServerE2EScenarioSupport.configureGreetOverride(
+            on: server,
+            message: DemoServerE2EScenarioSupport.fallbackMessage,
+            isEnabled: true
+        )
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+
+        let greetURL = server.baseURL.appending(path: "greet")
+        let (response, data) = try await DemoServerHTTP.get(
+            greetURL,
+            headers: [KawarimiScenarioHeaders.scenarioId: "does-not-exist"]
+        )
+        #expect(response.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(response))
+        #expect(response.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == nil)
+        #expect(
+            try DemoServerE2EJSON.decodeGreeting(from: data).message
+                == DemoServerE2EScenarioSupport.fallbackMessage
+        )
+    }
 }
 #endif

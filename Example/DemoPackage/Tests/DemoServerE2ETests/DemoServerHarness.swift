@@ -12,6 +12,10 @@ struct DemoServerHarness {
 
     let configFileURL: URL
 
+    var scenariosFileURL: URL {
+        configDir.appendingPathComponent(KawarimiScenarioDefaults.fileName)
+    }
+
     private let process: Process
     private let configDir: URL
     private let listenReadyFile: URL
@@ -60,6 +64,40 @@ struct DemoServerHarness {
 
     func writeConfigOnDisk(_ data: Data) throws {
         try data.write(to: configFileURL, options: .atomic)
+    }
+
+    func writeScenariosOnDisk(_ data: Data) throws {
+        try data.write(to: scenariosFileURL, options: .atomic)
+    }
+
+    @discardableResult
+    func reloadFromDisk(expectingOutcome: String? = nil) async throws -> String {
+        let reloadURL = kawarimiBaseURL.appending(path: KawarimiAdminRoute.reload.relativePath)
+        let (response, data) = try await DemoServerHTTP.postEmpty(reloadURL)
+        guard response.statusCode == KawarimiAdminRoute.reload.successStatusCode else {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: reloadURL,
+                stderr: stderrMonitor.snapshot()
+            )
+        }
+        guard DemoServerE2EHTTPChecks.isJSONContentType(response) else {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: reloadURL,
+                stderr: "reload response is not JSON"
+            )
+        }
+        _ = try DemoServerE2EJSON.decodeOverrides(from: data)
+        let outcome = response.value(forHTTPHeaderField: KawarimiAdminHeaders.reloadOutcome) ?? ""
+        if let expectingOutcome, outcome != expectingOutcome {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: reloadURL,
+                stderr: "expected X-Kawarimi-Reload \(expectingOutcome), got \(outcome)"
+            )
+        }
+        return outcome
     }
 
     func resetOverrides() async throws {
