@@ -108,7 +108,9 @@ For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **Kawarim
 
 ### Mock / scenario JSON (agents)
 
-Authoring rules, validation, and install: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Runtime behavior: [henge.md](henge.md).
+Authoring and validation: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Runtime: [henge.md](henge.md).
+
+Install with [skills CLI](https://github.com/vercel-labs/skills): `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y` (`-g` for user-wide default). List: `npx skills add novr/Kawarimi --list`.
 
 ### Admin route segments and spec wire validation
 

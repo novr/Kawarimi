@@ -48,11 +48,3 @@ Fix override `method`/`path`/`statusCode` first — scenario `rowId` links are u
 ## Flow design from requirements
 
 Out of scope here. Draft with an external Scenario Maker, then format and validate here.
-
-## Install
-
-```bash
-npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y
-```
-
-(`-g` for a personal default across repos.)

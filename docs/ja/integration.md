@@ -108,7 +108,9 @@ targets: [
 
 ### mock / シナリオ JSON（エージェント向け）
 
-著者向けルール・検証・インストール: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。ランタイム: [henge.md](henge.md)。
+著者向けルール・検証: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。ランタイム: [henge.md](henge.md)。
+
+[skills CLI](https://github.com/vercel-labs/skills) でインストール: `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y`（常時利用は `-g`）。一覧: `npx skills add novr/Kawarimi --list`。
 
 ### 管理ルート segment と spec wire 検証
 
