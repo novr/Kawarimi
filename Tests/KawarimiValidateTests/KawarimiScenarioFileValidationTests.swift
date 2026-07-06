@@ -1,10 +1,9 @@
 import Foundation
+import KawarimiCore
 import Testing
 
-@testable import KawarimiCore
-
 @Suite("KawarimiScenarioFileValidation")
-struct KawarimiScenarioFileValidationCLITests {
+struct KawarimiScenarioFileValidationTests {
     @Test func succeedsForValidFixturePair() throws {
         let repoRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

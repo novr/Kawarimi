@@ -19,6 +19,7 @@ Cross-check of decoded `overrides[]` and `scenarios[]`:
 
 - Missing **scenarios file** → treated as empty `scenarios: []` (exit 0 if overrides OK).
 - Missing **config file** or invalid JSON → exit 2 (fatal).
+- **Unused overrides** (no scenario case references a `rowId`) → not reported.
 
 ## Not guaranteed
 
@@ -29,6 +30,7 @@ Cross-check of decoded `overrides[]` and `scenarios[]`:
 | `exampleId` / `responseMap` correctness | Runtime resolution |
 | E2E response bodies | Needs running server |
 | `isEnabled` policy | Henge / ops choice |
+| Unused / orphan override rows | Scenarios → overrides check only; extra overrides are allowed |
 | Scenario graph design (terminals, reachability) | Maker / review |
 | Runtime fallback when warnings exist | Server still serves via standard override rules |
 
