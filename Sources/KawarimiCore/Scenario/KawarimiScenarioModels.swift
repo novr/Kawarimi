@@ -23,6 +23,23 @@ public enum KawarimiScenarioDefaults {
         let baseDir = (configAbsolutePath as NSString).deletingLastPathComponent
         return (baseDir as NSString).appendingPathComponent(fileName)
     }
+
+    /// `true` when the path came from CLI `--scenarios` or ``environmentKey`` (not the default beside config).
+    public static func pathIsExplicit(
+        cliExplicit: String? = nil,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        if let cliExplicit {
+            let trimmed = cliExplicit.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                return true
+            }
+        }
+        if let env = environment[environmentKey]?.trimmingCharacters(in: .whitespacesAndNewlines), !env.isEmpty {
+            return true
+        }
+        return false
+    }
 }
 
 public struct KawarimiScenariosFile: Codable, Sendable, Equatable {

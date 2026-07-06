@@ -76,7 +76,7 @@ struct KawarimiScenarioFileValidationTests {
         #expect(message.contains("not found"))
     }
 
-    @Test func succeedsWhenScenariosFileMissing() throws {
+    @Test func succeedsWhenDefaultScenariosFileMissing() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("kawarimi-validate-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -88,8 +88,29 @@ struct KawarimiScenarioFileValidationTests {
 
         let status = KawarimiScenarioFileValidation.validate(
             configPath: configPath.path,
-            scenariosPath: dir.appendingPathComponent("missing-scenarios.json").path
+            scenariosPath: dir.appendingPathComponent("missing-scenarios.json").path,
+            requireScenariosFile: false
         )
         #expect(status == .success)
+    }
+
+    @Test func fatalWhenExplicitScenariosFileMissing() throws {
+        let path = "/tmp/kawarimi-validate-explicit-missing-\(UUID().uuidString).json"
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        try #"{"overrides": []}"#.write(to: configPath, atomically: true, encoding: .utf8)
+
+        let status = KawarimiScenarioFileValidation.validate(
+            configPath: configPath.path,
+            scenariosPath: path,
+            requireScenariosFile: true
+        )
+        guard case .fatal(let message) = status else {
+            Issue.record("Expected fatal, got \(status)")
+            return
+        }
+        #expect(message.contains("Scenarios file not found"))
     }
 }

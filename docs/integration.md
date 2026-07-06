@@ -72,7 +72,7 @@ Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 SwiftPM products:
 
 - **Kawarimi** — OpenAPI codegen CLI (Build Tool Plugin invokes this).
-- **KawarimiValidate** — validate `kawarimi.json` + `kawarimi-scenarios.json` structural consistency.
+- **KawarimiValidate** — structural mock/scenario JSON checks; see [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …).
 - **KawarimiJutsu** — generator API (CLI/tests; OpenAPIKit).
 - **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
@@ -106,44 +106,9 @@ targets: [
 
 For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
 
-### User Skills (mock / scenario JSON)
+### Mock / scenario JSON (agents)
 
-Hand-written mock JSON drifts from runtime contracts. Agents should follow one SSOT: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
-
-Install so every checkout gets the same rules without copying files: [skills CLI](https://github.com/vercel-labs/skills) — `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y` (`-g` for user-wide default). List: `npx skills add novr/Kawarimi --list`.
-
-Related: [#158](https://github.com/novr/Kawarimi/issues/158) (first integration), [#159](https://github.com/novr/Kawarimi/issues/159) (OpenAPI change → overrides), [#182](https://github.com/novr/Kawarimi/issues/182) (format + validate).
-
-### Scenario authoring (delegated)
-
-Kawarimi focuses on **runtime and codegen**, not conversational flow design. Draft elsewhere ([#148 MCP](https://github.com/novr/Kawarimi/issues/148), external Maker Skills), then format and gate with this skill and **`KawarimiValidate`** so commits do not rely on warning-only runtime behavior.
-
-```mermaid
-flowchart LR
-  Maker[External Scenario Maker]
-  Skill[kawarimi-user-mock-and-scenario-format]
-  Validate[KawarimiValidate]
-  JSON[kawarimi.json + scenarios]
-  Maker --> Skill
-  Skill --> JSON
-  JSON --> Validate
-```
-
-### Validate mock JSON (`KawarimiValidate`)
-
-Run before merge because the server logs structural issues but continues with fallback — validate fails CI instead.
-
-```bash
-swift run KawarimiValidate \
-  --config path/to/kawarimi.json \
-  --scenarios path/to/kawarimi-scenarios.json
-```
-
-- Omit `--config` → `KAWARIMI_CONFIG` → `./kawarimi.json`
-- Omit `--scenarios` → `KAWARIMI_SCENARIOS_CONFIG` → `kawarimi-scenarios.json` beside config
-- Exit `0` — OK; `1` — fix warnings before relying on scenario steps; `2` — invalid or missing config
-
-What is and is not checked: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md). Runtime behavior: [henge.md](henge.md).
+Authoring rules, validation, and install: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Runtime behavior: [henge.md](henge.md).
 
 ### Admin route segments and spec wire validation
 

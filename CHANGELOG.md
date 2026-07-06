@@ -13,19 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiValidate** — fail CI on structural mock/scenario JSON issues that runtime only warns about ([#182](https://github.com/novr/Kawarimi/issues/182)).
 - **skills/kawarimi-user-mock-and-scenario-format** — single agent SSOT so mock JSON stays aligned with runtime contracts ([#182](https://github.com/novr/Kawarimi/issues/182)).
 - **Example**: committed **`kawarimi-scenarios.json`** two-step **`GET /api/greet`** sample and matching **`kawarimi.json.example`** fixed **`rowId`** overrides ([#176](https://github.com/novr/Kawarimi/issues/176)).
-- **Example**: one-step **`POST /api/items` → 400** scenario fixture (`createItem_validation`) for format skill examples.
+- **Example**: one-step **`POST /api/items` → 400** scenario fixture (`createItem_validation`) and E2E (`scenarioCreateItemValidationOneStepError`).
 - **Example**: DemoServer E2E tests for scenario orchestration header timelines ([#177](https://github.com/novr/Kawarimi/issues/177)), including **`X-Kawarimi-Id`** omission restarting at **`initial`** after a terminal step.
 - **Example**: **`KawarimiClientOrchestrationMiddleware`** integration E2E against **DemoServer** (`clientScenarioGreetTwoStepTimeline` in **`DemoServerE2ETests`**); Swift client snippet in **Example/README**.
 - **Henge**: detail column shows persisted override **`rowId`** with **Copy** for hand-editing `kawarimi-scenarios.json` ([#178](https://github.com/novr/Kawarimi/issues/178)).
 
 ### Changed
 
+- **KawarimiValidate**: missing scenarios file is fatal when `--scenarios` or `KAWARIMI_SCENARIOS_CONFIG` is set; default path beside config may still be absent (overrides-only).
 - **CI / structure:** merge internal **`KawarimiPluginSupport`** into **`KawarimiJutsu`** (`KawarimiGeneratorOutputOptions`, **`KawarimiGeneratorConfigLineParser`**); split tests into **`KawarimiJutsuTests`** and **`KawarimiHengeCoreTests`** (Henge logic was under **`Tests/KawarimiCoreTests/Henge/`**).
 
 ### Docs
 
-- **henge.md** / **ja/henge.md**: authoring pointers moved to Skills (runtime docs unchanged); validate recommended because load only warns.
-- **integration.md** / **ja/integration.md**: Skills install for consistent agent rules; **`KawarimiValidate`** as pre-merge gate.
+- **skills/kawarimi-user-mock-and-scenario-format**: authoring SSOT (validate prerequisites, `rowId` rules, install); integration/henge link here instead of duplicating content.
 - **henge.md** / **ja/henge.md**: Henge automated tests now **`KawarimiHengeCoreTests`** (`Tests/KawarimiHengeCoreTests/`).
 
 ## [3.2.0] - 2026-06-26

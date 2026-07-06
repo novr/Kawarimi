@@ -18,7 +18,11 @@ public enum KawarimiScenarioFileValidation {
         }
     }
 
-    public static func validate(configPath: String, scenariosPath: String) -> Status {
+    public static func validate(
+        configPath: String,
+        scenariosPath: String,
+        requireScenariosFile: Bool = false
+    ) -> Status {
         guard FileManager.default.fileExists(atPath: configPath) else {
             return .fatal("Config file not found: \(configPath)")
         }
@@ -46,6 +50,8 @@ public enum KawarimiScenarioFileValidation {
             } catch {
                 return .fatal("Invalid kawarimi-scenarios.json at \(scenariosPath): \(error.localizedDescription)")
             }
+        } else if requireScenariosFile {
+            return .fatal("Scenarios file not found: \(scenariosPath)")
         } else {
             scenarios = []
         }

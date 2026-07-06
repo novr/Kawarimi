@@ -185,7 +185,7 @@ API 対応:
 
 `POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
-**オーバーライドとシナリオ JSON の作成**（書式・`rowId` の結合 — ランタイム挙動は henge）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。load/reload は warning のみのため、コミット前は **`KawarimiValidate`** — [integration.md](integration.md)。
+**オーバーライドとシナリオ JSON の作成**（書式・`rowId` の結合 — ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。コミット前の **`KawarimiValidate`** も同 Skill を参照。
 
 #### HTTP ヘッダー（`KawarimiScenarioHeaders`）
 

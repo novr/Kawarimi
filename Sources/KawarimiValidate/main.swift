@@ -21,10 +21,12 @@ struct KawarimiValidateCommand: ParsableCommand {
             explicit: scenarios,
             configAbsolutePath: configPath
         )
+        let requireScenariosFile = KawarimiScenarioDefaults.pathIsExplicit(cliExplicit: scenarios)
 
         let status = KawarimiScenarioFileValidation.validate(
             configPath: configPath,
-            scenariosPath: scenariosPath
+            scenariosPath: scenariosPath,
+            requireScenariosFile: requireScenariosFile
         )
 
         switch status {

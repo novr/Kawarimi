@@ -2,6 +2,8 @@
 
 Runtime **logs** structural problems and keeps serving. Validator **fails** so broken joins do not reach commit.
 
+**Run:** see [SKILL.md](SKILL.md) — needs Kawarimi in `Package.swift` `dependencies`, or a Kawarimi clone with absolute JSON paths.
+
 ## Checked (exit `1`)
 
 Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI.
@@ -17,7 +19,8 @@ Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI.
 
 | Edge case | Why handled this way |
 | --- | --- |
-| Scenarios file missing | Overrides-only edits should still pass |
+| Default scenarios path missing (no `--scenarios`, no `KAWARIMI_SCENARIOS_CONFIG`) | Overrides-only edits should still pass |
+| `--scenarios` or `KAWARIMI_SCENARIOS_CONFIG` points at missing file | Typo must not masquerade as empty scenarios → exit `2` |
 | Config missing / bad JSON | Nothing to cross-check reliably → exit `2` |
 | Unused overrides | Allowed — presets need not appear in scenarios |
 

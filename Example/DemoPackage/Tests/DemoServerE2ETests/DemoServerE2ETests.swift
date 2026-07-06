@@ -570,6 +570,42 @@ final class DemoServerE2ETests {
         try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
     }
 
+    @Test func scenarioCreateItemValidationOneStepError() async throws {
+        try await DemoServerE2EScenarioSupport.installCreateItemValidationScenario(on: server)
+
+        let itemsURL = server.baseURL.appending(path: "items")
+        let createBody = Data(#"{"name":"Widget"}"#.utf8)
+        let scenarioHeader = [
+            KawarimiScenarioHeaders.scenarioId: DemoServerE2EScenarioSupport.createItemScenarioId,
+        ]
+
+        let (errorResponse, errorData) = try await DemoServerHTTP.post(
+            itemsURL,
+            body: createBody,
+            contentType: "application/json",
+            headers: scenarioHeader
+        )
+        #expect(errorResponse.statusCode == 400)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(errorResponse))
+        #expect(errorResponse.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == nil)
+        let errorBody = try DemoServerE2EJSON.decodeError(from: errorData)
+        #expect(errorBody.code == DemoServerE2EScenarioSupport.validationErrorCode)
+        #expect(errorBody.message == DemoServerE2EScenarioSupport.validationErrorMessage)
+
+        let (reentryResponse, reentryData) = try await DemoServerHTTP.post(
+            itemsURL,
+            body: createBody,
+            contentType: "application/json",
+            headers: scenarioHeader
+        )
+        #expect(reentryResponse.statusCode == 400)
+        let reentryBody = try DemoServerE2EJSON.decodeError(from: reentryData)
+        #expect(reentryBody.code == DemoServerE2EScenarioSupport.validationErrorCode)
+        #expect(reentryBody.message == DemoServerE2EScenarioSupport.validationErrorMessage)
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
     @Test func scenarioUnknownIdFallsBackToPrimaryOverride() async throws {
         try await server.resetOverrides()
         try await DemoServerE2EScenarioSupport.configureGreetOverride(

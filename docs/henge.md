@@ -186,7 +186,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 `POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
-**Authoring** (shape rules, `rowId` joins — not runtime behavior): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). **`KawarimiValidate`** before commit because load/reload only warns — [integration.md](integration.md).
+**Authoring** (shape rules, `rowId` joins — not runtime behavior): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). **`KawarimiValidate`** before commit — same skill.
 
 #### HTTP headers (`KawarimiScenarioHeaders`)
 

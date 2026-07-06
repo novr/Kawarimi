@@ -16,7 +16,7 @@ Shape: `{ "overrides": [ … ] }`.
 | `method` | yes | Same reason — server matches path + method |
 | `statusCode` | yes | Picks response variant when several exist per operation |
 | `isEnabled` | yes | Default mock selection; `rowId` lookup ignores this for scenario steps |
-| `rowId` | recommended | Without it, scenario cases cannot join stably across edits |
+| `rowId` | recommended | Omit when the row is not used in any scenario; **required** for `cases[].rowId` joins |
 | `exampleId` | optional | Separates named OpenAPI examples on the same operation |
 | `name` | optional | `operationId` can match when path strings drift |
 | `body` | optional | Omit to use `KawarimiSpec.responseMap` at response time |

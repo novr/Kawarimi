@@ -1,4 +1,5 @@
 import Foundation
+import KawarimiCore
 import Testing
 
 @Suite("KawarimiValidate CLI")
@@ -90,6 +91,57 @@ struct KawarimiValidateCLITests {
         #expect(result.exitCode == 2)
         #expect(result.stderr.contains("Invalid kawarimi.json"))
     }
+
+    @Test func cliExitsTwoOnMissingExplicitScenariosFile() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-cli-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        try #"{"overrides": []}"#.write(to: configPath, atomically: true, encoding: .utf8)
+        let missingScenarios = dir.appendingPathComponent("no-such-scenarios.json").path
+
+        let result = try runCLI(
+            executable: executable,
+            arguments: ["--config", configPath.path, "--scenarios", missingScenarios],
+            packageRoot: packageRoot
+        )
+        #expect(result.exitCode == 2)
+        #expect(result.stderr.contains("Scenarios file not found"))
+    }
+
+    @Test func cliExitsTwoWhenScenariosEnvPointsAtMissingFile() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-cli-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        try #"{"overrides": []}"#.write(to: configPath, atomically: true, encoding: .utf8)
+        let missingScenarios = dir.appendingPathComponent("no-such-scenarios.json").path
+
+        let result = try runCLI(
+            executable: executable,
+            arguments: ["--config", configPath.path],
+            packageRoot: packageRoot,
+            environment: [KawarimiScenarioDefaults.environmentKey: missingScenarios]
+        )
+        #expect(result.exitCode == 2)
+        #expect(result.stderr.contains("Scenarios file not found"))
+    }
 }
 
 private struct CLIResult {
@@ -126,11 +178,23 @@ private func findKawarimiValidateExecutable(packageRoot: URL) -> URL? {
     return candidates.first { fm.fileExists(atPath: $0.path) }
 }
 
-private func runCLI(executable: URL, arguments: [String], packageRoot: URL) throws -> CLIResult {
+private func runCLI(
+    executable: URL,
+    arguments: [String],
+    packageRoot: URL,
+    environment: [String: String]? = nil
+) throws -> CLIResult {
     let process = Process()
     process.executableURL = executable
     process.arguments = arguments
     process.currentDirectoryURL = packageRoot
+    if let environment {
+        var env = ProcessInfo.processInfo.environment
+        for (key, value) in environment {
+            env[key] = value
+        }
+        process.environment = env
+    }
     let stdoutPipe = Pipe()
     let stderrPipe = Pipe()
     process.standardOutput = stdoutPipe

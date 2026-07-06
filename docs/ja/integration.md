@@ -72,7 +72,7 @@
 SwiftPM プロダクト:
 
 - **Kawarimi** — OpenAPI コード生成 CLI（Build Tool Plugin が起動）。
-- **KawarimiValidate** — `kawarimi.json` と `kawarimi-scenarios.json` の構造整合チェック。
+- **KawarimiValidate** — 構造的 mock/scenario JSON チェック — [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。
 - **KawarimiJutsu** — ジェネレータ API（CLI・テスト向け、OpenAPIKit 依存）。
 - **KawarimiHenge** — SwiftUI 管理 UI — [henge.md](henge.md)。
@@ -106,44 +106,9 @@ targets: [
 
 ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer**、生成 OpenAPI クライアントの複数ステップシナリオヘッダーには **KawarimiClient** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の **`kawarimi.json`** と **`kawarimi-scenarios.json`** の保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。シナリオファイルのパスは **`KAWARIMI_SCENARIOS_CONFIG`**（または init `scenariosPath:`）で上書きできる。
 
-### ユーザー向け Skills（mock / シナリオ JSON）
+### mock / シナリオ JSON（エージェント向け）
 
-手書きの mock JSON はランタイム契約からずれやすい。エージェントは SSOT に従う: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
-
-全チェックアウトで同じルールを使うため [skills CLI](https://github.com/vercel-labs/skills) でインストール: `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y`（常時利用は `-g`）。一覧: `npx skills add novr/Kawarimi --list`。
-
-関連: [#158](https://github.com/novr/Kawarimi/issues/158)（初回統合）、[#159](https://github.com/novr/Kawarimi/issues/159)（OpenAPI 変更 → override）、[#182](https://github.com/novr/Kawarimi/issues/182)（書式 + 検証）。
-
-### シナリオ作成（委譲）
-
-Kawarimi は **ランタイムと codegen** が責務で、対話型のフロー設計は対象外。[#148 MCP](https://github.com/novr/Kawarimi/issues/148) や外部 Maker でドラフトし、format Skill と **`KawarimiValidate`** で整形・ゲートする（ランタイムは warning のみでフォールバックするため、コミット前に検証する）。
-
-```mermaid
-flowchart LR
-  Maker[外部 Scenario Maker]
-  Skill[kawarimi-user-mock-and-scenario-format]
-  Validate[KawarimiValidate]
-  JSON[kawarimi.json + scenarios]
-  Maker --> Skill
-  Skill --> JSON
-  JSON --> Validate
-```
-
-### mock JSON の検証（`KawarimiValidate`）
-
-サーバは構造問題をログに出すだけでフォールバックするため、マージ前に CI で落とす用途で使う。
-
-```bash
-swift run KawarimiValidate \
-  --config path/to/kawarimi.json \
-  --scenarios path/to/kawarimi-scenarios.json
-```
-
-- `--config` 省略 → `KAWARIMI_CONFIG` → `./kawarimi.json`
-- `--scenarios` 省略 → `KAWARIMI_SCENARIOS_CONFIG` → config と同階層の `kawarimi-scenarios.json`
-- 終了コード `0` — OK、`1` — シナリオステップを信頼する前に warning を修正、`2` — config 不正または欠落
-
-検証範囲: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。ランタイム: [henge.md](henge.md)。
+著者向けルール・検証・インストール: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。ランタイム: [henge.md](henge.md)。
 
 ### 管理ルート segment と spec wire 検証
 

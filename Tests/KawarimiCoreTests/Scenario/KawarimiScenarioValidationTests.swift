@@ -72,6 +72,33 @@ struct KawarimiScenarioValidationTests {
         #expect(resolved == explicitPath)
     }
 
+    @Test func pathIsExplicitForCLIAndEnvironment() {
+        #expect(
+            KawarimiScenarioDefaults.pathIsExplicit(
+                cliExplicit: "/tmp/scenarios.json",
+                environment: [:]
+            )
+        )
+        #expect(
+            KawarimiScenarioDefaults.pathIsExplicit(
+                cliExplicit: nil,
+                environment: [KawarimiScenarioDefaults.environmentKey: "/tmp/from-env.json"]
+            )
+        )
+        #expect(
+            !KawarimiScenarioDefaults.pathIsExplicit(
+                cliExplicit: nil,
+                environment: [:]
+            )
+        )
+        #expect(
+            !KawarimiScenarioDefaults.pathIsExplicit(
+                cliExplicit: "  ",
+                environment: [:]
+            )
+        )
+    }
+
     @Test func rejectsInvalidScenariosPathWithParentTraversal() {
         #expect(throws: (any Error).self) {
             _ = try KawarimiConfigStore(
