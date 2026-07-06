@@ -19,14 +19,17 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | **[docs/README.md](docs/README.md)** | Index of all guides |
 | [Roadmap.md](Roadmap.md) | Project goals (future direction); backlog on GitHub Issues, releases in CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | Releases and breaking changes (SemVer) |
-| [Integration](docs/integration.md) | SwiftPM, OpenAPI layout, configs, tests |
-| [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, `kawarimi.json`, scenario orchestration |
+| [Integration](docs/integration.md) | SwiftPM, OpenAPI layout, configs, tests, Skills, KawarimiValidate |
+| [User Skills](skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | Agent SSOT for `kawarimi.json` / `kawarimi-scenarios.json` authoring |
+| [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, scenario runtime |
 | [Mock JSON rules](docs/mock-json.md) | How embedded mock JSON is chosen |
 
 ## SwiftPM products (runtime)
 
 | Product | Role |
 | --- | --- |
+| **Kawarimi** | OpenAPI codegen CLI |
+| **KawarimiValidate** | Validate `kawarimi.json` + `kawarimi-scenarios.json` |
 | **KawarimiCore** | Shared models, `KawarimiConfigStore`, `KawarimiAPIClient`, scenario resolver |
 | **KawarimiServer** | `KawarimiServerMiddleware` — server-side dynamic mocks |
 | **KawarimiClient** | `KawarimiClientOrchestrationMiddleware` — scenario header state on OpenAPI clients |

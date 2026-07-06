@@ -71,6 +71,8 @@ Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
 SwiftPM products:
 
+- **Kawarimi** — OpenAPI codegen CLI (Build Tool Plugin invokes this).
+- **KawarimiValidate** — validate `kawarimi.json` + `kawarimi-scenarios.json` structural consistency.
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …).
 - **KawarimiJutsu** — generator API (CLI/tests; OpenAPIKit).
 - **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
@@ -103,6 +105,45 @@ targets: [
 ```
 
 For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
+
+### User Skills (mock / scenario JSON)
+
+Agents generate or fix mock JSON; users rarely hand-write it. SSOT: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
+
+Install for Cursor: copy or symlink that directory to `.cursor/skills/kawarimi-user-mock-and-scenario-format/` in your project.
+
+Related planned skills: [#158](https://github.com/novr/Kawarimi/issues/158) (first integration), [#159](https://github.com/novr/Kawarimi/issues/159) (OpenAPI change → override updates), [#182](https://github.com/novr/Kawarimi/issues/182) (format + validate).
+
+### Scenario authoring (delegated)
+
+**Conversational scenario design** (zero-to-draft flows from OpenAPI) is **not** implemented in Kawarimi. Use an external Scenario Maker Skill, [#148 MCP](https://github.com/novr/Kawarimi/issues/148), or similar; then apply the format skill above and run **`KawarimiValidate`**.
+
+```mermaid
+flowchart LR
+  Maker[External Scenario Maker]
+  Skill[kawarimi-user-mock-and-scenario-format]
+  Validate[KawarimiValidate]
+  JSON[kawarimi.json + scenarios]
+  Maker --> Skill
+  Skill --> JSON
+  JSON --> Validate
+```
+
+### Validate mock JSON (`KawarimiValidate`)
+
+From a checkout of Kawarimi (or any directory with Kawarimi as a SwiftPM dependency):
+
+```bash
+swift run KawarimiValidate \
+  --config path/to/kawarimi.json \
+  --scenarios path/to/kawarimi-scenarios.json
+```
+
+- Omit `--config` → `KAWARIMI_CONFIG` env → `./kawarimi.json`
+- Omit `--scenarios` → `KAWARIMI_SCENARIOS_CONFIG` → `kawarimi-scenarios.json` beside config
+- Exit `0` — OK; `1` — structural warnings (stdout); `2` — fatal (missing config or invalid JSON)
+
+Scope: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md). Runtime behavior: [henge.md](henge.md).
 
 ### Admin route segments and spec wire validation
 

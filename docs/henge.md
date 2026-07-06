@@ -182,41 +182,11 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 ### Scenario orchestration (`kawarimi-scenarios.json`)
 
-**Multi-step flows** (e.g. login failure → lock, favorite add → next state) reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in a **separate file** from `kawarimi.json` (default: **`kawarimi-scenarios.json`** next to `kawarimi.json`). Override path with init **`scenariosPath:`** or **`KAWARIMI_SCENARIOS_CONFIG`**.
+**Multi-step flows** reuse existing **`MockOverride`** rows for response bodies. Scenario definitions live in **`kawarimi-scenarios.json`** (separate from `kawarimi.json`). Override path with init **`scenariosPath:`** or **`KAWARIMI_SCENARIOS_CONFIG`**.
 
 `POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
-#### File shape
-
-```json
-{
-  "scenarios": [
-    {
-      "scenarioId": "login",
-      "initial": "start",
-      "cases": [
-        {
-          "kawarimiId": "start",
-          "next": "locked",
-          "rowId": "00000000-0000-0000-0000-000000000001",
-          "endpoint": { "method": "POST", "path": "/api/login" }
-        },
-        {
-          "kawarimiId": "locked",
-          "rowId": "00000000-0000-0000-0000-000000000002",
-          "endpoint": { "method": "POST", "path": "/api/login" }
-        }
-      ]
-    }
-  ]
-}
-```
-
-- **`scenarioId`** — selects the scenario (HTTP header `X-Kawarimi-Scenario-Id`).
-- **`initial`** — first step when the client omits `X-Kawarimi-Id`.
-- **`cases[]`** — each step: **`kawarimiId`**, optional **`next`** (omit at terminal steps), **`rowId`** (must match a `MockOverride.rowId` in `kawarimi.json`), **`endpoint`** (`method` + `path` must match the incoming request and the override row).
-- Response bodies come from the **`rowId`** override (or `responseMap` fallback), not from the scenario file.
-- **`MockOverride.isEnabled`** is the **primary / occupation flag** for an OpenAPI operation (only one enabled row is “active” per operation in normal Henge use). Scenario resolution looks up overrides **by `rowId` regardless of `isEnabled`**, so preset rows (`isEnabled: false`) can still be scenario steps.
+**Authoring** overrides and scenario JSON (field rules, `rowId` alignment, examples): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Validate with **`swift run KawarimiValidate`** (see [integration.md](integration.md)).
 
 #### HTTP headers (`KawarimiScenarioHeaders`)
 
@@ -244,9 +214,9 @@ OpenAPI **`ClientMiddleware`** in **KawarimiClient** (depends on swift-openapi-r
 - **Concurrent requests** for the same `scenarioId` share one state map; the last response’s **`X-Next-Kawarimi-Id`** wins (documented behavior for parallel UI/tests).
 - **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
 
-Invalid scenario JSON on disk logs **warnings** at load/reload (duplicate `scenarioId`, orphan `rowId`, endpoint mismatch, etc.); requests still fall back to standard override resolution.
+Invalid scenario JSON on disk logs **warnings** at load/reload (duplicate `scenarioId`, orphan `rowId`, endpoint mismatch, etc.); requests still fall back to standard override resolution. Run **`KawarimiValidate`** before commit — [skills/kawarimi-user-mock-and-scenario-format/validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
-Sample **`kawarimi-scenarios.json`** and curl notes: [Example/README.md](../Example/README.md).
+Sample committed fixtures and curl notes: [Example/README.md](../Example/README.md).
 
 | Endpoint | Description |
 |---|---|
@@ -397,7 +367,7 @@ If you need **one** client that switches real vs mock at runtime, implement a sm
 
 `KawarimiConfigStore` (**KawarimiCore**) reads and writes overrides to a JSON file (default: `kawarimi.json` in the working directory).
 
-The file format uses `KawarimiConfig` (overrides array).
+The file format uses `KawarimiConfig` (overrides array). **Authoring** override rows and scenarios: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
 
 Set `KAWARIMI_CONFIG` to override the config file path.
 

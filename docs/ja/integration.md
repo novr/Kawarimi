@@ -71,6 +71,8 @@
 
 SwiftPM プロダクト:
 
+- **Kawarimi** — OpenAPI コード生成 CLI（Build Tool Plugin が起動）。
+- **KawarimiValidate** — `kawarimi.json` と `kawarimi-scenarios.json` の構造整合チェック。
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。
 - **KawarimiJutsu** — ジェネレータ API（CLI・テスト向け、OpenAPIKit 依存）。
 - **KawarimiHenge** — SwiftUI 管理 UI — [henge.md](henge.md)。
@@ -103,6 +105,45 @@ targets: [
 ```
 
 ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer**、生成 OpenAPI クライアントの複数ステップシナリオヘッダーには **KawarimiClient** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の **`kawarimi.json`** と **`kawarimi-scenarios.json`** の保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。シナリオファイルのパスは **`KAWARIMI_SCENARIOS_CONFIG`**（または init `scenariosPath:`）で上書きできる。
+
+### ユーザー向け Skills（mock / シナリオ JSON）
+
+モック JSON はエージェントが生成・修正する想定で、手書きはほぼしない。SSOT: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
+
+Cursor では当該ディレクトリを `.cursor/skills/kawarimi-user-mock-and-scenario-format/` にコピーまたは symlink。
+
+関連: [#158](https://github.com/novr/Kawarimi/issues/158)（初回統合）、[#159](https://github.com/novr/Kawarimi/issues/159)（OpenAPI 変更後の override 更新）、[#182](https://github.com/novr/Kawarimi/issues/182)（書式 + 検証）。
+
+### シナリオ作成（委譲）
+
+**対話型のシナリオ設計**（OpenAPI からゼロでドラフト生成）は Kawarimi のスコープ外。外部 Scenario Maker Skill、[#148 MCP](https://github.com/novr/Kawarimi/issues/148) 等で作成し、上記 format Skill と **`KawarimiValidate`** で整形・検証する。
+
+```mermaid
+flowchart LR
+  Maker[外部 Scenario Maker]
+  Skill[kawarimi-user-mock-and-scenario-format]
+  Validate[KawarimiValidate]
+  JSON[kawarimi.json + scenarios]
+  Maker --> Skill
+  Skill --> JSON
+  JSON --> Validate
+```
+
+### mock JSON の検証（`KawarimiValidate`）
+
+Kawarimi のチェックアウト（または Kawarimi 依存プロジェクト）から:
+
+```bash
+swift run KawarimiValidate \
+  --config path/to/kawarimi.json \
+  --scenarios path/to/kawarimi-scenarios.json
+```
+
+- `--config` 省略 → `KAWARIMI_CONFIG` → `./kawarimi.json`
+- `--scenarios` 省略 → `KAWARIMI_SCENARIOS_CONFIG` → config と同階層の `kawarimi-scenarios.json`
+- 終了コード `0` — OK、`1` — 構造 warning（stdout）、`2` — fatal
+
+範囲: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。ランタイム: [henge.md](henge.md)。
 
 ### 管理ルート segment と spec wire 検証
 

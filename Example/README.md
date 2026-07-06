@@ -228,7 +228,7 @@ let second = try await client.getGreeting(.init())
 
 `DemoServerE2ETests` (`clientScenarioGreetTwoStepTimeline`) runs the same flow against a subprocess **DemoServer** in CI.
 
-Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [henge.md](../docs/henge.md).
+Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [skills/kawarimi-user-mock-and-scenario-format/reference.md](../skills/kawarimi-user-mock-and-scenario-format/reference.md) (authoring) and [henge.md](../docs/henge.md) (runtime).
 
 <a id="try-the-henge-api-demoserver"></a>
 

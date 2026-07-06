@@ -29,6 +29,8 @@ jobs:
             code:
               - 'Sources/**'
               - 'Tests/**'
+              - 'skills/**'
+              - 'docs/**'
               - 'Package.swift'
               - 'Package.resolved'
               - 'Example/**'
@@ -64,6 +66,12 @@ jobs:
 
       - name: Run tests
         run: swift test
+
+      - name: Validate Example scenario fixtures
+        run: |
+          swift run KawarimiValidate \
+            --config Example/DemoPackage/kawarimi.json.example \
+            --scenarios Example/DemoPackage/kawarimi-scenarios.json
 
   demo-package:
     name: Swift Test (Example/DemoPackage)

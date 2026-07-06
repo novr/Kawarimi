@@ -209,7 +209,7 @@ let second = try await client.getGreeting(.init())
 
 CI では **`DemoServerE2ETests`**（`clientScenarioGreetTwoStepTimeline`）がサブプロセス **DemoServer** 向けに同じフローを検証します。
 
-ヘッダー規約と **`KawarimiClientOrchestrationMiddleware`**（**KawarimiClient**）: [henge.md](../docs/ja/henge.md)。
+ヘッダー規約と **`KawarimiClientOrchestrationMiddleware`**（**KawarimiClient**）: [skills/kawarimi-user-mock-and-scenario-format/reference.md](../skills/kawarimi-user-mock-and-scenario-format/reference.md)（作成）と [henge.md](../docs/ja/henge.md)（ランタイム）。
 
 <a id="henge-api-demoserver"></a>
 
