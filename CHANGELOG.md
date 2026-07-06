@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- **skills/kawarimi-user-mock-and-scenario-format**: authoring SSOT (validate prerequisites, `rowId` rules, install); integration/henge link here instead of duplicating content.
+- **skills/kawarimi-user-mock-and-scenario-format**: authoring SSOT (validate prerequisites, `rowId` rules); **integration.md** / **ja/integration.md** hold `npx skills` install; henge links here instead of duplicating content.
 - **henge.md** / **ja/henge.md**: Henge automated tests now **`KawarimiHengeCoreTests`** (`Tests/KawarimiHengeCoreTests/`).
 
 ## [3.2.0] - 2026-06-26
