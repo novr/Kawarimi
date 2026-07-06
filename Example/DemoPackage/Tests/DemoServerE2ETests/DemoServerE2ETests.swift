@@ -484,6 +484,128 @@ final class DemoServerE2ETests {
         try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
     }
 
+    @Test func scenarioGreetReentryWithoutKawarimiIdRestartsAtInitial() async throws {
+        try await DemoServerE2EScenarioSupport.installGreetTwoStepScenario(on: server)
+
+        let greetURL = server.baseURL.appending(path: "greet")
+        let scenarioHeader = [KawarimiScenarioHeaders.scenarioId: DemoServerE2EScenarioSupport.scenarioId]
+
+        let (_, _) = try await DemoServerHTTP.get(greetURL, headers: scenarioHeader)
+        let (_, _) = try await DemoServerHTTP.get(
+            greetURL,
+            headers: scenarioHeader.merging(
+                [KawarimiScenarioHeaders.kawarimiId: "formal"],
+                uniquingKeysWith: { _, new in new }
+            )
+        )
+
+        let (reentryResponse, reentryData) = try await DemoServerHTTP.get(greetURL, headers: scenarioHeader)
+        #expect(reentryResponse.statusCode == 200)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(reentryResponse))
+        #expect(reentryResponse.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == "formal")
+        #expect(
+            try DemoServerE2EJSON.decodeGreeting(from: reentryData).message
+                == DemoServerE2EScenarioSupport.step1Message
+        )
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
+    @Test func clientScenarioGreetTwoStepTimeline() async throws {
+        try await DemoServerE2EScenarioSupport.installGreetTwoStepScenario(on: server)
+
+        let transitions = ScenarioTransitionLog()
+        let scenarioId = DemoServerE2EScenarioSupport.scenarioId
+        let client = DemoServerE2EClientSupport.makeGreetingClient(
+            baseURL: server.baseURL,
+            scenarioId: scenarioId,
+            onNextKawarimiId: { transitions.record(scenarioId: $0, nextKawarimiId: $1) }
+        )
+
+        let firstMessage = try DemoServerE2EClientSupport.greetingMessage(
+            from: try await client.getGreeting(.init())
+        )
+        #expect(firstMessage == DemoServerE2EScenarioSupport.step1Message)
+
+        let secondMessage = try DemoServerE2EClientSupport.greetingMessage(
+            from: try await client.getGreeting(.init())
+        )
+        #expect(secondMessage == DemoServerE2EScenarioSupport.step2Message)
+
+        let recorded = transitions.snapshot()
+        #expect(recorded.count == 2)
+        #expect(recorded[0].scenarioId == scenarioId)
+        #expect(recorded[0].nextKawarimiId == "formal")
+        #expect(recorded[1].scenarioId == scenarioId)
+        #expect(recorded[1].nextKawarimiId == nil)
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
+    @Test func clientScenarioGreetReentryAfterTerminalRestartsAtInitial() async throws {
+        try await DemoServerE2EScenarioSupport.installGreetTwoStepScenario(on: server)
+
+        let transitions = ScenarioTransitionLog()
+        let scenarioId = DemoServerE2EScenarioSupport.scenarioId
+        let client = DemoServerE2EClientSupport.makeGreetingClient(
+            baseURL: server.baseURL,
+            scenarioId: scenarioId,
+            onNextKawarimiId: { transitions.record(scenarioId: $0, nextKawarimiId: $1) }
+        )
+
+        _ = try await client.getGreeting(.init())
+        _ = try await client.getGreeting(.init())
+
+        let reentryMessage = try DemoServerE2EClientSupport.greetingMessage(
+            from: try await client.getGreeting(.init())
+        )
+        #expect(reentryMessage == DemoServerE2EScenarioSupport.step1Message)
+
+        let recorded = transitions.snapshot()
+        #expect(recorded.count == 3)
+        #expect(recorded[0].nextKawarimiId == "formal")
+        #expect(recorded[1].nextKawarimiId == nil)
+        #expect(recorded[2].nextKawarimiId == "formal")
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
+    @Test func scenarioCreateItemValidationOneStepError() async throws {
+        try await DemoServerE2EScenarioSupport.installCreateItemValidationScenario(on: server)
+
+        let itemsURL = server.baseURL.appending(path: "items")
+        let createBody = Data(#"{"name":"Widget"}"#.utf8)
+        let scenarioHeader = [
+            KawarimiScenarioHeaders.scenarioId: DemoServerE2EScenarioSupport.createItemScenarioId,
+        ]
+
+        let (errorResponse, errorData) = try await DemoServerHTTP.post(
+            itemsURL,
+            body: createBody,
+            contentType: "application/json",
+            headers: scenarioHeader
+        )
+        #expect(errorResponse.statusCode == 400)
+        #expect(DemoServerE2EHTTPChecks.isJSONContentType(errorResponse))
+        #expect(errorResponse.value(forHTTPHeaderField: KawarimiScenarioHeaders.nextKawarimiId) == nil)
+        let errorBody = try DemoServerE2EJSON.decodeError(from: errorData)
+        #expect(errorBody.code == DemoServerE2EScenarioSupport.validationErrorCode)
+        #expect(errorBody.message == DemoServerE2EScenarioSupport.validationErrorMessage)
+
+        let (reentryResponse, reentryData) = try await DemoServerHTTP.post(
+            itemsURL,
+            body: createBody,
+            contentType: "application/json",
+            headers: scenarioHeader
+        )
+        #expect(reentryResponse.statusCode == 400)
+        let reentryBody = try DemoServerE2EJSON.decodeError(from: reentryData)
+        #expect(reentryBody.code == DemoServerE2EScenarioSupport.validationErrorCode)
+        #expect(reentryBody.message == DemoServerE2EScenarioSupport.validationErrorMessage)
+
+        try await DemoServerE2EScenarioSupport.installEmptyScenarios(on: server)
+    }
+
     @Test func scenarioUnknownIdFallsBackToPrimaryOverride() async throws {
         try await server.resetOverrides()
         try await DemoServerE2EScenarioSupport.configureGreetOverride(

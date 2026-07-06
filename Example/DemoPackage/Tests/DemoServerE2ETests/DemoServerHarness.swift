@@ -276,12 +276,16 @@ enum DemoServerHTTP {
     static func post(
         _ url: URL,
         body: Data,
-        contentType: String? = nil
+        contentType: String? = nil,
+        headers: [String: String] = [:]
     ) async throws -> (HTTPURLResponse, Data) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         if let contentType {
             request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        }
+        for (name, value) in headers {
+            request.setValue(value, forHTTPHeaderField: name)
         }
         request.httpBody = body
         return try await data(for: request)

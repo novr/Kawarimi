@@ -181,41 +181,11 @@ API 対応:
 
 ### シナリオオーケストレーション（`kawarimi-scenarios.json`）
 
-**複数ステップのフロー**（例: ログイン失敗 → ロック、お気に入り追加 → 次状態）では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は `kawarimi.json` とは**別ファイル**（既定: `kawarimi.json` と同じディレクトリの **`kawarimi-scenarios.json`**）。パスは init **`scenariosPath:`** または **`KAWARIMI_SCENARIOS_CONFIG`** で上書き。
+**複数ステップのフロー**では、レスポンス本文は既存の **`MockOverride`** 行を再利用します。シナリオ定義は **`kawarimi-scenarios.json`**（`kawarimi.json` とは別ファイル）。パスは init **`scenariosPath:`** または **`KAWARIMI_SCENARIOS_CONFIG`** で上書き。
 
 `POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
-#### ファイル形式
-
-```json
-{
-  "scenarios": [
-    {
-      "scenarioId": "login",
-      "initial": "start",
-      "cases": [
-        {
-          "kawarimiId": "start",
-          "next": "locked",
-          "rowId": "00000000-0000-0000-0000-000000000001",
-          "endpoint": { "method": "POST", "path": "/api/login" }
-        },
-        {
-          "kawarimiId": "locked",
-          "rowId": "00000000-0000-0000-0000-000000000002",
-          "endpoint": { "method": "POST", "path": "/api/login" }
-        }
-      ]
-    }
-  ]
-}
-```
-
-- **`scenarioId`** — シナリオ選択（HTTP ヘッダー `X-Kawarimi-Scenario-Id`）。
-- **`initial`** — クライアントが `X-Kawarimi-Id` を省略したときの最初のステップ。
-- **`cases[]`** — 各ステップ: **`kawarimiId`**、任意の **`next`**（終端では省略）、**`rowId`**（`kawarimi.json` の `MockOverride.rowId` と一致必須）、**`endpoint`**（着信リクエストおよび override 行と整合必須）。
-- レスポンス本文はシナリオファイルではなく **`rowId`** の override（または `responseMap` フォールバック）から解決します。
-- **`MockOverride.isEnabled`** は OpenAPI operation の**プライマリ／占有フラグ**です（通常の Henge 利用では operation あたり enabled 行は1つ）。シナリオ解決は **`rowId` で override を引く**ため、**`isEnabled` に関係なく**プリセット行（`isEnabled: false`）もステップに使えます。
+**オーバーライドとシナリオ JSON の作成**（書式・`rowId` の結合 — ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。コミット前の **`KawarimiValidate`** も同 Skill を参照。
 
 #### HTTP ヘッダー（`KawarimiScenarioHeaders`）
 
@@ -243,9 +213,9 @@ API 対応:
 - **並行リクエスト**で同一 `scenarioId` を共有する場合、state は1つ。最後に返った **`X-Next-Kawarimi-Id`** が勝つ（並列 UI／テスト向けの文書化された挙動）。
 - テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
 
-ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**（重複 `scenarioId`、orphan `rowId`、endpoint 不整合など）。リクエストは従来の override 解決へフォールバックします。
+ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
-サンプル **`kawarimi-scenarios.json`** と curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
+コミット済みフィクスチャと curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
 
 | エンドポイント | 説明 |
 |---|---|
@@ -396,7 +366,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 `KawarimiConfigStore`（**KawarimiCore**）はオーバーライドを JSON ファイルに読み書きします（デフォルト: カレントディレクトリの `kawarimi.json`）。
 
-ファイル形式は `KawarimiConfig`（overrides 配列）です。
+ファイル形式は `KawarimiConfig`（overrides 配列）です。**作成時のルール**（フィールドの意図・ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 

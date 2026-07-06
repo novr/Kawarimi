@@ -6,6 +6,7 @@ let linuxCI = Context.environment["KAWARIMI_LINUX_CI"] == "1"
 
 var products: [Product] = [
     .executable(name: "Kawarimi", targets: ["Kawarimi"]),
+    .executable(name: "KawarimiValidate", targets: ["KawarimiValidate"]),
     .library(name: "KawarimiCore", targets: ["KawarimiCore"]),
     .library(name: "KawarimiJutsu", targets: ["KawarimiJutsu"]),
     .library(name: "KawarimiServer", targets: ["KawarimiServer"]),
@@ -38,6 +39,14 @@ var targets: [Target] = [
         dependencies: [
             "KawarimiCore",
             "KawarimiJutsu",
+            .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        ],
+        swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+    ),
+    .executableTarget(
+        name: "KawarimiValidate",
+        dependencies: [
+            "KawarimiCore",
             .product(name: "ArgumentParser", package: "swift-argument-parser"),
         ],
         swiftSettings: [.unsafeFlags(["-parse-as-library"])]
@@ -108,6 +117,10 @@ var targets: [Target] = [
     .testTarget(
         name: "KawarimiTests",
         dependencies: []
+    ),
+    .testTarget(
+        name: "KawarimiValidateTests",
+        dependencies: ["KawarimiCore"]
     ),
 ]
 

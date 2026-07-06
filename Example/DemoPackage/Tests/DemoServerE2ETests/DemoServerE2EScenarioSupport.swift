@@ -10,6 +10,9 @@ enum DemoServerE2EScenarioSupport {
     static let step1Message = "Hello from E2E step 1"
     static let step2Message = "Good day from E2E step 2"
     static let fallbackMessage = "From scenario fallback E2E"
+    static let createItemScenarioId = "e2e-createItem-validation"
+    static let validationErrorCode = "VALIDATION_ERROR"
+    static let validationErrorMessage = "Invalid item from E2E scenario"
 
     static func installGreetTwoStepScenario(on server: DemoServerHarness) async throws {
         try await server.resetOverrides()
@@ -57,6 +60,61 @@ enum DemoServerE2EScenarioSupport {
         ])
         let data = try JSONEncoder().encode(scenarios)
         try server.writeScenariosOnDisk(data)
+        _ = try await server.reloadFromDisk()
+    }
+
+    static func installCreateItemValidationScenario(on server: DemoServerHarness) async throws {
+        try await server.resetOverrides()
+
+        let rowId = MockOverrideRowID.generate()
+        let itemsPath = DemoServerE2EPaths.itemsListPath
+        let configureURL = server.kawarimiBaseURL.appending(path: KawarimiAdminRoute.configure.relativePath)
+
+        let errorJSON = try JSONEncoder().encode([
+            "code": validationErrorCode,
+            "message": validationErrorMessage,
+        ])
+        guard let bodyString = String(data: errorJSON, encoding: .utf8) else {
+            throw HarnessError.unexpectedHTTPStatus(0, url: configureURL, stderr: "failed to encode error JSON")
+        }
+        let mock = MockOverride(
+            rowId: rowId,
+            path: itemsPath,
+            method: .post,
+            statusCode: 400,
+            exampleId: "validation_error",
+            isEnabled: false,
+            body: bodyString,
+            contentType: "application/json"
+        )
+        let payload = try JSONEncoder().encode(mock)
+        let (response, data) = try await DemoServerHTTP.postJSON(configureURL, body: payload)
+        guard response.statusCode == 200 else {
+            throw HarnessError.unexpectedHTTPStatus(response.statusCode, url: configureURL, stderr: "configure failed")
+        }
+        let overrides = try DemoServerE2EJSON.decodeOverrides(from: data)
+        guard overrides.contains(where: { $0.rowId == rowId }) else {
+            throw HarnessError.unexpectedHTTPStatus(
+                response.statusCode,
+                url: configureURL,
+                stderr: "configure response missing rowId \(rowId.rawValue)"
+            )
+        }
+
+        let scenarios = KawarimiScenariosFile(scenarios: [
+            KawarimiScenario(
+                scenarioId: createItemScenarioId,
+                initial: "error",
+                cases: [
+                    .init(
+                        kawarimiId: "error",
+                        rowId: rowId,
+                        endpoint: .init(method: "POST", path: itemsPath)
+                    ),
+                ]
+            ),
+        ])
+        try server.writeScenariosOnDisk(try JSONEncoder().encode(scenarios))
         _ = try await server.reloadFromDisk()
     }
 

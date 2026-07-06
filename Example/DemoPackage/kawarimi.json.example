@@ -21,6 +21,17 @@
       "path": "/api/greet",
       "rowId": "00000000-0000-0000-0000-000000000002",
       "statusCode": 200
+    },
+    {
+      "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"Invalid item\"}",
+      "contentType": "application/json",
+      "exampleId": "validation_error",
+      "isEnabled": false,
+      "method": "POST",
+      "name": "createItem",
+      "path": "/api/items",
+      "rowId": "00000000-0000-0000-0000-000000000003",
+      "statusCode": 400
     }
   ]
 }

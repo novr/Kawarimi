@@ -204,7 +204,31 @@ curl -s -D - http://127.0.0.1:8080/api/greet \
   -H "X-Kawarimi-Id: formal"
 ```
 
-Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [henge.md](../docs/henge.md).
+**Swift client** (add **KawarimiClient** and [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) to your target; same **`kawarimi.json`** / **`kawarimi-scenarios.json`** as the curl demo):
+
+```swift
+import DemoAPI
+import KawarimiClient
+import OpenAPIURLSession
+
+let middleware = KawarimiClientOrchestrationMiddleware(
+    scenarioIdProvider: { _ in "greet" }
+)
+let client = Client(
+    serverURL: URL(string: "http://127.0.0.1:8080/api")!,
+    transport: URLSessionTransport(),
+    middlewares: [middleware]
+)
+
+// First call — middleware sends X-Kawarimi-Scenario-Id only (initial step).
+let first = try await client.getGreeting(.init())
+// Second call — middleware injects X-Kawarimi-Id from X-Next-Kawarimi-Id on the prior response.
+let second = try await client.getGreeting(.init())
+```
+
+`DemoServerE2ETests` (`clientScenarioGreetTwoStepTimeline`) runs the same flow against a subprocess **DemoServer** in CI.
+
+Full rules, headers, and **`KawarimiClientOrchestrationMiddleware`** (**KawarimiClient**): [skills/kawarimi-user-mock-and-scenario-format/reference.md](../skills/kawarimi-user-mock-and-scenario-format/reference.md) (authoring) and [henge.md](../docs/henge.md) (runtime).
 
 <a id="try-the-henge-api-demoserver"></a>
 

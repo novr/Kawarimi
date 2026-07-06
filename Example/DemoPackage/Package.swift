@@ -49,7 +49,9 @@ var targets: [Target] = [
         name: "DemoServerE2ETests",
         dependencies: [
             "DemoAPI",
+            .product(name: "KawarimiClient", package: "Kawarimi"),
             .product(name: "KawarimiCore", package: "Kawarimi"),
+            .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
         ],
         path: "Tests/DemoServerE2ETests"
     ),
@@ -83,6 +85,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/swift-openapi-vapor", from: "1.0.0"),
         .package(url: "https://github.com/vapor/vapor", from: "4.89.0"),
         .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-openapi-urlsession", from: "1.0.0"),
     ],
     targets: targets
 )

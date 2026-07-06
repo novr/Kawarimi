@@ -71,6 +71,8 @@
 
 SwiftPM プロダクト:
 
+- **Kawarimi** — OpenAPI コード生成 CLI（Build Tool Plugin が起動）。
+- **KawarimiValidate** — 構造的 mock/scenario JSON チェック — [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 - **KawarimiCore** — ランタイム（`MockOverride`、`KawarimiConfigStore`、`KawarimiAPIClient` など）。
 - **KawarimiJutsu** — ジェネレータ API（CLI・テスト向け、OpenAPIKit 依存）。
 - **KawarimiHenge** — SwiftUI 管理 UI — [henge.md](henge.md)。
@@ -103,6 +105,12 @@ targets: [
 ```
 
 ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer**、生成 OpenAPI クライアントの複数ステップシナリオヘッダーには **KawarimiClient** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の **`kawarimi.json`** と **`kawarimi-scenarios.json`** の保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。シナリオファイルのパスは **`KAWARIMI_SCENARIOS_CONFIG`**（または init `scenariosPath:`）で上書きできる。
+
+### mock / シナリオ JSON（エージェント向け）
+
+著者向けルール・検証: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。ランタイム: [henge.md](henge.md)。
+
+[skills CLI](https://github.com/vercel-labs/skills) でインストール: `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y`（常時利用は `-g`）。一覧: `npx skills add novr/Kawarimi --list`。
 
 ### 管理ルート segment と spec wire 検証
 

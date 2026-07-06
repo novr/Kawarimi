@@ -16,6 +16,17 @@
           "endpoint": { "method": "GET", "path": "/api/greet" }
         }
       ]
+    },
+    {
+      "scenarioId": "createItem_validation",
+      "initial": "error",
+      "cases": [
+        {
+          "kawarimiId": "error",
+          "rowId": "00000000-0000-0000-0000-000000000003",
+          "endpoint": { "method": "POST", "path": "/api/items" }
+        }
+      ]
     }
   ]
 }

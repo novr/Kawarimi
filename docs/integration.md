@@ -71,6 +71,8 @@ Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
 SwiftPM products:
 
+- **Kawarimi** — OpenAPI codegen CLI (Build Tool Plugin invokes this).
+- **KawarimiValidate** — structural mock/scenario JSON checks; see [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
 - **KawarimiCore** — runtime (`MockOverride`, `KawarimiConfigStore`, `KawarimiAPIClient`, …).
 - **KawarimiJutsu** — generator API (CLI/tests; OpenAPIKit).
 - **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
@@ -103,6 +105,12 @@ targets: [
 ```
 
 For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
+
+### Mock / scenario JSON (agents)
+
+Authoring and validation: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Runtime: [henge.md](henge.md).
+
+Install with [skills CLI](https://github.com/vercel-labs/skills): `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y` (`-g` for user-wide default). List: `npx skills add novr/Kawarimi --list`.
 
 ### Admin route segments and spec wire validation
 

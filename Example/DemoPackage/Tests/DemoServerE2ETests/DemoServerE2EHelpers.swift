@@ -19,11 +19,20 @@ struct ItemJSON: Decodable, Equatable {
     let name: String
 }
 
+struct ErrorJSON: Decodable, Equatable {
+    let code: String
+    let message: String
+}
+
 enum DemoServerE2EJSON {
     private static let decoder = JSONDecoder()
 
     static func decodeGreeting(from data: Data) throws -> GreetingJSON {
         try decoder.decode(GreetingJSON.self, from: data)
+    }
+
+    static func decodeError(from data: Data) throws -> ErrorJSON {
+        try decoder.decode(ErrorJSON.self, from: data)
     }
 
     static func decodeItems(from data: Data) throws -> [ItemJSON] {
