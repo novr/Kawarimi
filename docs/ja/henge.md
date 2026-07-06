@@ -185,7 +185,7 @@ API 対応:
 
 `POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
-**オーバーライドとシナリオ JSON の作成**（フィールド規約、`rowId` 整合、例）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。検証は **`swift run KawarimiValidate`**（[integration.md](integration.md)）。
+**オーバーライドとシナリオ JSON の作成**（書式・`rowId` の結合 — ランタイム挙動は henge）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。load/reload は warning のみのため、コミット前は **`KawarimiValidate`** — [integration.md](integration.md)。
 
 #### HTTP ヘッダー（`KawarimiScenarioHeaders`）
 
@@ -213,7 +213,7 @@ API 対応:
 - **並行リクエスト**で同一 `scenarioId` を共有する場合、state は1つ。最後に返った **`X-Next-Kawarimi-Id`** が勝つ（並列 UI／テスト向けの文書化された挙動）。
 - テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
 
-ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**（重複 `scenarioId`、orphan `rowId`、endpoint 不整合など）。リクエストは従来の override 解決へフォールバックします。コミット前に **`KawarimiValidate`** を実行 — [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
+ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
 コミット済みフィクスチャと curl 例: [Example/README_JA.md](../../Example/README_JA.md)。
 
@@ -366,7 +366,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 `KawarimiConfigStore`（**KawarimiCore**）はオーバーライドを JSON ファイルに読み書きします（デフォルト: カレントディレクトリの `kawarimi.json`）。
 
-ファイル形式は `KawarimiConfig`（overrides 配列）です。**オーバーライド行とシナリオ JSON の作成**: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
+ファイル形式は `KawarimiConfig`（overrides 配列）です。**作成時のルール**（フィールドの意図・ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 

@@ -6,7 +6,7 @@ import KawarimiCore
 struct KawarimiValidateCommand: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "kawarimi-validate",
-        abstract: "Validate kawarimi.json and kawarimi-scenarios.json structural consistency."
+        abstract: "Fail on structural mock/scenario JSON issues that runtime only warns about."
     )
 
     @Option(help: "Path to kawarimi.json (default: KAWARIMI_CONFIG or ./kawarimi.json).")

@@ -1,46 +1,45 @@
 # KawarimiValidate — scope
 
-`KawarimiValidate` checks **structural consistency** between decoded `kawarimi.json` overrides and `kawarimi-scenarios.json` scenarios.
+`KawarimiValidate` exists because runtime only **logs** structural problems and keeps serving requests. CI and agents need a **hard gate** before merge.
 
 Implementation: `KawarimiScenarioValidation` in KawarimiCore.
 
 ## Guaranteed (exit 1 if any fail)
 
-Cross-check of decoded `overrides[]` and `scenarios[]`:
+These checks matter because the server matches scenario steps by `rowId` and endpoint — not by guessing from OpenAPI at validate time.
 
-| Check | Meaning |
+| Check | Why it matters |
 | --- | --- |
-| `scenarioId` | Normalizable token; no duplicates |
-| `initial` | Normalizable; matching `cases[].kawarimiId` exists |
-| `kawarimiId` / `next` | Normalizable tokens |
-| Case uniqueness | Per scenario: no duplicate `kawarimiId` + `method` + `path` |
-| `rowId` reference | Each case `rowId` exists in overrides |
-| Endpoint match | Case `method`/`path` matches the referenced override row |
+| `scenarioId` | Duplicate or invalid ids make scenario selection ambiguous |
+| `initial` | First request must map to a real step |
+| `kawarimiId` / `next` | Invalid tokens break header state machines |
+| Case uniqueness | Same step key twice → undefined which override wins |
+| `rowId` reference | Missing override → step falls back to normal mock resolution |
+| Endpoint match | Path/method drift → wrong body or silent fallback |
 
-- Missing **scenarios file** → treated as empty `scenarios: []` (exit 0 if overrides OK).
-- Missing **config file** or invalid JSON → exit 2 (fatal).
-- **Unused overrides** (no scenario case references a `rowId`) → not reported.
+Edge cases:
+
+- Missing **scenarios file** → treated as `[]` (overrides-only edits stay valid).
+- Missing **config** or invalid JSON → exit 2 (nothing reliable to cross-check).
+- **Unused overrides** → not reported (presets and Henge-only rows are allowed).
 
 ## Not guaranteed
 
-| Topic | Why |
+| Topic | Why we skip it |
 | --- | --- |
-| Override `body` is meaningful JSON | Only decode failure is fatal |
-| Paths match OpenAPI operations | OpenAPI not loaded |
-| `exampleId` / `responseMap` correctness | Runtime resolution |
-| E2E response bodies | Needs running server |
-| `isEnabled` policy | Henge / ops choice |
-| Unused / orphan override rows | Scenarios → overrides check only; extra overrides are allowed |
-| Scenario graph design (terminals, reachability) | Maker / review |
-| Runtime fallback when warnings exist | Server still serves via standard override rules |
-
-Warnings at runtime are logged but requests **fall back** (no 503). Fixing warnings keeps scenario steps predictable.
+| Override `body` is meaningful JSON | Decode failure is enough; semantics need runtime |
+| Paths match OpenAPI operations | Validator does not load the spec |
+| `exampleId` / `responseMap` correctness | Resolved at mock response time |
+| E2E response bodies | Needs a running server |
+| `isEnabled` policy | Operational choice in Henge |
+| Scenario graph design | Belongs to Maker / human review |
+| Runtime fallback when warnings exist | Documented in henge — validate does not simulate traffic |
 
 ## Warning examples
 
-| Message pattern | Fix |
-| --- | --- |
-| `rowId … not found in overrides` | Add override with that `rowId` or fix case `rowId` |
-| `endpoint … does not match override row` | Align `endpoint.method`/`path` with override `method`/`path` |
-| `Duplicate scenarioId` | Rename or merge scenarios |
-| `initial … has no matching case` | Add case with that `kawarimiId` or fix `initial` |
+| Message pattern | Why you see it | Fix |
+| --- | --- | --- |
+| `rowId … not found` | Step points at no override row | Add row or fix `rowId` |
+| `endpoint … does not match` | Step would not hit the intended override | Align `method`/`path` with the row |
+| `Duplicate scenarioId` | Two flows share one id | Rename or merge |
+| `initial … has no matching case` | First step is undefined | Add case or fix `initial` |

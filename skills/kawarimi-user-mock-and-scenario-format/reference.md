@@ -1,81 +1,72 @@
 # Reference — `kawarimi.json` and `kawarimi-scenarios.json`
 
+Scenarios only choose **which override row** serves a step. Bodies live in `kawarimi.json` (or `responseMap`). Wrong links fall back at runtime without a hard error.
+
 ## Path prefix
 
-Align override `path` and scenario `endpoint.path` with OpenAPI `servers.url` path prefix (e.g. `/api/greet` when server base is `http://host/api`).
-
-Use `KawarimiPath` / `pathPrefix` on `KawarimiConfigStore` consistently with registered routes.
+Mismatch with OpenAPI `servers.url` or `pathPrefix` is the most common reason scenario steps never match — the server compares path-only strings.
 
 ## `kawarimi.json` — `MockOverride` rows
 
 Top-level shape: `{ "overrides": [ … ] }`.
 
-| Field | Required | Notes |
+| Field | Required | Why |
 | --- | --- | --- |
-| `path` | yes | Operation path including API prefix |
-| `method` | yes | HTTP method (e.g. `GET`, `POST`) |
-| `statusCode` | yes | Response status for this mock |
-| `isEnabled` | yes | Only one enabled row per operation in normal Henge use |
-| `rowId` | recommended | UUID; **required** for scenario `cases[].rowId` references |
-| `exampleId` | optional | OpenAPI named example key; omit/`null` → `__default` lookup |
-| `name` | optional | OpenAPI `operationId`; used for operation identity matching |
-| `body` | optional | JSON string; falls back to `KawarimiSpec.responseMap` |
-| `contentType` | optional | e.g. `application/json` |
-| `delayMs` | optional | 1–60000 ms artificial delay |
+| `path` | yes | Must match incoming request path (with prefix) |
+| `method` | yes | Same operation as the scenario step |
+| `statusCode` | yes | Selects which response variant to mock |
+| `isEnabled` | yes | Henge occupation flag; scenario still resolves by `rowId` when disabled |
+| `rowId` | recommended | Stable join key for `kawarimi-scenarios.json` cases |
+| `exampleId` | optional | Disambiguates named OpenAPI examples; omit → `__default` |
+| `name` | optional | `operationId` match can win over path typos |
+| `body` | optional | When omitted, runtime uses `KawarimiSpec.responseMap` |
+| `contentType` | optional | Required when `body` is set |
+| `delayMs` | optional | Artificial latency for tests |
 
 ### Rules
 
-- **Do not** use `__default` as an OpenAPI `examples` map key (reserved by Kawarimi).
-- `configure` / disk load: match by `rowId` first; legacy path+method+status+`exampleId` only when incoming row has no `rowId`.
-- Scenario steps resolve overrides **by `rowId` regardless of `isEnabled`**, so preset rows (`isEnabled: false`) can be scenario steps.
-- Empty `body` / `contentType` normalize to unset; response may fall back to spec.
+- **Do not** use `__default` as an OpenAPI `examples` key — collides with Kawarimi's reserved lookup slot.
+- Match by `rowId` first so scenario steps stay stable when path strings are edited.
+- Preset rows (`isEnabled: false`) remain valid scenario steps because resolution ignores `isEnabled` for `rowId` lookup.
+- Empty `body` / `contentType` normalize away so Henge can mean “use spec default”.
 
-### Admin API (runtime)
-
-`POST {pathPrefix}/__kawarimi/configure` upserts a row; returns `200` + override array. See [henge.md](../../docs/henge.md) for Henge API.
+Runtime admin API: [henge.md](../../docs/henge.md).
 
 ## `kawarimi-scenarios.json`
 
-Top-level shape: `{ "scenarios": [ … ] }`.
+Top-level shape: `{ "scenarios": [ … ] }`. Default path: beside `kawarimi.json` (override with `KAWARIMI_SCENARIOS_CONFIG`).
 
-Default path: same directory as `kawarimi.json`, or `KAWARIMI_SCENARIOS_CONFIG`.
-
-| Field | Notes |
+| Field | Why |
 | --- | --- |
-| `scenarioId` | Selects scenario (`X-Kawarimi-Scenario-Id`) |
+| `scenarioId` | Selects flow via `X-Kawarimi-Scenario-Id` |
 | `initial` | First step when client omits `X-Kawarimi-Id` |
-| `cases[]` | Steps in this scenario |
+| `cases[]` | Ordered graph of steps |
 
 Each **case**:
 
-| Field | Notes |
+| Field | Why |
 | --- | --- |
-| `kawarimiId` | Step id within scenario |
-| `next` | Optional; omit at terminal steps |
-| `rowId` | Must match `MockOverride.rowId` in `kawarimi.json` |
-| `endpoint.method` | Must match override `method` |
-| `endpoint.path` | Must match override `path` (path-only) |
-
-Response bodies come from the **override row**, not from the scenario file.
+| `kawarimiId` | Step identity within the scenario |
+| `next` | Drives `X-Next-Kawarimi-Id`; omit at terminals |
+| `rowId` | Join to override body |
+| `endpoint.method` / `endpoint.path` | Must match the override row or resolution falls back |
 
 ## HTTP headers (runtime summary)
 
-| Header | Direction | Role |
+| Header | Direction | Why |
 | --- | --- | --- |
-| `X-Kawarimi-Scenario-Id` | Request | Select scenario |
+| `X-Kawarimi-Scenario-Id` | Request | Picks which flow |
 | `X-Kawarimi-Id` | Request | Current step |
-| `X-Next-Kawarimi-Id` | Response | Next step when `next` is set |
+| `X-Next-Kawarimi-Id` | Response | Client/server state advance |
 
-Full server/client behavior: [henge.md](../../docs/henge.md).
+Details: [henge.md](../../docs/henge.md).
 
 ## Decision tree
 
-| Situation | Use |
+| Situation | Why this path |
 | --- | --- |
-| OpenAPI spec just changed | [#159](https://github.com/novr/Kawarimi/issues/159) — update override rows |
-| JSON shape / `rowId` / endpoint alignment | This skill |
-| Design a new multi-step flow from requirements | External Scenario Maker, then this skill |
+| OpenAPI spec just changed | Overrides must exist before scenarios reference them ([#159](https://github.com/novr/Kawarimi/issues/159)) |
+| JSON shape / `rowId` / endpoint alignment | This skill — prevents silent fallback |
+| New multi-step flow from requirements | External Maker first, then format here |
 
-## Mock JSON codegen
-
-How stub bodies are chosen at build time: [mock-json.md](../../docs/mock-json.md).
+Build-time stub rules: [mock-json.md](../../docs/mock-json.md).

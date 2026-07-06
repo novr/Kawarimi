@@ -108,15 +108,15 @@ targets: [
 
 ### ユーザー向け Skills（mock / シナリオ JSON）
 
-モック JSON はエージェントが生成・修正する想定で、手書きはほぼしない。SSOT: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
+手書きの mock JSON はランタイム契約からずれやすい。エージェントは SSOT に従う: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 
-Cursor では当該ディレクトリを `.cursor/skills/kawarimi-user-mock-and-scenario-format/` にコピーまたは symlink。
+全チェックアウトで同じルールを使うため [skills CLI](https://github.com/vercel-labs/skills) でインストール: `npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y`（常時利用は `-g`）。一覧: `npx skills add novr/Kawarimi --list`。
 
-関連: [#158](https://github.com/novr/Kawarimi/issues/158)（初回統合）、[#159](https://github.com/novr/Kawarimi/issues/159)（OpenAPI 変更後の override 更新）、[#182](https://github.com/novr/Kawarimi/issues/182)（書式 + 検証）。
+関連: [#158](https://github.com/novr/Kawarimi/issues/158)（初回統合）、[#159](https://github.com/novr/Kawarimi/issues/159)（OpenAPI 変更 → override）、[#182](https://github.com/novr/Kawarimi/issues/182)（書式 + 検証）。
 
 ### シナリオ作成（委譲）
 
-**対話型のシナリオ設計**（OpenAPI からゼロでドラフト生成）は Kawarimi のスコープ外。外部 Scenario Maker Skill、[#148 MCP](https://github.com/novr/Kawarimi/issues/148) 等で作成し、上記 format Skill と **`KawarimiValidate`** で整形・検証する。
+Kawarimi は **ランタイムと codegen** が責務で、対話型のフロー設計は対象外。[#148 MCP](https://github.com/novr/Kawarimi/issues/148) や外部 Maker でドラフトし、format Skill と **`KawarimiValidate`** で整形・ゲートする（ランタイムは warning のみでフォールバックするため、コミット前に検証する）。
 
 ```mermaid
 flowchart LR
@@ -131,7 +131,7 @@ flowchart LR
 
 ### mock JSON の検証（`KawarimiValidate`）
 
-Kawarimi のチェックアウト（または Kawarimi 依存プロジェクト）から:
+サーバは構造問題をログに出すだけでフォールバックするため、マージ前に CI で落とす用途で使う。
 
 ```bash
 swift run KawarimiValidate \
@@ -141,9 +141,9 @@ swift run KawarimiValidate \
 
 - `--config` 省略 → `KAWARIMI_CONFIG` → `./kawarimi.json`
 - `--scenarios` 省略 → `KAWARIMI_SCENARIOS_CONFIG` → config と同階層の `kawarimi-scenarios.json`
-- 終了コード `0` — OK、`1` — 構造 warning（stdout）、`2` — fatal
+- 終了コード `0` — OK、`1` — シナリオステップを信頼する前に warning を修正、`2` — config 不正または欠落
 
-範囲: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。ランタイム: [henge.md](henge.md)。
+検証範囲: [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。ランタイム: [henge.md](henge.md)。
 
 ### 管理ルート segment と spec wire 検証
 

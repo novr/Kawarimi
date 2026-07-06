@@ -20,19 +20,19 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | [Roadmap.md](Roadmap.md) | プロジェクトのゴール（未来の方向）。バックログは GitHub Issues、リリースは CHANGELOG |
 | [CHANGELOG.md](CHANGELOG.md) | リリース・破壊的変更（SemVer） |
 | [導入・統合](docs/ja/integration.md) | SwiftPM、OpenAPI の配置、設定、テスト、Skills、KawarimiValidate |
-| [ユーザー向け Skills](skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | エージェント向け `kawarimi.json` / `kawarimi-scenarios.json` SSOT |
+| [ユーザー向け Skills](skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | エージェント向け mock/シナリオ JSON SSOT — ランタイム契約とのずれを防ぐ |
 | [ダイナミックモック（Henge）](docs/ja/henge.md) | ランタイムモック、`__kawarimi` API、Vapor、シナリオランタイム |
 | [モック JSON の決め方](docs/ja/mock-json.md) | 埋め込みモック JSON の優先順位 |
 
-## SwiftPM プロダクト（ランタイム）
+## SwiftPM プロダクト
 
-| プロダクト | 役割 |
+| プロダクト | 用途（なぜ必要か） |
 | --- | --- |
-| **Kawarimi** | OpenAPI コード生成 CLI |
-| **KawarimiValidate** | `kawarimi.json` + `kawarimi-scenarios.json` の検証 |
+| **Kawarimi** | OpenAPI コード生成 CLI（プラグインと同じ入口） |
+| **KawarimiValidate** | ランタイムでは warning のみの構造問題を、マージ前に CI で落とす |
 | **KawarimiCore** | 共有モデル、`KawarimiConfigStore`、`KawarimiAPIClient`、シナリオ resolver |
-| **KawarimiServer** | `KawarimiServerMiddleware` — サーバ側動的モック |
-| **KawarimiClient** | `KawarimiClientOrchestrationMiddleware` — OpenAPI クライアントのシナリオヘッダー state |
+| **KawarimiServer** | Henge UI に依存しないサーバ側動的モック |
+| **KawarimiClient** | 生成 OpenAPI クライアントのシナリオヘッダー state |
 | **KawarimiHenge** | SwiftUI 管理 UI（macOS） |
 
 詳細: [導入・統合](docs/ja/integration.md)、[Henge](docs/ja/henge.md)。

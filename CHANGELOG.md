@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **KawarimiValidate** — standalone executable to validate `kawarimi.json` and `kawarimi-scenarios.json` structural consistency ([#182](https://github.com/novr/Kawarimi/issues/182)).
-- **skills/kawarimi-user-mock-and-scenario-format** — agent SSOT for mock override and scenario JSON authoring ([#182](https://github.com/novr/Kawarimi/issues/182)).
+- **KawarimiValidate** — fail CI on structural mock/scenario JSON issues that runtime only warns about ([#182](https://github.com/novr/Kawarimi/issues/182)).
+- **skills/kawarimi-user-mock-and-scenario-format** — single agent SSOT so mock JSON stays aligned with runtime contracts ([#182](https://github.com/novr/Kawarimi/issues/182)).
 - **Example**: committed **`kawarimi-scenarios.json`** two-step **`GET /api/greet`** sample and matching **`kawarimi.json.example`** fixed **`rowId`** overrides ([#176](https://github.com/novr/Kawarimi/issues/176)).
 - **Example**: one-step **`POST /api/items` → 400** scenario fixture (`createItem_validation`) for format skill examples.
 - **Example**: DemoServer E2E tests for scenario orchestration header timelines ([#177](https://github.com/novr/Kawarimi/issues/177)), including **`X-Kawarimi-Id`** omission restarting at **`initial`** after a terminal step.
@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Docs
 
-- **henge.md** / **ja/henge.md**: mock/scenario JSON authoring moved to **skills/kawarimi-user-mock-and-scenario-format**; runtime sections unchanged.
-- **integration.md** / **ja/integration.md**: Skills install, scenario authoring delegation, **`KawarimiValidate`** usage.
+- **henge.md** / **ja/henge.md**: authoring pointers moved to Skills (runtime docs unchanged); validate recommended because load only warns.
+- **integration.md** / **ja/integration.md**: Skills install for consistent agent rules; **`KawarimiValidate`** as pre-merge gate.
 - **henge.md** / **ja/henge.md**: Henge automated tests now **`KawarimiHengeCoreTests`** (`Tests/KawarimiHengeCoreTests/`).
 
 ## [3.2.0] - 2026-06-26

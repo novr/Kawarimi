@@ -9,52 +9,60 @@ description: >-
 
 # Kawarimi mock & scenario format
 
-Agents generate or fix `kawarimi.json` and `kawarimi-scenarios.json`. Users rarely hand-write these files.
+Because users rarely hand-write mock JSON, agents need a single place for **shape rules** and **validation** — not scattered docs that mix runtime behavior with authoring.
 
-**Prerequisites:** project `openapi.yaml` is already in context (from the repo or a Scenario Maker draft). This skill formats and validates JSON; it does not design flows from scratch.
+**Prerequisites:** `openapi.yaml` is already in context (from the repo or a Scenario Maker draft). This skill finishes and checks JSON; it does not invent flows.
 
 ## Workflow
 
-1. **Edit** — apply rules in [reference.md](reference.md); copy patterns from [examples.md](examples.md).
-2. **Validate** — from the Kawarimi package root (or a project that depends on Kawarimi):
+1. **Edit** — follow [reference.md](reference.md) so scenario steps resolve to real override rows at runtime (orphan `rowId` and endpoint mismatch silently fall back on the server).
+2. **Validate** — run before commit so structural mistakes fail in CI instead of at integration time:
+
    ```bash
    swift run KawarimiValidate \
      --config path/to/kawarimi.json \
      --scenarios path/to/kawarimi-scenarios.json
    ```
-   - exit `0` — OK
-   - exit `1` — structural warnings on stdout; fix and re-run
-   - exit `2` — fatal (missing config, invalid JSON)
-3. **Re-run until exit 0.**
 
-See [validation.md](validation.md) for what validate does and does not check.
+   - exit `0` — safe to commit
+   - exit `1` — fix warnings (scenario steps may not run as intended)
+   - exit `2` — invalid or missing config; do not commit
+3. **Re-run until exit 0** — runtime logs warnings but still serves traffic; validate catches them early.
+
+Scope and limits: [validation.md](validation.md).
 
 ## Runtime behavior
 
-Headers, server middleware, client middleware, reload, and Henge UI: [docs/henge.md](../../docs/henge.md) (runtime only).
+For **why** headers, middleware, and reload behave as they do: [docs/henge.md](../../docs/henge.md) (runtime only — not JSON shape).
 
 ## OpenAPI changed?
 
-Use skill/issue **#159** (override row updates). This skill covers JSON shape and `rowId` / endpoint alignment.
+Use [#159](https://github.com/novr/Kawarimi/issues/159) — overrides must track operations before scenario `rowId` alignment is meaningful.
 
 ## Zero-to-draft scenario design
 
-**Not in Kawarimi.** Delegate to an external Scenario Maker Skill, [#148 MCP](https://github.com/novr/Kawarimi/issues/148), or similar. Then return here to format and validate.
+Kawarimi does not design flows. Use an external Scenario Maker, [#148 MCP](https://github.com/novr/Kawarimi/issues/148), or similar, then return here so JSON matches runtime contracts.
 
 ## Related Kawarimi user skills
 
-| Issue | Skill (planned) |
+| Issue | When to use |
 | --- | --- |
-| [#158](https://github.com/novr/Kawarimi/issues/158) | First-time Kawarimi integration |
-| [#159](https://github.com/novr/Kawarimi/issues/159) | OpenAPI change → override updates |
-| **#182** | This skill (format + validate) |
+| [#158](https://github.com/novr/Kawarimi/issues/158) | First Kawarimi integration |
+| [#159](https://github.com/novr/Kawarimi/issues/159) | OpenAPI change → override rows |
+| **#182** | Format + validate (this skill) |
 
-## Install (Cursor)
+## Install
 
-Copy or symlink this directory into your project:
+So agents pick up the same rules in every project without copying markdown by hand:
 
-```text
-.cursor/skills/kawarimi-user-mock-and-scenario-format/
+```bash
+# Team / repo — skill travels with the project
+npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -y
+
+# Personal default across repos
+npx skills add novr/Kawarimi --skill kawarimi-user-mock-and-scenario-format -g -y
 ```
 
-Or reference files directly from the Kawarimi checkout at `skills/kawarimi-user-mock-and-scenario-format/`.
+Discover skills in the repo: `npx skills add novr/Kawarimi --list`.
+
+From a Kawarimi checkout you can also read `skills/kawarimi-user-mock-and-scenario-format/` directly without installing.

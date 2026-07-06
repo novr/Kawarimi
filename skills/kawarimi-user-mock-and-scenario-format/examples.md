@@ -1,6 +1,8 @@
 # Examples — override + scenario pairs
 
-Golden fixtures live in [Example/DemoPackage](../../Example/DemoPackage/).
+Copy these when agents need **working joins** between `rowId` and endpoints — not when designing new flows (use a Maker first).
+
+Golden fixtures: [Example/DemoPackage](../../Example/DemoPackage/).
 
 ## Greet — two-step (`GET /api/greet`)
 

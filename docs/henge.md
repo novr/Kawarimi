@@ -186,7 +186,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 `POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
-**Authoring** overrides and scenario JSON (field rules, `rowId` alignment, examples): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). Validate with **`swift run KawarimiValidate`** (see [integration.md](integration.md)).
+**Authoring** (shape rules, `rowId` joins — not runtime behavior): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). **`KawarimiValidate`** before commit because load/reload only warns — [integration.md](integration.md).
 
 #### HTTP headers (`KawarimiScenarioHeaders`)
 
@@ -214,7 +214,7 @@ OpenAPI **`ClientMiddleware`** in **KawarimiClient** (depends on swift-openapi-r
 - **Concurrent requests** for the same `scenarioId` share one state map; the last response’s **`X-Next-Kawarimi-Id`** wins (documented behavior for parallel UI/tests).
 - **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
 
-Invalid scenario JSON on disk logs **warnings** at load/reload (duplicate `scenarioId`, orphan `rowId`, endpoint mismatch, etc.); requests still fall back to standard override resolution. Run **`KawarimiValidate`** before commit — [skills/kawarimi-user-mock-and-scenario-format/validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
+Invalid scenario JSON on disk logs **warnings** at load/reload; requests still fall back. **`KawarimiValidate`** exists to fail CI instead of relying on this soft behavior — [validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
 Sample committed fixtures and curl notes: [Example/README.md](../Example/README.md).
 
@@ -367,7 +367,7 @@ If you need **one** client that switches real vs mock at runtime, implement a sm
 
 `KawarimiConfigStore` (**KawarimiCore**) reads and writes overrides to a JSON file (default: `kawarimi.json` in the working directory).
 
-The file format uses `KawarimiConfig` (overrides array). **Authoring** override rows and scenarios: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
+The file format uses `KawarimiConfig` (overrides array). **Authoring** rules (why fields exist, not runtime): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
 
 Set `KAWARIMI_CONFIG` to override the config file path.
 
