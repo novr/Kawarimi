@@ -185,6 +185,30 @@ curl -s -D - http://127.0.0.1:8080/api/greet \
   -H "X-Kawarimi-Id: formal"
 ```
 
+**Swift クライアント**（ターゲットに **KawarimiClient** と [swift-openapi-urlsession](https://github.com/apple/swift-openapi-urlsession) を追加。curl デモと同じ **`kawarimi.json`** / **`kawarimi-scenarios.json`** を使用）:
+
+```swift
+import DemoAPI
+import KawarimiClient
+import OpenAPIURLSession
+
+let middleware = KawarimiClientOrchestrationMiddleware(
+    scenarioIdProvider: { _ in "greet" }
+)
+let client = Client(
+    serverURL: URL(string: "http://127.0.0.1:8080/api")!,
+    transport: URLSessionTransport(),
+    middlewares: [middleware]
+)
+
+// 1 回目 — middleware が X-Kawarimi-Scenario-Id のみ送信（initial ステップ）。
+let first = try await client.getGreeting(.init())
+// 2 回目 — 前回レスポンスの X-Next-Kawarimi-Id から X-Kawarimi-Id を注入。
+let second = try await client.getGreeting(.init())
+```
+
+CI では **`DemoServerE2ETests`**（`clientScenarioGreetTwoStepTimeline`）がサブプロセス **DemoServer** 向けに同じフローを検証します。
+
 ヘッダー規約と **`KawarimiClientOrchestrationMiddleware`**（**KawarimiClient**）: [henge.md](../docs/ja/henge.md)。
 
 <a id="henge-api-demoserver"></a>
