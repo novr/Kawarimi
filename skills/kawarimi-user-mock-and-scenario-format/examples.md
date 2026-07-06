@@ -1,35 +1,35 @@
-# Examples — override + scenario pairs
+# Examples — patterns
 
-Copy these when agents need **working joins** between `rowId` and endpoints — not when designing new flows (use a Maker first).
+Adapt every `path`, `method`, `name`, `exampleId`, body, and `rowId` from the project's `openapi.yaml`. Copying literals from below without adaptation will break joins.
 
-Golden fixtures: [Example/DemoPackage](../../Example/DemoPackage/).
+## Two-step flow (same operation, two bodies)
 
-## Greet — two-step (`GET /api/greet`)
+Use when one operation must return different bodies across consecutive calls (enabled row = default mock; disabled preset = later step).
 
-**`kawarimi.json`** (excerpt — two preset rows, one enabled):
+**`kawarimi.json`** (excerpt):
 
 ```json
 {
   "overrides": [
     {
-      "body": "{\"message\":\"Hello from API\"}",
+      "body": "{\"message\":\"Hello\"}",
       "contentType": "application/json",
-      "exampleId": "success",
+      "exampleId": "step_a",
       "isEnabled": true,
       "method": "GET",
-      "name": "getGreeting",
-      "path": "/api/greet",
+      "name": "yourOperationId",
+      "path": "/api/your-path",
       "rowId": "00000000-0000-0000-0000-000000000001",
       "statusCode": 200
     },
     {
-      "body": "{\"message\":\"Good day from API\"}",
+      "body": "{\"message\":\"Hello again\"}",
       "contentType": "application/json",
-      "exampleId": "formal",
+      "exampleId": "step_b",
       "isEnabled": false,
       "method": "GET",
-      "name": "getGreeting",
-      "path": "/api/greet",
+      "name": "yourOperationId",
+      "path": "/api/your-path",
       "rowId": "00000000-0000-0000-0000-000000000002",
       "statusCode": 200
     }
@@ -43,19 +43,19 @@ Golden fixtures: [Example/DemoPackage](../../Example/DemoPackage/).
 {
   "scenarios": [
     {
-      "scenarioId": "greet",
-      "initial": "success",
+      "scenarioId": "your_flow",
+      "initial": "step_a",
       "cases": [
         {
-          "kawarimiId": "success",
-          "next": "formal",
+          "kawarimiId": "step_a",
+          "next": "step_b",
           "rowId": "00000000-0000-0000-0000-000000000001",
-          "endpoint": { "method": "GET", "path": "/api/greet" }
+          "endpoint": { "method": "GET", "path": "/api/your-path" }
         },
         {
-          "kawarimiId": "formal",
+          "kawarimiId": "step_b",
           "rowId": "00000000-0000-0000-0000-000000000002",
-          "endpoint": { "method": "GET", "path": "/api/greet" }
+          "endpoint": { "method": "GET", "path": "/api/your-path" }
         }
       ]
     }
@@ -63,39 +63,39 @@ Golden fixtures: [Example/DemoPackage](../../Example/DemoPackage/).
 }
 ```
 
-Flow: first request uses `initial` → `success` row; response includes `X-Next-Kawarimi-Id: formal`; second request uses `formal` row (terminal, no `next`).
+`next` on `step_a` requires the client to send `X-Next-Kawarimi-Id: step_b` on the follow-up — otherwise the server restarts at `initial`.
 
-## Create item — one-step error (`POST /api/items` → 400)
+## One-step error (terminal)
 
-Terminal error step (no `next`). Next request without `X-Kawarimi-Id` restarts at `initial`.
+Use when a single call must return an error body and later calls without `X-Kawarimi-Id` should hit `initial` again.
 
-**Override row** (add to `kawarimi.json`):
+**Override row**:
 
 ```json
 {
-  "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"Invalid item\"}",
+  "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"Invalid input\"}",
   "contentType": "application/json",
   "exampleId": "validation_error",
   "isEnabled": false,
   "method": "POST",
-  "name": "createItem",
-  "path": "/api/items",
+  "name": "yourOperationId",
+  "path": "/api/your-path",
   "rowId": "00000000-0000-0000-0000-000000000003",
   "statusCode": 400
 }
 ```
 
-**Scenario** (add to `kawarimi-scenarios.json`):
+**Scenario**:
 
 ```json
 {
-  "scenarioId": "createItem_validation",
+  "scenarioId": "your_validation_flow",
   "initial": "error",
   "cases": [
     {
       "kawarimiId": "error",
       "rowId": "00000000-0000-0000-0000-000000000003",
-      "endpoint": { "method": "POST", "path": "/api/items" }
+      "endpoint": { "method": "POST", "path": "/api/your-path" }
     }
   ]
 }
@@ -105,6 +105,6 @@ Terminal error step (no `next`). Next request without `X-Kawarimi-Id` restarts a
 
 ```bash
 swift run KawarimiValidate \
-  --config Example/DemoPackage/kawarimi.json.example \
-  --scenarios Example/DemoPackage/kawarimi-scenarios.json
+  --config path/to/kawarimi.json \
+  --scenarios path/to/kawarimi-scenarios.json
 ```

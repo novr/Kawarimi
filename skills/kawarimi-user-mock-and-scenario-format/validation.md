@@ -1,45 +1,43 @@
-# KawarimiValidate — scope
+# KawarimiValidate — limits
 
-`KawarimiValidate` exists because runtime only **logs** structural problems and keeps serving requests. CI and agents need a **hard gate** before merge.
+Runtime **logs** structural problems and keeps serving. Validator **fails** so broken joins do not reach commit.
 
-Implementation: `KawarimiScenarioValidation` in KawarimiCore.
+## Checked (exit `1`)
 
-## Guaranteed (exit 1 if any fail)
+Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI.
 
-These checks matter because the server matches scenario steps by `rowId` and endpoint — not by guessing from OpenAPI at validate time.
-
-| Check | Why it matters |
+| Check | Why failure matters |
 | --- | --- |
-| `scenarioId` | Duplicate or invalid ids make scenario selection ambiguous |
-| `initial` | First request must map to a real step |
-| `kawarimiId` / `next` | Invalid tokens break header state machines |
-| Case uniqueness | Same step key twice → undefined which override wins |
-| `rowId` reference | Missing override → step falls back to normal mock resolution |
-| Endpoint match | Path/method drift → wrong body or silent fallback |
+| `scenarioId` | Ambiguous or invalid → wrong or undefined flow |
+| `initial` | No matching case → first request undefined |
+| `kawarimiId` / `next` | Bad tokens → header state machine breaks |
+| Case uniqueness | Duplicate step keys → unpredictable override |
+| `rowId` reference | Orphan → fallback instead of intended body |
+| Endpoint match | Drift → fallback despite valid-looking `rowId` |
 
-Edge cases:
-
-- Missing **scenarios file** → treated as `[]` (overrides-only edits stay valid).
-- Missing **config** or invalid JSON → exit 2 (nothing reliable to cross-check).
-- **Unused overrides** → not reported (presets and Henge-only rows are allowed).
-
-## Not guaranteed
-
-| Topic | Why we skip it |
+| Edge case | Why handled this way |
 | --- | --- |
-| Override `body` is meaningful JSON | Decode failure is enough; semantics need runtime |
-| Paths match OpenAPI operations | Validator does not load the spec |
-| `exampleId` / `responseMap` correctness | Resolved at mock response time |
-| E2E response bodies | Needs a running server |
-| `isEnabled` policy | Operational choice in Henge |
-| Scenario graph design | Belongs to Maker / human review |
-| Runtime fallback when warnings exist | Documented in henge — validate does not simulate traffic |
+| Scenarios file missing | Overrides-only edits should still pass |
+| Config missing / bad JSON | Nothing to cross-check reliably → exit `2` |
+| Unused overrides | Allowed — presets need not appear in scenarios |
 
-## Warning examples
+## Not checked
 
-| Message pattern | Why you see it | Fix |
+| Topic | Why omitted |
+| --- | --- |
+| `body` semantics | Decode errors suffice; meaning needs runtime |
+| Paths vs OpenAPI | Spec not loaded |
+| `exampleId` / `responseMap` | Resolved when serving |
+| E2E bodies | Needs live server |
+| `isEnabled` | Ops choice |
+| Graph design (terminals, reachability) | Maker / review |
+| Runtime fallback | Validator does not replay traffic |
+
+## Warnings → fix
+
+| Pattern | Cause | Fix |
 | --- | --- | --- |
-| `rowId … not found` | Step points at no override row | Add row or fix `rowId` |
-| `endpoint … does not match` | Step would not hit the intended override | Align `method`/`path` with the row |
-| `Duplicate scenarioId` | Two flows share one id | Rename or merge |
-| `initial … has no matching case` | First step is undefined | Add case or fix `initial` |
+| `rowId … not found` | No override row | Add row or fix `rowId` |
+| `endpoint … does not match` | Step ≠ override operation | Align `method`/`path` |
+| `Duplicate scenarioId` | Shared id | Rename or merge |
+| `initial … has no matching case` | No first step | Add case or fix `initial` |
