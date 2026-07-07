@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.3] - 2026-07-07
+
+### Changed
+
+- **CI:** bump GitHub Actions — `actions/checkout` v7, `actions/cache` v6.1, `dorny/paths-filter` v4.0.2, `swift-actions/setup-swift` v3, `softprops/action-gh-release` v3.0.1 ([#187](https://github.com/novr/Kawarimi/pull/187)).
+
 ## [3.3.2] - 2026-07-07
 
 ### Fixed
@@ -463,6 +469,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.3.3]: https://github.com/novr/Kawarimi/releases/tag/v3.3.3
 [3.3.2]: https://github.com/novr/Kawarimi/releases/tag/v3.3.2
 [3.3.1]: https://github.com/novr/Kawarimi/releases/tag/v3.3.1
 [3.3.0]: https://github.com/novr/Kawarimi/releases/tag/v3.3.0
