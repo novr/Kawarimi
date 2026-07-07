@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.2] - 2026-07-07
+
+### Fixed
+
+- **KawarimiHandler** JSON stub initializers: OpenAPI property names that are Swift keywords (e.g. `type`) now use the same escaped labels as swift-openapi-generator (e.g. `_type:`), fixing compile errors such as `incorrect argument label in call (have 'type:url:', expected '_type:url:')` ([#189](https://github.com/novr/Kawarimi/pull/189)).
+
 ## [3.3.1] - 2026-07-07
 
 ### Added
@@ -457,6 +463,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.3.2]: https://github.com/novr/Kawarimi/releases/tag/v3.3.2
 [3.3.1]: https://github.com/novr/Kawarimi/releases/tag/v3.3.1
 [3.3.0]: https://github.com/novr/Kawarimi/releases/tag/v3.3.0
 [3.2.0]: https://github.com/novr/Kawarimi/releases/tag/v3.2.0
