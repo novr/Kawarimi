@@ -26,6 +26,22 @@ struct KawarimiValidateCLITests {
         #expect(result.exitCode == 0, "stderr: \(result.stderr)")
     }
 
+    @Test func cliPrintsVersion() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let expectedVersion = buildInfoVersion(packageRoot: packageRoot) else {
+            Issue.record("Could not read BuildInfo.version from Sources/KawarimiValidate/Generated.swift")
+            return
+        }
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let result = try runCLI(executable: executable, arguments: ["--version"], packageRoot: packageRoot)
+        #expect(result.exitCode == 0, "stderr: \(result.stderr)")
+        #expect(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == expectedVersion)
+    }
+
     @Test func cliExitsOneWhenWarningsPresent() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
@@ -208,6 +224,19 @@ private func runCLI(
         stdout: String(data: stdoutData, encoding: .utf8) ?? "",
         stderr: String(data: stderrData, encoding: .utf8) ?? ""
     )
+}
+
+private func buildInfoVersion(packageRoot: URL) -> String? {
+    let generatedURL = packageRoot.appendingPathComponent("Sources/KawarimiValidate/Generated.swift")
+    guard let text = try? String(contentsOf: generatedURL, encoding: .utf8) else { return nil }
+    for line in text.split(whereSeparator: \.isNewline) {
+        let trimmed = String(line).trimmingCharacters(in: .whitespaces)
+        guard trimmed.contains("static let version") else { continue }
+        let parts = trimmed.split(separator: "\"", omittingEmptySubsequences: false)
+        guard parts.count >= 2 else { continue }
+        return String(parts[1])
+    }
+    return nil
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {

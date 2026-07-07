@@ -2,7 +2,7 @@
 
 Runtime **logs** structural problems and keeps serving. Validator **fails** so broken joins do not reach commit.
 
-**Run:** see [SKILL.md](SKILL.md) — needs Kawarimi in `Package.swift` `dependencies`, or a Kawarimi clone with absolute JSON paths.
+**Run:** macOS — `brew install novr/taps/kawarimi-validate`. Linux — `swift run KawarimiValidate`. See [integration.md](../../docs/integration.md).
 
 ## Checked (exit `1`)
 

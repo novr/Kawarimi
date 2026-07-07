@@ -15,7 +15,10 @@ Requires `openapi.yaml` in context — otherwise override rows cannot match real
 1. **Edit** — [reference.md](reference.md). Orphan `rowId` or endpoint mismatch → server falls back silently; wrong body with no error.
 2. **Validate** — catch that before commit (runtime only logs warnings).
 
-   **Requires** `Package.swift` to list Kawarimi under `dependencies` (not only `KawarimiCore` on targets). From that package root:
+   - **macOS:** `brew install novr/taps/kawarimi-validate` then `kawarimi-validate --config … --scenarios …`
+   - **Linux / fallback:** `swift run KawarimiValidate` from a package with Kawarimi in `dependencies`, or a Kawarimi clone with absolute JSON paths
+
+   Details: [docs/integration.md](../../docs/integration.md) (ja: [docs/ja/integration.md](../../docs/ja/integration.md)).
 
    ```bash
    swift run KawarimiValidate \
