@@ -29,7 +29,7 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | プロダクト | 用途（なぜ必要か） |
 | --- | --- |
 | **Kawarimi** | OpenAPI コード生成 CLI（プラグインと同じ入口） |
-| **KawarimiValidate** | ランタイムでは warning のみの構造問題を、マージ前に CI で落とす |
+| **KawarimiValidate** | ランタイムでは warning のみの構造問題を、マージ前に CI で落とす — macOS: `brew install novr/taps/kawarimi-validate` |
 | **KawarimiCore** | 共有モデル、`KawarimiConfigStore`、`KawarimiAPIClient`、シナリオ resolver |
 | **KawarimiServer** | Henge UI に依存しないサーバ側動的モック |
 | **KawarimiClient** | 生成 OpenAPI クライアントのシナリオヘッダー state |

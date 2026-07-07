@@ -79,6 +79,19 @@ SwiftPM プロダクト:
 - **KawarimiServer** — サーバ動的モック — [henge.md](henge.md)。
 - **KawarimiClient** — クライアントのシナリオオーケストレーション middleware — [henge.md](henge.md)。
 
+### KawarimiValidate バイナリ
+
+**macOS（推奨）:** [novr/homebrew-taps](https://github.com/novr/homebrew-taps) から:
+
+```bash
+brew install novr/taps/kawarimi-validate
+kawarimi-validate --config path/to/kawarimi.json --scenarios path/to/kawarimi-scenarios.json
+```
+
+Release 成果物: [GitHub Releases](https://github.com/novr/Kawarimi/releases) の `kawarimi-validate_{version}_darwin.tar.gz`。
+
+**Linux CI:** 従来どおり `dependencies` に Kawarimi を載せたうえで `swift run KawarimiValidate`（[skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)）。
+
 **KawarimiSpec.swift** を置くターゲットは **`KawarimiCore`** と **`HTTPTypes`** を**直接**依存に書く。
 
 ```swift

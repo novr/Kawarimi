@@ -29,7 +29,7 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | Product | Why you need it |
 | --- | --- |
 | **Kawarimi** | CLI for OpenAPI codegen (same entry as the plugin) |
-| **KawarimiValidate** | Fail CI before merge when scenario JSON would only warn at runtime |
+| **KawarimiValidate** | Fail CI before merge when scenario JSON would only warn at runtime — macOS: `brew install novr/taps/kawarimi-validate` |
 | **KawarimiCore** | Shared models, `KawarimiConfigStore`, `KawarimiAPIClient`, scenario resolver |
 | **KawarimiServer** | Server-side dynamic mocks without coupling to Henge UI |
 | **KawarimiClient** | Scenario header state on generated OpenAPI clients |

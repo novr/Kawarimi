@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiValidate** macOS universal binary on GitHub Releases (`kawarimi-validate_{version}_darwin.tar.gz`, `checksums.txt`).
+- **Homebrew:** `brew install novr/taps/kawarimi-validate` via [novr/homebrew-taps](https://github.com/novr/homebrew-taps) (release workflow dispatches formula update).
+
+### Changed
+
+- **KawarimiValidate** CLI: `--version` reports release tag (local/PR stub: `dev`).
+
 ## [3.3.0] - 2026-07-06
 
 ### Added

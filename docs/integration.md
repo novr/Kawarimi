@@ -79,6 +79,19 @@ SwiftPM products:
 - **KawarimiServer** — server dynamic mocks — [henge.md](henge.md).
 - **KawarimiClient** — client scenario orchestration middleware — [henge.md](henge.md).
 
+### KawarimiValidate binary
+
+**macOS (recommended):** install from [novr/homebrew-taps](https://github.com/novr/homebrew-taps):
+
+```bash
+brew install novr/taps/kawarimi-validate
+kawarimi-validate --config path/to/kawarimi.json --scenarios path/to/kawarimi-scenarios.json
+```
+
+Release assets: `kawarimi-validate_{version}_darwin.tar.gz` on [GitHub Releases](https://github.com/novr/Kawarimi/releases).
+
+**Linux CI:** keep using `swift run KawarimiValidate` from a package that lists Kawarimi under `dependencies` (see [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)).
+
 Targets with **KawarimiSpec.swift** need **`KawarimiCore`** and **`HTTPTypes`** as **direct** dependencies.
 
 ```swift
