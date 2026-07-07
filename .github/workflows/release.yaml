@@ -251,13 +251,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download verify artifacts
-        uses: actions/download-artifact@cc1f0226e4695b6ea3c0d8d0b6e9c97a3fe3c3af # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: release-verify
           path: release-verify
 
       - name: Download macOS artifacts
-        uses: actions/download-artifact@cc1f0226e4695b6ea3c0d8d0b6e9c97a3fe3c3af # v6.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: release-macos
           path: release-macos
