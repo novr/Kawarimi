@@ -521,6 +521,7 @@ public enum KawarimiJutsu {
                         operationId: operationId,
                         operationContext: opContext,
                         operationSwiftTypeName: typeName,
+                        namingStrategy: namingStrategy,
                         handlerStubWarnings: &warnings
                     )
                 case .fatalError:
@@ -531,6 +532,7 @@ public enum KawarimiJutsu {
                             operationId: operationId,
                             operationContext: opContext,
                             operationSwiftTypeName: typeName,
+                            namingStrategy: namingStrategy,
                             handlerStubWarnings: &warnings
                         )
                     } catch let error as KawarimiJutsuError {
@@ -571,6 +573,7 @@ public enum KawarimiJutsu {
         operationId: String,
         operationContext: String,
         operationSwiftTypeName: String,
+        namingStrategy: KawarimiNamingStrategy,
         handlerStubWarnings: inout [String]
     ) throws -> HandlerOutputStub {
         for code in [200, 201] {
@@ -587,6 +590,7 @@ public enum KawarimiJutsu {
                         operationId: operationId,
                         operationContext: operationContext,
                         httpStatus: code,
+                        namingStrategy: namingStrategy,
                         handlerStubWarnings: &handlerStubWarnings
                     )
                 } catch {
@@ -646,6 +650,7 @@ public enum KawarimiJutsu {
         operationId: String,
         operationContext: String,
         httpStatus: Int,
+        namingStrategy: KawarimiNamingStrategy,
         handlerStubWarnings: inout [String]
     ) throws -> String? {
         guard let content = response.content[.json] else { return nil }
@@ -659,6 +664,7 @@ public enum KawarimiJutsu {
             components: components,
             operationId: operationId,
             diagnosticPath: path,
+            namingStrategy: namingStrategy,
             handlerStubWarnings: &handlerStubWarnings,
             refChain: &refChain
         )
@@ -1230,6 +1236,7 @@ public enum KawarimiJutsu {
         components: OpenAPI.Components,
         operationId: String,
         diagnosticPath: String,
+        namingStrategy: KawarimiNamingStrategy,
         handlerStubWarnings: inout [String],
         refChain: inout Set<OpenAPI.ComponentKey>
     ) throws -> String {
@@ -1252,6 +1259,7 @@ public enum KawarimiJutsu {
                     components: components,
                     operationId: operationId,
                     diagnosticPath: diagnosticPath,
+                    namingStrategy: namingStrategy,
                     handlerStubWarnings: &handlerStubWarnings,
                     refChain: &refChain
                 )
@@ -1287,10 +1295,12 @@ public enum KawarimiJutsu {
                     components: components,
                     operationId: operationId,
                     diagnosticPath: childPath,
+                    namingStrategy: namingStrategy,
                     handlerStubWarnings: &handlerStubWarnings,
                     refChain: &refChain
                 )
-                return "\(name): \(valueExpr)"
+                let swiftName = try namingStrategy.swiftMemberName(for: name)
+                return "\(swiftName): \(valueExpr)"
             }
             return ".init(\(args.joined(separator: ", ")))"
         }
@@ -1303,6 +1313,7 @@ public enum KawarimiJutsu {
                 components: components,
                 operationId: operationId,
                 diagnosticPath: itemPath,
+                namingStrategy: namingStrategy,
                 handlerStubWarnings: &handlerStubWarnings,
                 refChain: &refChain
             )

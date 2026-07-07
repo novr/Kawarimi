@@ -172,6 +172,15 @@ extension KawarimiNamingStrategy {
         }
     }
 
+    public func swiftMemberName(for documentedName: String) throws -> String {
+        switch self {
+        case .defensive:
+            return try DefensiveSafeNameGenerator().swiftMemberName(for: documentedName)
+        case .idiomatic:
+            return try IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftMemberName(for: documentedName)
+        }
+    }
+
     public static func loadBesideOpenAPIYAML(
         atPath openAPIYAMLPath: String,
         targetNameForErrorMessages: String? = nil
