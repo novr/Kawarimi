@@ -82,6 +82,22 @@ private let enumHandlerGenerationCases: [EnumHandlerGenerationCase] = [
     EnumHandlerGenerationCase(accessModifier: .public, handlerStubPolicy: .throw, witnessAccessKeyword: "public"),
 ]
 
+@Test(arguments: [KawarimiNamingStrategy.defensive, .idiomatic])
+func kawarimiHandlerStubEscapesReservedPropertyNameLabel(strategy: KawarimiNamingStrategy) throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-reserved-property-name", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: strategy)
+    #expect(warnings.isEmpty)
+    // swift-openapi-generator escapes the reserved property name `type` to `_type`; the stub
+    // initializer label must match, otherwise the generated handler fails to compile with
+    // "incorrect argument label in call (have 'type:', expected '_type:')".
+    #expect(source.contains(".init(_type: \"example-value\")"))
+    #expect(!source.contains(".init(type:"))
+}
+
 @Test(arguments: enumHandlerGenerationCases)
 func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGenerationCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
