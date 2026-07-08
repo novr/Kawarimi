@@ -181,6 +181,17 @@ extension KawarimiNamingStrategy {
         }
     }
 
+    /// Swift type name for a component schema, matching the `Components.Schemas.*` identifiers
+    /// emitted by swift-openapi-generator (e.g. a schema named `Error` becomes `_Error`).
+    public func swiftSchemaTypeName(for documentedName: String) throws -> String {
+        switch self {
+        case .defensive:
+            return try DefensiveSafeNameGenerator().swiftTypeName(for: documentedName)
+        case .idiomatic:
+            return try IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: documentedName)
+        }
+    }
+
     public static func loadBesideOpenAPIYAML(
         atPath openAPIYAMLPath: String,
         targetNameForErrorMessages: String? = nil

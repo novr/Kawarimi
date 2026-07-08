@@ -112,6 +112,27 @@ func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGene
     )
 }
 
+@Test(arguments: enumHandlerGenerationCases)
+func kawarimiHandlerDecodeStubSanitizesKeywordSchemaName(case config: EnumHandlerGenerationCase) throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-ref-keyword", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+        document: document,
+        namingStrategy: .defensive,
+        accessModifier: config.accessModifier,
+        handlerStubPolicy: config.handlerStubPolicy
+    )
+    #expect(warnings.isEmpty)
+    let witnessBlock = try #require(handlerWitnessBlock(witnessName: "onCreateItem", in: source))
+    // `$ref: '#/components/schemas/Error'` must map to the sanitized Swift type `_Error`
+    // (swift-openapi-generator prefixes keyword names with `_`), never the raw `Error`.
+    #expect(witnessBlock.contains("Components.Schemas._Error.self"))
+    #expect(!witnessBlock.contains("Components.Schemas.Error.self"))
+}
+
 @Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
         Issue.record("openapi-datetime-handler-decode.yaml not found")

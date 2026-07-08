@@ -607,10 +607,11 @@ public enum KawarimiJutsu {
                         "\(operationContext)responses.\(code).content['application/json']"
                 )
                 let escaped = escapeForSwiftStringLiteral(json)
-                let payloadType = handlerStubJSONPayloadSwiftType(
+                let payloadType = try handlerStubJSONPayloadSwiftType(
                     operationSwiftTypeName: operationSwiftTypeName,
                     httpStatus: code,
-                    content: content
+                    content: content,
+                    namingStrategy: namingStrategy
                 )
                 return code == 200
                     ? .okJSONDecoded(payloadTypeName: payloadType, jsonLiteralEscaped: escaped)
@@ -694,15 +695,18 @@ public enum KawarimiJutsu {
     private static func handlerStubJSONPayloadSwiftType(
         operationSwiftTypeName: String,
         httpStatus: Int,
-        content: OpenAPI.Content
-    ) -> String {
+        content: OpenAPI.Content,
+        namingStrategy: KawarimiNamingStrategy
+    ) throws -> String {
         let outputCase = httpStatus == 201 ? "Created" : "Ok"
         let jsonPayload = "Operations.\(operationSwiftTypeName).Output.\(outputCase).Body.jsonPayload"
         guard let schemaEither = content.schema else { return jsonPayload }
         switch schemaEither {
         case .a(let ref):
             if let name = ref.name {
-                return "Components.Schemas.\(name)"
+                // `ref.name` is the raw OpenAPI component name; sanitize it to the Swift
+                // identifier swift-openapi-generator actually emits (e.g. `Error` -> `_Error`).
+                return try "Components.Schemas.\(namingStrategy.swiftSchemaTypeName(for: name))"
             }
             return jsonPayload
         case .b:
