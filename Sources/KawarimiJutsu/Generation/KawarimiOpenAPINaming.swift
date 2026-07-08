@@ -181,6 +181,16 @@ extension KawarimiNamingStrategy {
         }
     }
 
+    /// Must match swift-openapi-generator's `Components.Schemas.*` identifiers, not raw OpenAPI keys.
+    public func swiftSchemaTypeName(for documentedName: String) throws -> String {
+        switch self {
+        case .defensive:
+            return try DefensiveSafeNameGenerator().swiftTypeName(for: documentedName)
+        case .idiomatic:
+            return try IdiomaticSafeNameGenerator(defensive: DefensiveSafeNameGenerator()).swiftTypeName(for: documentedName)
+        }
+    }
+
     public static func loadBesideOpenAPIYAML(
         atPath openAPIYAMLPath: String,
         targetNameForErrorMessages: String? = nil

@@ -6,7 +6,7 @@ import Testing
 
 @testable import KawarimiClient
 
-@Suite("KawarimiClientOrchestrationMiddleware")
+@Suite("KawarimiClientOrchestrationMiddleware", .timeLimit(.minutes(1)))
 struct KawarimiClientOrchestrationMiddlewareTests {
     @Test func initialRequestSendsScenarioIdOnly() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
