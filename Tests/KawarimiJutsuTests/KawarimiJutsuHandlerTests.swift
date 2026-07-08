@@ -133,6 +133,46 @@ func kawarimiHandlerDecodeStubSanitizesKeywordSchemaName(case config: EnumHandle
     #expect(!witnessBlock.contains("Components.Schemas.Error.self"))
 }
 
+struct SanitizedSchemaRefCase: Sendable {
+    let witnessName: String
+    let expectedDecodeType: String
+    let forbiddenDecodeType: String
+}
+
+private let sanitizedSchemaRefCases: [SanitizedSchemaRefCase] = [
+    SanitizedSchemaRefCase(
+        witnessName: "onCreateItemHyphen",
+        expectedDecodeType: "Components.Schemas.retry_hyphen_after.self",
+        forbiddenDecodeType: "Components.Schemas.retry-after"
+    ),
+    SanitizedSchemaRefCase(
+        witnessName: "onCreateItemDigit",
+        expectedDecodeType: "Components.Schemas._123Status.self",
+        forbiddenDecodeType: "Components.Schemas.123Status"
+    ),
+]
+
+@Test(arguments: enumHandlerGenerationCases)
+func kawarimiHandlerDecodeStubSanitizesHyphenAndDigitSchemaNames(case config: EnumHandlerGenerationCase) throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-ref-sanitized-schema", extension: "yaml") else {
+        Issue.record("fixture not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(
+        document: document,
+        namingStrategy: .defensive,
+        accessModifier: config.accessModifier,
+        handlerStubPolicy: config.handlerStubPolicy
+    )
+    #expect(warnings.isEmpty)
+    for sample in sanitizedSchemaRefCases {
+        let witnessBlock = try #require(handlerWitnessBlock(witnessName: sample.witnessName, in: source))
+        #expect(witnessBlock.contains(sample.expectedDecodeType))
+        #expect(!witnessBlock.contains(sample.forbiddenDecodeType))
+    }
+}
+
 @Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
         Issue.record("openapi-datetime-handler-decode.yaml not found")
