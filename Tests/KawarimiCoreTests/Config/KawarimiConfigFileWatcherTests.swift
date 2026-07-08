@@ -2,7 +2,7 @@ import Foundation
 @testable import KawarimiCore
 import Testing
 
-@Suite("KawarimiConfigFileWatcher")
+@Suite("KawarimiConfigFileWatcher", .timeLimit(.minutes(1)))
 struct KawarimiConfigFileWatcherTests {
     @Test func fileWrite_triggersDebouncedCallback() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
