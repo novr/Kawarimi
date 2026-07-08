@@ -127,7 +127,7 @@ targets: [
 
 ### 管理ルート segment と spec wire 検証
 
-サーバー側 **`__kawarimi`** 登録では文字列リテラルではなく **`KawarimiAdminPath.managementSegment`** と **`KawarimiAdminRoute.*.relativePath`** を使う（[Example `KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)）。起動時にホスト **`SpecResponse`** を encode し **`KawarimiAdminSpecWire.validate(_:)`** を呼ぶと、`GET …/spec` が **`HengeSpecSnapshot`** として decode 可能なことを fail-fast で確認できる（[Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift)）。
+**`__kawarimi`** は **`KawarimiAdminHTTPHandler`** で配線し、パス規則を **`KawarimiAdminRoute`** に集約する（フレームワークごとのコピーを避ける）。Vapor: [Example `KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)。起動時に **`KawarimiAdminSpecWire.validate(_:)`** で `GET …/spec` の Henge 互換を fail-fast 確認 — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift)。
 
 ## 2. OpenAPI の置き場所
 

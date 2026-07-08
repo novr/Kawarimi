@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiServer:** `KawarimiAdminHTTPHandler` — shared `__kawarimi` HTTP without a web-framework dependency; `nil` preserves host routing for non-admin paths.
+- **KawarimiCore:** `KawarimiAdminRoute.matching` — keeps server paths aligned with `KawarimiAPIClient`.
+- **KawarimiCore:** `KawarimiAdminHeaders.reloadOutcomeField` — single force-unwrap for the reload header name.
+
+### Changed
+
+- **Example DemoServer:** uses the library handler instead of duplicated Vapor route bodies.
+
 ## [3.3.3] - 2026-07-07
 
 ### Changed

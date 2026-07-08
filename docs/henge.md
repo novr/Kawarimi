@@ -22,6 +22,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | OpenAPI code generation | [github.com/apple/swift-openapi-generator](https://github.com/apple/swift-openapi-generator) |
 | Henge file store + matching | **KawarimiCore** (this package) |
 | Dynamic mock on server operations | **KawarimiServer** (`KawarimiServerMiddleware`) |
+| Henge admin HTTP (`__kawarimi/*`) | **KawarimiServer** (`KawarimiAdminHTTPHandler`; admin is outside OpenAPI registration) |
 | Scenario orchestration on OpenAPI client | **KawarimiClient** (`KawarimiClientOrchestrationMiddleware`) |
 
 `DemoPackage` layout and `DemoServer` entrypoints: [Example/README.md](../Example/README.md).
@@ -113,13 +114,18 @@ You may mount `__kawarimi` at the root in your own app; keep it aligned with `Ka
 
 - **`KawarimiAdminRoute`** — `spec`, `status`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`).
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — builds `{baseURL}/__kawarimi/{segment}` (same rules as **`KawarimiAPIClient`**).
+- **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — same path rules as **`adminURL`** / **`KawarimiAPIClient`** on the server side.
 - **`KawarimiAdminSpecWire.validate(_:)`** — fail-fast decode check that encoded spec wire JSON matches **`HengeSpecSnapshot`** (`GET …/spec` contract). Call after **`JSONEncoder`** on your host **`SpecResponse`** (or equivalent) at startup; **`KawarimiAdminHeaders.jsonContentType`** is the shared JSON **`Content-Type`** string.
 
-Register admin routes on your Vapor app, then attach **`KawarimiServerMiddleware`** when registering generated handlers:
+Wire **`KawarimiAdminHTTPHandler`** (product **KawarimiServer**) into your HTTP stack, then attach **`KawarimiServerMiddleware`** when registering generated handlers. On Vapor, see **DemoServer** ([`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)):
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
-registerKawarimiRoutes(app: app, store: store)
+let adminHandler = KawarimiAdminHTTPHandler(
+    store: store,
+    specWireData: { try SpecResponse.encodedWireData() } // host equivalent
+)
+app.middleware.use(KawarimiAdminVaporMiddleware(handler: adminHandler))
 let transport = VaporTransport(routesBuilder: app)
 try handler.registerHandlers(
     on: transport,
@@ -127,6 +133,8 @@ try handler.registerHandlers(
     middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
 )
 ```
+
+**`KawarimiAdminHTTPHandler`** returns `nil` for non-admin traffic so the host stack can still route normal API requests. It is not **`ServerMiddleware`** — `__kawarimi` is never registered as an OpenAPI operation.
 
 **`KawarimiServerMiddleware`** (product **KawarimiServer**) conforms to swift-openapi-runtime’s **`ServerMiddleware`**. It:
 
@@ -229,7 +237,7 @@ Sample committed fixtures and curl notes: [Example/README.md](../Example/README.
 
 ### Admin error responses
 
-Reference behavior from **DemoServer** ([`KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)). Hosts may differ; clients should treat non-2xx as errors (**`KawarimiAPIError`**).
+Reference HTTP contract: [`KawarimiAdminHTTPHandler`](../Sources/KawarimiServer/KawarimiAdminHTTPHandler.swift). Vapor wiring: [`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift). Hosts may differ; clients treat non-2xx as **`KawarimiAPIError`**.
 
 | Route | Status | Response body |
 |---|---|---|
