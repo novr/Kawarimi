@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **KawarimiCore**: Linux `KawarimiConfigFileWatcher` — decode inotify `name` by trimming at the first NUL so directory-mode watches detect config file modifications ([#204](https://github.com/novr/Kawarimi/pull/204), [#197](https://github.com/novr/Kawarimi/issues/197)).
+
 ## [3.3.4] - 2026-07-08
 
 ### Added
