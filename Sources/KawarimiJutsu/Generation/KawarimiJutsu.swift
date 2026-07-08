@@ -704,8 +704,7 @@ public enum KawarimiJutsu {
         switch schemaEither {
         case .a(let ref):
             if let name = ref.name {
-                // `ref.name` is the raw OpenAPI component name; sanitize it to the Swift
-                // identifier swift-openapi-generator actually emits (e.g. `Error` -> `_Error`).
+                // Unsanitized ref.name does not match SOG-generated Components.Schemas types.
                 return try "Components.Schemas.\(namingStrategy.swiftSchemaTypeName(for: name))"
             }
             return jsonPayload

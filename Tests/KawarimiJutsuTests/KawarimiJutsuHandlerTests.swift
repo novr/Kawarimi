@@ -127,8 +127,6 @@ func kawarimiHandlerDecodeStubSanitizesKeywordSchemaName(case config: EnumHandle
     )
     #expect(warnings.isEmpty)
     let witnessBlock = try #require(handlerWitnessBlock(witnessName: "onCreateItem", in: source))
-    // `$ref: '#/components/schemas/Error'` must map to the sanitized Swift type `_Error`
-    // (swift-openapi-generator prefixes keyword names with `_`), never the raw `Error`.
     #expect(witnessBlock.contains("Components.Schemas._Error.self"))
     #expect(!witnessBlock.contains("Components.Schemas.Error.self"))
 }
