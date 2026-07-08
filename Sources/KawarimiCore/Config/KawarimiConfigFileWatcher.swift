@@ -34,6 +34,20 @@ final class KawarimiConfigFileWatcher: @unchecked Sendable {
     }
 }
 
+/// Decodes the `name` field of a Linux inotify record.
+///
+/// The field is NUL-terminated **and** NUL-padded up to the record-declared `declaredLength`
+/// for alignment, so decoding the full `declaredLength` would leave embedded NUL bytes in the
+/// string. This trims at the first NUL. Declared as a free function so it is unit-testable on
+/// every platform, not only Linux.
+func decodeInotifyEventName<Bytes: Collection>(_ bytes: Bytes, declaredLength: Int) -> String?
+where Bytes.Element == UInt8 {
+    guard declaredLength > 0 else { return nil }
+    let nameBytes = bytes.prefix(declaredLength).prefix { $0 != 0 }
+    if nameBytes.isEmpty { return nil }
+    return String(bytes: nameBytes, encoding: .utf8)
+}
+
 // MARK: - Backend
 
 private final class ConfigFileWatchBackend: @unchecked Sendable {
@@ -214,11 +228,9 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
 
                 if watchingDirectory {
                     var nameMatches = false
-                    if nameLen > 1 {
+                    if nameLen > 0 {
                         let nameStart = offset + InotifyEventHeader.byteSize
-                        let nameEnd = nameStart + nameLen - 1
-                        if nameEnd > nameStart,
-                           let name = String(bytes: buffer[nameStart ..< nameEnd], encoding: .utf8),
+                        if let name = decodeInotifyEventName(buffer[nameStart...], declaredLength: nameLen),
                            name == targetFileName
                         {
                             nameMatches = true
