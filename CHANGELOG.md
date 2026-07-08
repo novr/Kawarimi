@@ -8,15 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.4] - 2026-07-08
+
 ### Added
 
-- **KawarimiServer:** `KawarimiAdminHTTPHandler` — shared `__kawarimi` HTTP without a web-framework dependency; `nil` preserves host routing for non-admin paths.
-- **KawarimiCore:** `KawarimiAdminRoute.matching` — keeps server paths aligned with `KawarimiAPIClient`.
-- **KawarimiCore:** `KawarimiAdminHeaders.reloadOutcomeField` — single force-unwrap for the reload header name.
+- **KawarimiServer:** `KawarimiAdminHTTPHandler` — shared `__kawarimi` HTTP without a web-framework dependency; `nil` preserves host routing for non-admin paths ([#193](https://github.com/novr/Kawarimi/pull/193)).
+- **KawarimiCore:** `KawarimiAdminRoute.matching` — keeps server paths aligned with `KawarimiAPIClient` ([#193](https://github.com/novr/Kawarimi/pull/193)).
+- **KawarimiCore:** `KawarimiAdminHeaders.reloadOutcomeField` — single force-unwrap for the reload header name ([#193](https://github.com/novr/Kawarimi/pull/193)).
 
 ### Changed
 
-- **Example DemoServer:** uses the library handler instead of duplicated Vapor route bodies.
+- **Example DemoServer:** uses the library handler instead of duplicated Vapor route bodies ([#193](https://github.com/novr/Kawarimi/pull/193)).
 
 ## [3.3.3] - 2026-07-07
 
@@ -479,6 +481,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.3.4]: https://github.com/novr/Kawarimi/releases/tag/v3.3.4
 [3.3.3]: https://github.com/novr/Kawarimi/releases/tag/v3.3.3
 [3.3.2]: https://github.com/novr/Kawarimi/releases/tag/v3.3.2
 [3.3.1]: https://github.com/novr/Kawarimi/releases/tag/v3.3.1
