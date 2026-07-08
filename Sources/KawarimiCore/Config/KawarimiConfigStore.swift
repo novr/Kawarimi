@@ -205,7 +205,9 @@ public actor KawarimiConfigStore {
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
         }
-        if !result.path.hasPrefix(prefix) {
+        // Match only on a path-segment boundary so `/apixyz` is not mistaken for being
+        // under the prefix `/api`.
+        if !prefix.isEmpty, result.path != prefix, !result.path.hasPrefix(prefix + "/") {
             result.path = prefix + (result.path == "/" ? "" : result.path)
         }
         if let m = HTTPRequest.Method(result.method.rawValue.uppercased()) {
