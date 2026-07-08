@@ -81,7 +81,7 @@ private let inlineDateStructureCases: [InlineDateStructureCase] = [
     ),
 ]
 
-@Test(arguments: inlineDateExampleCases)
+@Test(.timeLimit(.minutes(1)), arguments: inlineDateExampleCases)
 func kawarimiHandlerInlineDateLiteralWithExample(case sample: InlineDateExampleCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: sample.fixtureName, extension: "yaml") else {
         Issue.record("\(sample.fixtureName).yaml not found")
@@ -97,7 +97,7 @@ func kawarimiHandlerInlineDateLiteralWithExample(case sample: InlineDateExampleC
     )
 }
 
-@Test(arguments: inlineDateWarningCases)
+@Test(.timeLimit(.minutes(1)), arguments: inlineDateWarningCases)
 func kawarimiHandlerInlineDateWarningsAndEpochZero(case sample: InlineDateWarningCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: sample.fixtureName, extension: "yaml") else {
         Issue.record("\(sample.fixtureName).yaml not found")
@@ -112,7 +112,7 @@ func kawarimiHandlerInlineDateWarningsAndEpochZero(case sample: InlineDateWarnin
     #expect(source.contains("Date(timeIntervalSince1970: 0)"))
 }
 
-@Test(arguments: inlineDateStructureCases)
+@Test(.timeLimit(.minutes(1)), arguments: inlineDateStructureCases)
 func kawarimiHandlerInlineDateStructuredBodies(case sample: InlineDateStructureCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: sample.fixtureName, extension: "yaml") else {
         Issue.record("\(sample.fixtureName).yaml not found")

@@ -2,9 +2,9 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Suite("KawarimiScenarioFileValidation")
+@Suite("KawarimiScenarioFileValidation", .timeLimit(.minutes(1)))
 struct KawarimiScenarioFileValidationTests {
-    @Test func succeedsForValidFixturePair() throws {
+    @Test(.timeLimit(.minutes(1))) func succeedsForValidFixturePair() throws {
         let repoRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
@@ -23,7 +23,7 @@ struct KawarimiScenarioFileValidationTests {
         #expect(status == .success)
     }
 
-    @Test func warnsOnOrphanRowId() throws {
+    @Test(.timeLimit(.minutes(1))) func warnsOnOrphanRowId() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("kawarimi-validate-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -64,7 +64,7 @@ struct KawarimiScenarioFileValidationTests {
         #expect(messages.contains(where: { $0.contains("rowId") && $0.contains("not found") }))
     }
 
-    @Test func fatalOnMissingConfig() {
+    @Test(.timeLimit(.minutes(1))) func fatalOnMissingConfig() {
         let status = KawarimiScenarioFileValidation.validate(
             configPath: "/tmp/kawarimi-validate-missing-\(UUID().uuidString).json",
             scenariosPath: "/tmp/kawarimi-validate-missing-scenarios-\(UUID().uuidString).json"
@@ -76,7 +76,7 @@ struct KawarimiScenarioFileValidationTests {
         #expect(message.contains("not found"))
     }
 
-    @Test func succeedsWhenDefaultScenariosFileMissing() throws {
+    @Test(.timeLimit(.minutes(1))) func succeedsWhenDefaultScenariosFileMissing() throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("kawarimi-validate-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -94,7 +94,7 @@ struct KawarimiScenarioFileValidationTests {
         #expect(status == .success)
     }
 
-    @Test func fatalWhenExplicitScenariosFileMissing() throws {
+    @Test(.timeLimit(.minutes(1))) func fatalWhenExplicitScenariosFileMissing() throws {
         let path = "/tmp/kawarimi-validate-explicit-missing-\(UUID().uuidString).json"
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("kawarimi-validate-\(UUID().uuidString)", isDirectory: true)

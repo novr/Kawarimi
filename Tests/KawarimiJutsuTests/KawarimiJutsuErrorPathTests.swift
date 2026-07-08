@@ -2,7 +2,7 @@ import Foundation
 @testable import KawarimiJutsu
 import Testing
 
-@Test func handlerThrowPolicyFailsWhenResponseHasHeadersWithoutBody() throws {
+@Test(.timeLimit(.minutes(1))) func handlerThrowPolicyFailsWhenResponseHasHeadersWithoutBody() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-handler-headers-no-body", extension: "yaml") else {
         Issue.record("openapi-handler-headers-no-body.yaml not found")
         return
@@ -25,7 +25,7 @@ import Testing
     }
 }
 
-@Test func kawarimiGeneratorConfigRejectsAllOutputsDisabled() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiGeneratorConfigRejectsAllOutputsDisabled() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-no-outputs-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -57,7 +57,7 @@ import Testing
     }
 }
 
-@Test func testingHookCanSurfaceIdiomaticInvariantViolation() throws {
+@Test(.timeLimit(.minutes(1))) func testingHookCanSurfaceIdiomaticInvariantViolation() throws {
     do {
         _ = try KawarimiNamingStrategy.testingForceIdiomaticInvariantViolation(documentedName: "DemoName")
         Issue.record("expected idiomaticNamingInvariantViolated")
@@ -70,7 +70,7 @@ import Testing
     }
 }
 
-@Test func testingMockJSONBodyReturnsWarningsForMissingDateExample() throws {
+@Test(.timeLimit(.minutes(1))) func testingMockJSONBodyReturnsWarningsForMissingDateExample() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-no-example", extension: "yaml") else {
         Issue.record("openapi-datetime-no-example.yaml not found")
         return

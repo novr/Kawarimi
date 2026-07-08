@@ -24,7 +24,7 @@ private let pathPrefix = "/api"
 // MARK: displayedListStatus — server-primary list (ignores open detail for same-row edits)
 
 @MainActor
-@Test func displayedListStatusA1NoDetailUsesPrimaryEnabledStatusCode() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusA1NoDetailUsesPrimaryEnabledStatusCode() {
     let store = OverrideEditorStore()
     store.detail = nil
     let endpoint = FakeSpecEndpoint(
@@ -49,7 +49,7 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusA1NoDetailReturnsMinusOneWhenNoEnabledOverride() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusA1NoDetailReturnsMinusOneWhenNoEnabledOverride() {
     let store = OverrideEditorStore()
     store.detail = nil
     let endpoint = FakeSpecEndpoint(
@@ -65,7 +65,7 @@ private let pathPrefix = "/api"
 
 @MainActor
 /// List status is **always** the server primary enabled row; the open detail selection does not drive the sidebar.
-@Test func displayedListStatusA2IgnoresSelectedDraftUsesPrimaryEnabled() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusA2IgnoresSelectedDraftUsesPrimaryEnabled() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -103,7 +103,7 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusA3SelectedRowDisabledFallsBackToPrimaryEnabled() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusA3SelectedRowDisabledFallsBackToPrimaryEnabled() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -141,7 +141,7 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusA3SelectedRowDisabledReturnsMinusOneWithoutEnabledOverride() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusA3SelectedRowDisabledReturnsMinusOneWithoutEnabledOverride() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/a",
@@ -169,7 +169,7 @@ private let pathPrefix = "/api"
 }
 
 @MainActor
-@Test func displayedListStatusOtherRowIgnoresDraftForDifferentEndpoint() {
+@Test(.timeLimit(.minutes(1))) func displayedListStatusOtherRowIgnoresDraftForDifferentEndpoint() {
     let store = OverrideEditorStore()
     let other = FakeSpecEndpoint(
         path: "/other",
@@ -209,7 +209,7 @@ private let pathPrefix = "/api"
 // MARK: buildDetail — open row matches server primary (not first stored row)
 
 @MainActor
-@Test func buildDetailUsesPrimaryEnabledWhenDisabledSpecRowStoredFirst() {
+@Test(.timeLimit(.minutes(1))) func buildDetailUsesPrimaryEnabledWhenDisabledSpecRowStoredFirst() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",

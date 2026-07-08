@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func kawarimiPathSplitJoinMatchesFormerSpecPrefix() {
+@Test(.timeLimit(.minutes(1))) func kawarimiPathSplitJoinMatchesFormerSpecPrefix() {
     func j(_ s: String) -> String {
         KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(s))
     }
@@ -14,30 +14,30 @@ import Testing
     #expect(KawarimiPath.splitPathSegments("/a/b") == ["a", "b"])
 }
 
-@Test func kawarimiPathAlignedWithPrefix() {
+@Test(.timeLimit(.minutes(1))) func kawarimiPathAlignedWithPrefix() {
     #expect(KawarimiPath.aligned(path: "/greet", pathPrefix: "/api") == "/api/greet")
     #expect(KawarimiPath.aligned(path: "/api/greet", pathPrefix: "/api") == "/api/greet")
     #expect(KawarimiPath.aligned(path: "greet", pathPrefix: "/api") == "/api/greet")
 }
 
-@Test func kawarimiPathAlignedRootPrefix() {
+@Test(.timeLimit(.minutes(1))) func kawarimiPathAlignedRootPrefix() {
     #expect(KawarimiPath.aligned(path: "/app/setting", pathPrefix: "") == "/app/setting")
     #expect(KawarimiPath.aligned(path: "greet", pathPrefix: "") == "/greet")
 }
 
-@Test func kawarimiAdminPathDetectsManagementSegment() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminPathDetectsManagementSegment() {
     #expect(KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi/spec"))
     #expect(KawarimiAdminPath.isManagementRequestPath("/__kawarimi/configure"))
     #expect(KawarimiAdminPath.isManagementRequestPath("/v1/__kawarimi/status"))
 }
 
-@Test func kawarimiAdminPathRejectsNonSegmentMatch() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminPathRejectsNonSegmentMatch() {
     #expect(!KawarimiAdminPath.isManagementRequestPath("/api/greet"))
     #expect(!KawarimiAdminPath.isManagementRequestPath("/v1/foo__kawarimi/x"))
     #expect(!KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi_backup/x"))
 }
 
-@Test func httpRequestBodyPolicyNoBodyForGetHead() {
+@Test(.timeLimit(.minutes(1))) func httpRequestBodyPolicyNoBodyForGetHead() {
     let empty = Data()
     let nonEmpty = Data("{}".utf8)
     for m in ["GET", "HEAD", "OPTIONS", "TRACE"] {
@@ -48,7 +48,7 @@ import Testing
     }
 }
 
-@Test func httpRequestBodyPolicyPostPutPatchAlwaysAttach() {
+@Test(.timeLimit(.minutes(1))) func httpRequestBodyPolicyPostPutPatchAlwaysAttach() {
     let empty = Data()
     for m in ["POST", "PUT", "PATCH"] {
         #expect(HTTPRequestBodyPolicy.shouldAttachRequestBody(method: m, body: nil))
@@ -57,7 +57,7 @@ import Testing
     }
 }
 
-@Test func httpRequestBodyPolicyDeleteOptionalBody() {
+@Test(.timeLimit(.minutes(1))) func httpRequestBodyPolicyDeleteOptionalBody() {
     #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: nil))
     #expect(!HTTPRequestBodyPolicy.shouldAttachRequestBody(method: "DELETE", body: Data()))
     let data = Data([0x22])

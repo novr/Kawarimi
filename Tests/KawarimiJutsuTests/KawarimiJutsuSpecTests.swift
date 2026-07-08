@@ -2,7 +2,7 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func kawarimiJutsuSpecUsesEmptyApiPathPrefixWhenServerHasNoPath() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecUsesEmptyApiPathPrefixWhenServerHasNoPath() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-root-srv-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -31,7 +31,7 @@ import Testing
     #expect(source.contains("path: \"/app/setting\""))
 }
 
-@Test func kawarimiJutsuSpecEmitsTags() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecEmitsTags() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
         return
@@ -57,7 +57,7 @@ import Testing
     #expect(createBlock.contains("parameters: nil"))
 }
 
-@Test func kawarimiJutsuSpecEmitsMergedParameters() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecEmitsMergedParameters() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-parameters-merge", extension: "yaml") else {
         Issue.record("openapi-parameters-merge.yaml not found in test resources")
         return
@@ -78,7 +78,7 @@ import Testing
     #expect(block.contains("schemaType: nil"))
 }
 
-@Test func kawarimiJutsuSpecEmitsSecuritySchemesAndEffectiveSecurity() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecEmitsSecuritySchemesAndEffectiveSecurity() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-security", extension: "yaml") else {
         Issue.record("openapi-security.yaml not found in test resources")
         return
@@ -104,7 +104,7 @@ import Testing
     #expect(requirementCount == 2)
 }
 
-@Test func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuGeneratesSpecWithProtocolConformance() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
         return
@@ -133,7 +133,7 @@ import Testing
     try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getGreeting", actual: greetBody)
 }
 
-@Test func kawarimiJutsuSpecEmitsCommonSecuritySchemeTypes() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecEmitsCommonSecuritySchemeTypes() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-security-schemes-catalog", extension: "yaml") else {
         Issue.record("openapi-security-schemes-catalog.yaml not found")
         return
@@ -149,7 +149,7 @@ import Testing
     #expect(!source.contains("authorizationCode"))
 }
 
-@Test func kawarimiJutsuSpecEmitsNamedExamplesInResponseMap() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecEmitsNamedExamplesInResponseMap() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-ex-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -186,7 +186,7 @@ import Testing
     #expect(rA.lowerBound < rM.lowerBound)
 }
 
-@Test func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuSpecMockUsesSchemaEnumAndOneOfWhenNoExample() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-spec-mock-fallbacks", extension: "yaml") else {
         Issue.record("openapi-spec-mock-fallbacks.yaml not found")
         return

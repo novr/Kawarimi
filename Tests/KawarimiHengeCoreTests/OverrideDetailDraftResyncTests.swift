@@ -23,7 +23,7 @@ private let pathPrefix = "/api"
 
 // MARK: resyncMockFromServer (plan §1c B1 / B3 / B4)
 
-@Test func resyncB1ExactRowOverwritesDraftIncludingDisabled() {
+@Test(.timeLimit(.minutes(1))) func resyncB1ExactRowOverwritesDraftIncludingDisabled() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -62,7 +62,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.body == "{\"stored\":true}")
 }
 
-@Test func resyncB3AdoptFirstEnabledWhenExactMissingAndDraftOn() {
+@Test(.timeLimit(.minutes(1))) func resyncB3AdoptFirstEnabledWhenExactMissingAndDraftOn() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -101,7 +101,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.body == "{\"created\":1}")
 }
 
-@Test func resyncB4DraftOffAndNoStoredRowResetsToSpecDefault() {
+@Test(.timeLimit(.minutes(1))) func resyncB4DraftOffAndNoStoredRowResetsToSpecDefault() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -132,7 +132,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.contentType == nil)
 }
 
-@Test func resyncWhenDraftOnButNoOverridesResetsLikeB4() {
+@Test(.timeLimit(.minutes(1))) func resyncWhenDraftOnButNoOverridesResetsLikeB4() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -161,7 +161,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.body == nil)
 }
 
-@Test func resyncB3DoesNotRunWhenDraftOffEvenIfOtherEnabledExists() {
+@Test(.timeLimit(.minutes(1))) func resyncB3DoesNotRunWhenDraftOffEvenIfOtherEnabledExists() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,

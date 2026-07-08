@@ -19,12 +19,12 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding]
 }
 
-@Test func rowIdPresentationCopyTextReturnsRawValue() {
+@Test(.timeLimit(.minutes(1))) func rowIdPresentationCopyTextReturnsRawValue() {
     let rowId = MockOverrideRowID.generate()
     #expect(RowIdPresentation.copyText(for: rowId) == rowId.rawValue)
 }
 
-@Test func rowIdPresentationDisplayRowIdReturnsTextForStoredRow() {
+@Test(.timeLimit(.minutes(1))) func rowIdPresentationDisplayRowIdReturnsTextForStoredRow() {
     let rowId = MockOverrideRowID.generate()
     let endpoint = FakeSpecEndpoint(
         path: "/api/pets",
@@ -66,7 +66,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(text == rowId.rawValue)
 }
 
-@Test func rowIdPresentationDisplayRowIdReturnsNilWithoutStoredRow() {
+@Test(.timeLimit(.minutes(1))) func rowIdPresentationDisplayRowIdReturnsNilWithoutStoredRow() {
     let endpoint = FakeSpecEndpoint(
         path: "/api/pets",
         method: .get,
@@ -97,7 +97,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func rowIdPresentationDisplayRowIdReturnsNilForLegacyRowWithoutRowId() {
+@Test(.timeLimit(.minutes(1))) func rowIdPresentationDisplayRowIdReturnsNilForLegacyRowWithoutRowId() {
     let endpoint = FakeSpecEndpoint(
         path: "/api/pets",
         method: .get,

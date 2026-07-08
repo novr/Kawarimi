@@ -4,9 +4,9 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("KawarimiScenarioResolver")
+@Suite("KawarimiScenarioResolver", .timeLimit(.minutes(1)))
 struct KawarimiScenarioResolverTests {
-    @Test func resolvesInitialWhenKawarimiIdHeaderMissing() {
+    @Test(.timeLimit(.minutes(1))) func resolvesInitialWhenKawarimiIdHeaderMissing() {
         let rowId = MockOverrideRowID.generate()
         let scenarios = [
             KawarimiScenario(
@@ -51,7 +51,7 @@ struct KawarimiScenarioResolverTests {
         #expect(next == "locked")
     }
 
-    @Test func fallsBackOnDuplicateCaseKey() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackOnDuplicateCaseKey() {
         let rowA = MockOverrideRowID.generate()
         let rowB = MockOverrideRowID.generate()
         let scenarios = [
@@ -78,7 +78,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .duplicateCases))
     }
 
-    @Test func fallsBackWhenRowIdEndpointMismatch() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenRowIdEndpointMismatch() {
         let rowId = MockOverrideRowID.generate()
         let scenarios = [
             KawarimiScenario(
@@ -113,7 +113,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .endpointMismatch))
     }
 
-    @Test func fallsBackWhenInitialInvalid() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenInitialInvalid() {
         let scenarios = [
             KawarimiScenario(
                 scenarioId: "bad",
@@ -135,7 +135,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .invalidHeader))
     }
 
-    @Test func fallsBackWhenScenarioHeaderMissing() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenScenarioHeaderMissing() {
         let resolved = KawarimiScenarioResolver.resolve(
             scenarios: [],
             overrides: [],
@@ -149,7 +149,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .scenarioHeaderMissing))
     }
 
-    @Test func fallsBackWhenScenarioIdHeaderInvalid() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenScenarioIdHeaderInvalid() {
         let resolved = KawarimiScenarioResolver.resolve(
             scenarios: [],
             overrides: [],
@@ -163,7 +163,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .invalidHeader))
     }
 
-    @Test func fallsBackWhenScenarioNotFound() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenScenarioNotFound() {
         let resolved = KawarimiScenarioResolver.resolve(
             scenarios: [],
             overrides: [],
@@ -177,7 +177,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .scenarioNotFound))
     }
 
-    @Test func fallsBackWhenCaseNotFound() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenCaseNotFound() {
         let rowId = MockOverrideRowID.generate()
         let scenarios = [
             KawarimiScenario(
@@ -207,7 +207,7 @@ struct KawarimiScenarioResolverTests {
         #expect(resolved == .fallback(reason: .caseNotFound))
     }
 
-    @Test func fallsBackWhenOverrideNotFound() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackWhenOverrideNotFound() {
         let rowId = MockOverrideRowID.generate()
         let scenarios = [
             KawarimiScenario(

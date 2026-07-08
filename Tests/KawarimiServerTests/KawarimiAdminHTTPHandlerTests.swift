@@ -5,7 +5,7 @@ import Testing
 
 @testable import KawarimiServer
 
-@Suite("KawarimiAdminHTTPHandler")
+@Suite("KawarimiAdminHTTPHandler", .timeLimit(.minutes(1)))
 struct KawarimiAdminHTTPHandlerTests {
     private func makeStore(pathPrefix: String = "/api") throws -> (KawarimiConfigStore, URL) {
         let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
@@ -21,7 +21,7 @@ struct KawarimiAdminHTTPHandlerTests {
         HTTPRequest(method: method, scheme: "https", authority: "example.com", path: path)
     }
 
-    @Test func unknownAdminSegmentReturnsNil() async throws {
+    @Test(.timeLimit(.minutes(1))) func unknownAdminSegmentReturnsNil() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -31,7 +31,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(result == nil)
     }
 
-    @Test func managementLikePathWithWrongPrefixReturnsNil() async throws {
+    @Test(.timeLimit(.minutes(1))) func managementLikePathWithWrongPrefixReturnsNil() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -41,7 +41,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(result == nil)
     }
 
-    @Test func nonAdminPathReturnsNil() async throws {
+    @Test(.timeLimit(.minutes(1))) func nonAdminPathReturnsNil() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -51,7 +51,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(result == nil)
     }
 
-    @Test func statusReturnsOverridesJSON() async throws {
+    @Test(.timeLimit(.minutes(1))) func statusReturnsOverridesJSON() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -76,7 +76,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(overrides[0].path == "/api/widgets")
     }
 
-    @Test func configureSuccess() async throws {
+    @Test(.timeLimit(.minutes(1))) func configureSuccess() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -94,7 +94,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(overrides[0].statusCode == 201)
     }
 
-    @Test func configureRejectsInvalidJSON() async throws {
+    @Test(.timeLimit(.minutes(1))) func configureRejectsInvalidJSON() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -108,7 +108,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(text.contains("Invalid JSON body"))
     }
 
-    @Test func configureRejectsOversizedBody() async throws {
+    @Test(.timeLimit(.minutes(1))) func configureRejectsOversizedBody() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -125,7 +125,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(response.status.code == 413)
     }
 
-    @Test func removeSuccess() async throws {
+    @Test(.timeLimit(.minutes(1))) func removeSuccess() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -151,7 +151,7 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(overrides.isEmpty)
     }
 
-    @Test func reloadSetsHeader() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadSetsHeader() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 
@@ -164,7 +164,7 @@ struct KawarimiAdminHTTPHandlerTests {
         )
     }
 
-    @Test func specReturnsInjectedWireData() async throws {
+    @Test(.timeLimit(.minutes(1))) func specReturnsInjectedWireData() async throws {
         let (store, configURL) = try makeStore()
         defer { try? FileManager.default.removeItem(at: configURL) }
 

@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func kawarimiAdminSpecWireValidateAcceptsFixture() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminSpecWireValidateAcceptsFixture() throws {
     guard let url = Bundle.module.url(
         forResource: "henge-spec-snapshot",
         withExtension: "json",
@@ -15,13 +15,13 @@ import Testing
     try KawarimiAdminSpecWire.validate(data)
 }
 
-@Test func kawarimiAdminSpecWireValidateRejectsEmptyData() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminSpecWireValidateRejectsEmptyData() {
     #expect(throws: DecodingError.self) {
         try KawarimiAdminSpecWire.validate(Data())
     }
 }
 
-@Test func kawarimiAdminSpecWireValidateRejectsInvalidJSON() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminSpecWireValidateRejectsInvalidJSON() {
     #expect(throws: DecodingError.self) {
         try KawarimiAdminSpecWire.validate("{".data(using: .utf8)!)
     }

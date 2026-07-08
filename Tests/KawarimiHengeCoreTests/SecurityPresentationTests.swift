@@ -31,7 +31,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding] = []
 }
 
-@Test func securitySchemeSummaryFormatsApiKeyAndHttp() {
+@Test(.timeLimit(.minutes(1))) func securitySchemeSummaryFormatsApiKeyAndHttp() {
     let apiKey = FakeSecurityScheme(
         name: "ApiKeyAuth",
         type: "apiKey",
@@ -57,7 +57,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(SecurityPresentation.schemeSummary(bearer) == "http (bearer, format: JWT)")
 }
 
-@Test func securityRequirementLinesUseOrSemanticsAsSeparateLines() {
+@Test(.timeLimit(.minutes(1))) func securityRequirementLinesUseOrSemanticsAsSeparateLines() {
     let endpoint = FakeSpecEndpoint(
         path: "/items",
         method: .get,
@@ -75,7 +75,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(lines[1] == "OAuth (scopes: read, write)")
 }
 
-@Test func securityEndpointPresentationResolvesCatalog() {
+@Test(.timeLimit(.minutes(1))) func securityEndpointPresentationResolvesCatalog() {
     let catalog: [any SpecSecuritySchemeProviding] = [
         FakeSecurityScheme(
             name: "ApiKeyAuth",
@@ -102,7 +102,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(presentation.hasContent)
 }
 
-@Test func securityEndpointPresentationEmptyWhenNoSecurity() {
+@Test(.timeLimit(.minutes(1))) func securityEndpointPresentationEmptyWhenNoSecurity() {
     let endpoint = FakeSpecEndpoint(path: "/", method: .get, operationId: "root", security: nil)
     let presentation = SecurityPresentation.endpointPresentation(endpoint: endpoint, catalog: nil)
     #expect(presentation.requirementLines.isEmpty)

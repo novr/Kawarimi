@@ -3,7 +3,7 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("DemoPackage scenario fixtures")
+@Suite("DemoPackage scenario fixtures", .timeLimit(.minutes(1)))
 struct DemoPackageScenarioFixtureTests {
     private static var demoPackageDirectory: URL {
         URL(fileURLWithPath: #filePath)
@@ -14,7 +14,7 @@ struct DemoPackageScenarioFixtureTests {
             .appendingPathComponent("Example/DemoPackage", isDirectory: true)
     }
 
-    @Test func committedScenarioFixturesHaveNoValidationWarnings() throws {
+    @Test(.timeLimit(.minutes(1))) func committedScenarioFixturesHaveNoValidationWarnings() throws {
         let overridesURL = Self.demoPackageDirectory.appendingPathComponent("kawarimi.json.example")
         let scenariosURL = Self.demoPackageDirectory.appendingPathComponent("kawarimi-scenarios.json")
 

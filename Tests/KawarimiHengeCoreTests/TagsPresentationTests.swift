@@ -11,7 +11,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding] = []
 }
 
-@Test func tagsPresentationReturnsNilWhenAbsentOrEmpty() {
+@Test(.timeLimit(.minutes(1))) func tagsPresentationReturnsNilWhenAbsentOrEmpty() {
     let noTags = FakeSpecEndpoint(path: "/", method: .get, operationId: "a", tags: nil)
     #expect(TagsPresentation.displayTags(for: noTags) == nil)
 
@@ -19,12 +19,12 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(TagsPresentation.displayTags(for: empty) == nil)
 }
 
-@Test func tagsPresentationReturnsTagsWhenPresent() {
+@Test(.timeLimit(.minutes(1))) func tagsPresentationReturnsTagsWhenPresent() {
     let endpoint = FakeSpecEndpoint(path: "/pets", method: .get, operationId: "list", tags: ["Items", "Pets"])
     #expect(TagsPresentation.displayTags(for: endpoint) == ["Items", "Pets"])
 }
 
-@Test func endpointFilterMatchesTagText() {
+@Test(.timeLimit(.minutes(1))) func endpointFilterMatchesTagText() {
     let endpoint = FakeSpecEndpoint(path: "/x", method: .get, operationId: "op", tags: ["Greetings"])
     let items = [SpecEndpointItem(endpoint)]
     #expect(EndpointFilter.filter(items, searchText: "greet").map(\.id) == ["op"])

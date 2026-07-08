@@ -2,9 +2,9 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Suite("KawarimiValidate CLI")
+@Suite("KawarimiValidate CLI", .timeLimit(.minutes(1)))
 struct KawarimiValidateCLITests {
-    @Test func cliExitsZeroForExampleFixtures() throws {
+    @Test(.timeLimit(.minutes(1))) func cliExitsZeroForExampleFixtures() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
             Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
@@ -26,7 +26,7 @@ struct KawarimiValidateCLITests {
         #expect(result.exitCode == 0, "stderr: \(result.stderr)")
     }
 
-    @Test func cliPrintsVersion() throws {
+    @Test(.timeLimit(.minutes(1))) func cliPrintsVersion() throws {
         let packageRoot = resolvePackageRoot()
         guard let expectedVersion = buildInfoVersion(packageRoot: packageRoot) else {
             Issue.record("Could not read BuildInfo.version from Sources/KawarimiValidate/Generated.swift")
@@ -42,7 +42,7 @@ struct KawarimiValidateCLITests {
         #expect(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == expectedVersion)
     }
 
-    @Test func cliExitsOneWhenWarningsPresent() throws {
+    @Test(.timeLimit(.minutes(1))) func cliExitsOneWhenWarningsPresent() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
             Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
@@ -84,7 +84,7 @@ struct KawarimiValidateCLITests {
         #expect(result.stdout.contains("rowId"))
     }
 
-    @Test func cliExitsTwoOnInvalidConfigJSON() throws {
+    @Test(.timeLimit(.minutes(1))) func cliExitsTwoOnInvalidConfigJSON() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
             Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
@@ -108,7 +108,7 @@ struct KawarimiValidateCLITests {
         #expect(result.stderr.contains("Invalid kawarimi.json"))
     }
 
-    @Test func cliExitsTwoOnMissingExplicitScenariosFile() throws {
+    @Test(.timeLimit(.minutes(1))) func cliExitsTwoOnMissingExplicitScenariosFile() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
             Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
@@ -133,7 +133,7 @@ struct KawarimiValidateCLITests {
         #expect(result.stderr.contains("Scenarios file not found"))
     }
 
-    @Test func cliExitsTwoWhenScenariosEnvPointsAtMissingFile() throws {
+    @Test(.timeLimit(.minutes(1))) func cliExitsTwoWhenScenariosEnvPointsAtMissingFile() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
             Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")

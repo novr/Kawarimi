@@ -2,7 +2,7 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func kawarimiJutsuLoadsOpenAPI310Fixture() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuLoadsOpenAPI310Fixture() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-3.1.0", extension: "yaml") else {
         Issue.record("openapi-3.1.0.yaml not found")
         return
@@ -14,7 +14,7 @@ import Testing
     try assertJSONDecoderAcceptsMockBody(json)
 }
 
-@Test func kawarimiJutsuLoadsOpenAPI320Fixture() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuLoadsOpenAPI320Fixture() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-3.2.0", extension: "yaml") else {
         Issue.record("openapi-3.2.0.yaml not found")
         return
@@ -24,7 +24,7 @@ import Testing
     #expect(transportMockBodyJSONString(operationId: "ping", in: source) != nil)
 }
 
-@Test func kawarimiJutsuThrowsSpecParseErrorForInvalidYAML() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuThrowsSpecParseErrorForInvalidYAML() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-bad-yaml-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -42,7 +42,7 @@ import Testing
     }
 }
 
-@Test func kawarimiJutsuThrowsSpecParseErrorForUnsupportedOpenAPIVersion() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuThrowsSpecParseErrorForUnsupportedOpenAPIVersion() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-bad-ver-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -66,7 +66,7 @@ import Testing
     }
 }
 
-@Test func resolveOpenAPISpecDocumentFindsSingleMatch() throws {
+@Test(.timeLimit(.minutes(1))) func resolveOpenAPISpecDocumentFindsSingleMatch() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-resolve-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -81,7 +81,7 @@ import Testing
     #expect(resolved == docURL)
 }
 
-@Test func resolveOpenAPISpecDocumentThrowsWhenAmbiguous() throws {
+@Test(.timeLimit(.minutes(1))) func resolveOpenAPISpecDocumentThrowsWhenAmbiguous() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-amb-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -94,7 +94,7 @@ import Testing
     }
 }
 
-@Test func resolveOpenAPISpecDocumentThrowsWhenMissing() throws {
+@Test(.timeLimit(.minutes(1))) func resolveOpenAPISpecDocumentThrowsWhenMissing() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-miss-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -104,13 +104,13 @@ import Testing
         _ = try OpenAPISpecDocumentURL.resolveOpenAPISpecDocument(inKnownFileURLs: [other], targetName: "TmpTarget")
     }
 }
-@Test func kawarimiJutsuThrowsWhenSpecNotFound() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuThrowsWhenSpecNotFound() throws {
     #expect(throws: KawarimiJutsuError.self) {
         _ = try KawarimiJutsu.loadOpenAPISpec(path: "/nonexistent/openapi.yaml")
     }
 }
 
-@Test func kawarimiJutsuLoadsOpenAPIJSONFixture() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuLoadsOpenAPIJSONFixture() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "json") else {
         Issue.record("openapi.json not found in test resources")
         return

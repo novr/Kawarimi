@@ -22,7 +22,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 // MARK: Seed `OverrideEditorStore.detail` directly, then assert `@Observable` state after store methods
 
 @MainActor
-@Test func validateBodyUpdatesObservableDetailAfterPropertySeededDraft() {
+@Test(.timeLimit(.minutes(1))) func validateBodyUpdatesObservableDetailAfterPropertySeededDraft() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
         mock: MockOverride(
@@ -44,7 +44,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func validateBodySetsValidMessageWhenDetailSeededWithValidJson() {
+@Test(.timeLimit(.minutes(1))) func validateBodySetsValidMessageWhenDetailSeededWithValidJson() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
         mock: MockOverride(
@@ -64,7 +64,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func markSavedCleanMutatesObservableDetailInPlace() {
+@Test(.timeLimit(.minutes(1))) func markSavedCleanMutatesObservableDetailInPlace() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
         mock: MockOverride(
@@ -85,7 +85,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func formatBodyUpdatesObservableDetailWhenSeeded() {
+@Test(.timeLimit(.minutes(1))) func formatBodyUpdatesObservableDetailWhenSeeded() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
         mock: MockOverride(
@@ -108,7 +108,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func applyMockEditUpdatesObservableDetailWhenRowMatches() {
+@Test(.timeLimit(.minutes(1))) func applyMockEditUpdatesObservableDetailWhenRowMatches() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -150,7 +150,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func applyMockEditClearsPinnedNumberedResponseChip() {
+@Test(.timeLimit(.minutes(1))) func applyMockEditClearsPinnedNumberedResponseChip() {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",

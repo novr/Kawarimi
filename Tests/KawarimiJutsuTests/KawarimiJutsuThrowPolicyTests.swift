@@ -2,7 +2,7 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func kawarimiHandlerThrowsWhenPolicyIsThrowAndResponseIsNonJson() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerThrowsWhenPolicyIsThrowAndResponseIsNonJson() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-xml-success-response", extension: "yaml") else {
         Issue.record("fixture not found")
         return

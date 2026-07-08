@@ -21,7 +21,7 @@ private struct FakeResponse: SpecMockResponseProviding {
     var description: String?
 }
 
-@Test func parametersPresentationNilWhenAbsent() {
+@Test(.timeLimit(.minutes(1))) func parametersPresentationNilWhenAbsent() {
     let endpoint = FakeEndpoint(
         path: "/",
         method: .get,
@@ -32,7 +32,7 @@ private struct FakeResponse: SpecMockResponseProviding {
     #expect(ParametersPresentation.displayLines(for: endpoint) == nil)
 }
 
-@Test func parametersPresentationFormatsLines() {
+@Test(.timeLimit(.minutes(1))) func parametersPresentationFormatsLines() {
     let endpoint = FakeEndpoint(
         path: "/items/{id}",
         method: .get,

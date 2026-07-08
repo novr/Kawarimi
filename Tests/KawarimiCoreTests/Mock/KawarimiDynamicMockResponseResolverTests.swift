@@ -3,9 +3,9 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("KawarimiDynamicMockResponseResolver")
+@Suite("KawarimiDynamicMockResponseResolver", .timeLimit(.minutes(1)))
 struct KawarimiDynamicMockResponseResolverTests {
-    @Test func usesCustomBodyWhenSet() {
+    @Test(.timeLimit(.minutes(1))) func usesCustomBodyWhenSet() {
         let override = MockOverride(
             path: "/api/x",
             method: .get,
@@ -23,7 +23,7 @@ struct KawarimiDynamicMockResponseResolverTests {
         #expect(resolved.contentType == "application/json")
     }
 
-    @Test func fallsBackToEmptyJsonWhenNoSpecEntry() {
+    @Test(.timeLimit(.minutes(1))) func fallsBackToEmptyJsonWhenNoSpecEntry() {
         let override = MockOverride(path: "/api/x", method: .get, statusCode: 503)
         let resolved = KawarimiDynamicMockResponseResolver.resolve(
             override: override,

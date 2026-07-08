@@ -31,19 +31,19 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIErrorDescriptionContainsStatusCodeAndBodySnippet() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIErrorDescriptionContainsStatusCodeAndBodySnippet() {
     let err = KawarimiAPIError(statusCode: 503, data: "Service Unavailable — overloaded".data(using: .utf8))
     let desc = err.errorDescription ?? ""
     #expect(desc.contains("503"))
     #expect(desc.contains("Service Unavailable"))
 }
 
-@Test func kawarimiAPIErrorDescriptionWithNilData() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIErrorDescriptionWithNilData() {
     let err = KawarimiAPIError(statusCode: 404, data: nil)
     #expect(err.errorDescription == "HTTP 404")
 }
 
-@Test func kawarimiAPIClientFetchSpecThrowsKawarimiAPIErrorOn5xx() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientFetchSpecThrowsKawarimiAPIErrorOn5xx() async throws {
     URLProtocol.registerClass(MockKawarimiURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiURLProtocol.self) }
 
@@ -63,7 +63,7 @@ private final class MockKawarimiURLProtocol: URLProtocol {
     }
 }
 
-@Test func kawarimiAPIClientFetchSpecThrowsKawarimiAPIErrorOn4xx() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientFetchSpecThrowsKawarimiAPIErrorOn4xx() async throws {
     URLProtocol.registerClass(MockKawarimiURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiURLProtocol.self) }
 
@@ -113,7 +113,7 @@ private final class MockKawarimiReloadURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIClientReloadParsesReloadOutcomeHeaderAndOverrides() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientReloadParsesReloadOutcomeHeaderAndOverrides() async throws {
     URLProtocol.registerClass(MockKawarimiReloadURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiReloadURLProtocol.self) }
 
@@ -160,7 +160,7 @@ private final class MockKawarimiMutationURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIClientConfigureDecodesOverridesFromResponseBody() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientConfigureDecodesOverridesFromResponseBody() async throws {
     URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
 
@@ -174,7 +174,7 @@ private final class MockKawarimiMutationURLProtocol: URLProtocol {
     #expect(overrides[0].path == "/api/items")
 }
 
-@Test func kawarimiAPIClientRemoveDecodesOverridesFromResponseBody() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientRemoveDecodesOverridesFromResponseBody() async throws {
     URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
 
@@ -188,7 +188,7 @@ private final class MockKawarimiMutationURLProtocol: URLProtocol {
     #expect(overrides[0].path == "/api/items")
 }
 
-@Test func kawarimiAPIClientResetDecodesOverridesFromResponseBody() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientResetDecodesOverridesFromResponseBody() async throws {
     URLProtocol.registerClass(MockKawarimiMutationURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiMutationURLProtocol.self) }
 
@@ -226,7 +226,7 @@ private final class MockKawarimiMutationInvalidBodyURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIClientMutationThrowsWhenResponseBodyIsNotOverridesJSON() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientMutationThrowsWhenResponseBodyIsNotOverridesJSON() async throws {
     URLProtocol.registerClass(MockKawarimiMutationInvalidBodyURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockKawarimiMutationInvalidBodyURLProtocol.self) }
 

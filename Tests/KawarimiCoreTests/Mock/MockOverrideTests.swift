@@ -2,12 +2,12 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func mockOverrideStringMethodInitRejectsEmptyToken() {
+@Test(.timeLimit(.minutes(1))) func mockOverrideStringMethodInitRejectsEmptyToken() {
     #expect(MockOverride(path: "/", method: "", statusCode: 200) == nil)
     #expect(MockOverride(path: "/", method: "   ", statusCode: 200) == nil)
 }
 
-@Test func mockOverrideEncodeDecodeWithDelayMs() throws {
+@Test(.timeLimit(.minutes(1))) func mockOverrideEncodeDecodeWithDelayMs() throws {
     let override = MockOverride(
         path: "/api/greet",
         method: "GET",
@@ -19,7 +19,7 @@ import Testing
     #expect(decoded.delayMs == 1500)
 }
 
-@Test func kawarimiConfigStoreNormalizesDelayMs() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiConfigStoreNormalizesDelayMs() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-delay-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path)
@@ -38,7 +38,7 @@ import Testing
     try? FileManager.default.removeItem(at: url)
 }
 
-@Test func mockOverrideEncodeDecodeWithBodyAndContentType() throws {
+@Test(.timeLimit(.minutes(1))) func mockOverrideEncodeDecodeWithBodyAndContentType() throws {
     let override = MockOverride(
         name: "getGreeting",
         path: "/api/greet",
@@ -61,7 +61,7 @@ import Testing
     #expect(decoded.exampleId == override.exampleId)
 }
 
-@Test func mockOverrideJSONRoundtripsExampleId() throws {
+@Test(.timeLimit(.minutes(1))) func mockOverrideJSONRoundtripsExampleId() throws {
     let override = MockOverride(
         path: "/api/items",
         method: "GET",
@@ -78,7 +78,7 @@ import Testing
     #expect(decoded.exampleId == "success")
 }
 
-@Test func mockOverrideEncodeDecodeWithoutBodyBackwardCompatible() throws {
+@Test(.timeLimit(.minutes(1))) func mockOverrideEncodeDecodeWithoutBodyBackwardCompatible() throws {
     let override = MockOverride(
         name: nil,
         path: "/api/greet",
@@ -94,7 +94,7 @@ import Testing
     #expect(decoded.contentType == nil)
 }
 
-@Test func hengeConfigRoundtripWithBodyOverrides() throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigRoundtripWithBodyOverrides() throws {
     let config = KawarimiConfig(overrides: [
         MockOverride(name: "a", path: "/api/a", method: "GET", statusCode: 200, body: "{}", contentType: "application/json")!,
         MockOverride(name: "b", path: "/api/b", method: "POST", statusCode: 201, body: nil, contentType: nil)!,
@@ -106,7 +106,7 @@ import Testing
     #expect(decoded.overrides[1].body == nil)
 }
 
-@Test func mockOverrideEquatable() {
+@Test(.timeLimit(.minutes(1))) func mockOverrideEquatable() {
     let a = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")!
     let b = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{}")!
     let c = MockOverride(path: "/api/x", method: "GET", statusCode: 200, body: "{\"x\":1}")!
@@ -114,20 +114,20 @@ import Testing
     #expect(a != c)
 }
 
-@Test func mockOverrideHasEffectiveCustomBody() {
+@Test(.timeLimit(.minutes(1))) func mockOverrideHasEffectiveCustomBody() {
     #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "x", contentType: nil)!.hasEffectiveCustomBody == true)
     #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: nil, contentType: nil)!.hasEffectiveCustomBody == false)
     #expect(MockOverride(path: "/a", method: "GET", statusCode: 200, body: "", contentType: nil)!.hasEffectiveCustomBody == false)
 }
 
-@Test func mockOverrideNormalizedRowIdAcceptsUUIDOnly() {
+@Test(.timeLimit(.minutes(1))) func mockOverrideNormalizedRowIdAcceptsUUIDOnly() {
     let id = "550E8400-E29B-41D4-A716-446655440000"
     #expect(MockOverrideRowID(rawValue: id)?.rawValue == "550e8400-e29b-41d4-a716-446655440000")
     #expect(MockOverrideRowID(rawValue: "not-uuid") == nil)
     #expect(MockOverrideRowID(rawValue: "   ") == nil)
 }
 
-@Test func mockOverrideDecodeFallsBackToNilForMalformedRowId() throws {
+@Test(.timeLimit(.minutes(1))) func mockOverrideDecodeFallsBackToNilForMalformedRowId() throws {
     let json = """
     {
       "rowId": "not-a-uuid",
@@ -143,7 +143,7 @@ import Testing
     #expect(decoded.statusCode == 200)
 }
 
-@Test func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreNormalizesEmptyBodyToNil() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path)
@@ -155,7 +155,7 @@ import Testing
     try? FileManager.default.removeItem(at: url)
 }
 
-@Test func hengeConfigStoreUsesPathPrefix() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreUsesPathPrefix() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/v1")
@@ -166,7 +166,7 @@ import Testing
     try? FileManager.default.removeItem(at: url)
 }
 
-@Test func hengeConfigStoreRemoveOverride() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreRemoveOverride() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let path = url.path
     let store = try KawarimiConfigStore(configPath: path, pathPrefix: "/api")
@@ -179,7 +179,7 @@ import Testing
     try? FileManager.default.removeItem(at: url)
 }
 
-@Test func hengeConfigStoreConfigureAssignsRowIdWhenMissing() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreConfigureAssignsRowIdWhenMissing() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     let store = try KawarimiConfigStore(configPath: url.path)
     defer { try? FileManager.default.removeItem(at: url) }
@@ -189,7 +189,7 @@ import Testing
     #expect(overrides[0].rowId != nil)
 }
 
-@Test func hengeConfigStoreConfigureRowIdMatchWinsOverLegacyFirstHit() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreConfigureRowIdMatchWinsOverLegacyFirstHit() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
@@ -233,7 +233,7 @@ import Testing
     #expect(target.body == "{\"v\":3}")
 }
 
-@Test func hengeConfigStoreConfigurePromotesLegacyRowAndKeepsStableRowId() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreConfigurePromotesLegacyRowAndKeepsStableRowId() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
@@ -278,7 +278,7 @@ import Testing
     #expect(final.body == "{\"phase\":3}")
 }
 
-@Test func hengeConfigStoreReloadNormalizesUppercaseRowIdAndMatchesByRowId() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreReloadNormalizesUppercaseRowIdAndMatchesByRowId() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let uppercaseRowId = "550E8400-E29B-41D4-A716-446655440000"
@@ -319,7 +319,7 @@ import Testing
     #expect(final.rowId?.rawValue == uppercaseRowId.lowercased())
 }
 
-@Test func hengeConfigStoreRemoveUsesRowIdBeforeLegacy() async throws {
+@Test(.timeLimit(.minutes(1))) func hengeConfigStoreRemoveUsesRowIdBeforeLegacy() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
@@ -339,7 +339,7 @@ import Testing
     #expect(remaining[0].rowId == rowIdA)
 }
 
-@Test func kawarimiConfigStoreThrowsInvalidConfigPath() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiConfigStoreThrowsInvalidConfigPath() throws {
     var thrown = false
     do {
         _ = try KawarimiConfigStore(configPath: "/foo/../bar.json")
@@ -352,7 +352,7 @@ import Testing
     #expect(thrown)
 }
 
-@Test func kawarimiConfigStoreThrowsBodyTooLong() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiConfigStoreThrowsBodyTooLong() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)
@@ -372,7 +372,7 @@ import Testing
 
 // MARK: - sortedForInterceptorTieBreak
 
-@Suite("MockOverride interceptor tie-break sort")
+@Suite("MockOverride interceptor tie-break sort", .timeLimit(.minutes(1)))
 struct MockOverrideInterceptorTieBreakTests {
     private func ov(
         path: String,
@@ -391,7 +391,7 @@ struct MockOverrideInterceptorTieBreakTests {
         )!
     }
 
-    @Test("path ascending breaks ties")
+    @Test("path ascending breaks ties", .timeLimit(.minutes(1)))
     func pathAscending() {
         let a = ov(path: "/api/zebra")
         let b = ov(path: "/api/apple")
@@ -400,7 +400,7 @@ struct MockOverrideInterceptorTieBreakTests {
         #expect(sorted.map(\MockOverride.path) == ["/api/apple", "/api/middle", "/api/zebra"])
     }
 
-    @Test("statusCode ascending when path matches")
+    @Test("statusCode ascending when path matches", .timeLimit(.minutes(1)))
     func statusCodeAscending() {
         let five = ov(path: "/api/x", statusCode: 500)
         let two = ov(path: "/api/x", statusCode: 200)
@@ -409,7 +409,7 @@ struct MockOverrideInterceptorTieBreakTests {
         #expect(sorted.map(\MockOverride.statusCode) == [200, 404, 500])
     }
 
-    @Test("name then exampleId when earlier keys equal")
+    @Test("name then exampleId when earlier keys equal", .timeLimit(.minutes(1)))
     func nameAndExampleId() {
         let b = ov(path: "/p", statusCode: 200, exampleId: "e2", name: "b")
         let a = ov(path: "/p", statusCode: 200, exampleId: "e2", name: "a")
@@ -417,7 +417,7 @@ struct MockOverrideInterceptorTieBreakTests {
         #expect(sorted.map(\MockOverride.name) == ["a", "b"])
     }
 
-    @Test("full key order is stable across input permutations")
+    @Test("full key order is stable across input permutations", .timeLimit(.minutes(1)))
     func permutationStable() {
         let entries = [
             ov(path: "/b", statusCode: 200, name: "n1"),

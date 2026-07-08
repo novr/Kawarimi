@@ -44,21 +44,21 @@ private let defensiveNamingCases: [DefensiveNamingCase] = [
     DefensiveNamingCase(operationId: "enum", expectedType: "_enum", expectedMethod: "_enum"),
 ]
 
-@Test(arguments: idiomaticNamingCases)
+@Test(.timeLimit(.minutes(1)), arguments: idiomaticNamingCases)
 func kawarimiNamingStrategyIdiomaticMapsOperationId(case sample: IdiomaticNamingCase) throws {
     let strategy = KawarimiNamingStrategy.idiomatic
     #expect(try strategy.swiftOperationTypeName(forOperationId: sample.operationId) == sample.expectedType)
     #expect(try strategy.swiftOperationMethodName(forOperationId: sample.operationId) == sample.expectedMethod)
 }
 
-@Test(arguments: defensiveNamingCases)
+@Test(.timeLimit(.minutes(1)), arguments: defensiveNamingCases)
 func kawarimiNamingStrategyDefensiveMapsOperationId(case sample: DefensiveNamingCase) throws {
     let strategy = KawarimiNamingStrategy.defensive
     #expect(try strategy.swiftOperationTypeName(forOperationId: sample.operationId) == sample.expectedType)
     #expect(try strategy.swiftOperationMethodName(forOperationId: sample.operationId) == sample.expectedMethod)
 }
 
-@Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
     guard let openAPIURL = KawarimiJutsuTestSupport.fixtureURL(
         name: "openapi",
         extension: "yaml",

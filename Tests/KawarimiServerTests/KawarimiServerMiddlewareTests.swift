@@ -6,9 +6,9 @@ import Testing
 
 @testable import KawarimiServer
 
-@Suite("KawarimiServerMiddleware")
+@Suite("KawarimiServerMiddleware", .timeLimit(.minutes(1)))
 struct KawarimiServerMiddlewareTests {
-  @Test func returnsMockWithoutCallingNext() async throws {
+  @Test(.timeLimit(.minutes(1))) func returnsMockWithoutCallingNext() async throws {
     let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
     let config = KawarimiConfig(overrides: [
       MockOverride(
@@ -45,7 +45,7 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"mocked\":true}")
   }
 
-  @Test func reloadFromDisk_appliesHandEditedConfig() async throws {
+  @Test(.timeLimit(.minutes(1))) func reloadFromDisk_appliesHandEditedConfig() async throws {
     let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
     let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
     try await store.configure(
@@ -84,7 +84,7 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"after\":true}")
   }
 
-  @Test func scenarioMatchReturnsMockAndNextHeader() async throws {
+  @Test(.timeLimit(.minutes(1))) func scenarioMatchReturnsMockAndNextHeader() async throws {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
@@ -137,7 +137,7 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"error\":true}")
   }
 
-  @Test func scenarioFallbackUsesExistingOverridePath() async throws {
+  @Test(.timeLimit(.minutes(1))) func scenarioFallbackUsesExistingOverridePath() async throws {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }
@@ -173,7 +173,7 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"from\":\"override\"}")
   }
 
-  @Test func scenarioTerminalCaseOmitsNextHeader() async throws {
+  @Test(.timeLimit(.minutes(1))) func scenarioTerminalCaseOmitsNextHeader() async throws {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: dir) }

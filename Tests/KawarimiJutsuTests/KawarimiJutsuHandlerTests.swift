@@ -2,7 +2,7 @@ import Foundation
 @testable import KawarimiJutsu
 import Testing
 
-@Test func generateKawarimiHandlerSourceEmitsMissingOperationIdSkipWarning() throws {
+@Test(.timeLimit(.minutes(1))) func generateKawarimiHandlerSourceEmitsMissingOperationIdSkipWarning() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-opid-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -37,7 +37,7 @@ import Testing
     #expect(warnings.first == "[kawarimi] warning: operation GET /no-id has no operationId and will be skipped")
 }
 
-@Test func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuGenerateKawarimiHandlerSource() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
         return
@@ -56,7 +56,7 @@ import Testing
     #expect(source.contains(".noContent("))
 }
 
-@Test func kawarimiHandlerSupports200WithNoContentBlock() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerSupports200WithNoContentBlock() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-200-no-json", extension: "yaml") else {
         Issue.record("fixture not found")
         return
@@ -82,7 +82,7 @@ private let enumHandlerGenerationCases: [EnumHandlerGenerationCase] = [
     EnumHandlerGenerationCase(accessModifier: .public, handlerStubPolicy: .throw, witnessAccessKeyword: "public"),
 ]
 
-@Test(arguments: enumHandlerGenerationCases)
+@Test(.timeLimit(.minutes(1)), arguments: enumHandlerGenerationCases)
 func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGenerationCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
         Issue.record("fixture not found")
@@ -112,7 +112,7 @@ func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGene
     )
 }
 
-@Test func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerAllOfDateTimeUsesSharedStubJSONDecoder() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
         Issue.record("openapi-datetime-handler-decode.yaml not found")
         return
@@ -136,7 +136,7 @@ func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGene
     try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getSnapshotDecode", actual: handlerJSON)
 }
 
-@Test func kawarimiHandlerUsesFatalErrorStubForNonJsonSuccessWhenPolicyIsFatalError() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerUsesFatalErrorStubForNonJsonSuccessWhenPolicyIsFatalError() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-xml-success-response", extension: "yaml") else {
         Issue.record("fixture not found")
         return

@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 
-@Test func cliGeneratesSwiftFromOpenAPI() throws {
+@Test(.timeLimit(.minutes(1))) func cliGeneratesSwiftFromOpenAPI() throws {
     let openapiURL = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .appendingPathComponent("../KawarimiCoreTests/Fixtures/openapi.yaml")
@@ -62,7 +62,7 @@ import Testing
     #expect(handlerGenerated.contains("deleteItem"), "DELETE 204 operation in handler")
 }
 
-@Test func cliGeneratesSwiftFromOpenAPIJSON() throws {
+@Test(.timeLimit(.minutes(1))) func cliGeneratesSwiftFromOpenAPIJSON() throws {
     let openapiURL = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .appendingPathComponent("../KawarimiCoreTests/Fixtures/openapi.json")
@@ -114,7 +114,7 @@ import Testing
     #expect(handlerGenerated.contains("deleteItem"))
 }
 
-@Test func cliPartialGenerationSkipsHandler() throws {
+@Test(.timeLimit(.minutes(1))) func cliPartialGenerationSkipsHandler() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-partial-gen-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -172,7 +172,7 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiSpec.swift").path))
 }
 
-@Test func cliFailsWhenHandlerStubPolicyIsThrowAndOperationCannotBeStubbed() throws {
+@Test(.timeLimit(.minutes(1))) func cliFailsWhenHandlerStubPolicyIsThrowAndOperationCannotBeStubbed() throws {
     let xmlFixture = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .appendingPathComponent("../KawarimiCoreTests/Fixtures/openapi-xml-success-response.yaml")
@@ -221,7 +221,7 @@ import Testing
     #expect(!FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiHandler.swift").path))
 }
 
-@Test func cliWarnsWhenKawarimiGeneratorConfigYamlIsInvalid() throws {
+@Test(.timeLimit(.minutes(1))) func cliWarnsWhenKawarimiGeneratorConfigYamlIsInvalid() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-invalid-kw-cfg-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -279,7 +279,7 @@ import Testing
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
 }
 
-@Test func cliPrintsVersion() throws {
+@Test(.timeLimit(.minutes(1))) func cliPrintsVersion() throws {
     let packageRoot = resolvePackageRoot()
     guard let expectedVersion = buildInfoVersion(packageRoot: packageRoot) else {
         Issue.record("Could not read BuildInfo.version from Sources/Kawarimi/Generated.swift")
@@ -295,7 +295,7 @@ import Testing
     #expect(result.stdout.trimmingCharacters(in: .whitespacesAndNewlines) == expectedVersion)
 }
 
-@Test func cliPrintsHelp() throws {
+@Test(.timeLimit(.minutes(1))) func cliPrintsHelp() throws {
     let packageRoot = resolvePackageRoot()
     guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
         Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")
@@ -310,7 +310,7 @@ import Testing
     }
 }
 
-@Test func cliRejectsUnknownOption() throws {
+@Test(.timeLimit(.minutes(1))) func cliRejectsUnknownOption() throws {
     let packageRoot = resolvePackageRoot()
     guard let kawarimiURL = findKawarimiExecutable(packageRoot: packageRoot) else {
         Issue.record("Kawarimi executable not found. Run swift build at the package root, then swift test.")

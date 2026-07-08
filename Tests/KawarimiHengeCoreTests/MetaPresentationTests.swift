@@ -10,7 +10,7 @@ private struct FakeMeta: SpecMetaProviding {
     var apiPathPrefix: String
 }
 
-@Test func metaPresentationTrimsApiDescription() {
+@Test(.timeLimit(.minutes(1))) func metaPresentationTrimsApiDescription() {
     let withText = FakeMeta(title: "T", version: "1", description: "  Demo API  ", serverURL: "http://x", apiPathPrefix: "")
     #expect(MetaPresentation.apiDescription(for: withText) == "Demo API")
 

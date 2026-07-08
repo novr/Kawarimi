@@ -6,7 +6,7 @@ import HTTPTypes
 import KawarimiCore
 import Testing
 
-@Test func hengeSpecSnapshotDecodesWireJSONIncludingDELETE() throws {
+@Test(.timeLimit(.minutes(1))) func hengeSpecSnapshotDecodesWireJSONIncludingDELETE() throws {
     guard let url = Bundle.module.url(forResource: "henge-spec-snapshot", withExtension: "json", subdirectory: "Fixtures") else {
         Issue.record("henge-spec-snapshot.json not found in test resources")
         return
@@ -64,7 +64,7 @@ private final class MockHengeSpecURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-@Test func kawarimiAPIClientFetchHengeSpecDecodesSnapshot() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAPIClientFetchHengeSpecDecodesSnapshot() async throws {
     URLProtocol.registerClass(MockHengeSpecURLProtocol.self)
     defer { URLProtocol.unregisterClass(MockHengeSpecURLProtocol.self) }
 

@@ -2,9 +2,9 @@ import Foundation
 @testable import KawarimiCore
 import Testing
 
-@Suite("KawarimiConfigFileWatcher")
+@Suite("KawarimiConfigFileWatcher", .timeLimit(.minutes(1)))
 struct KawarimiConfigFileWatcherTests {
-    @Test func fileWrite_triggersDebouncedCallback() async throws {
+    @Test(.timeLimit(.minutes(1))) func fileWrite_triggersDebouncedCallback() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: url) }
 
@@ -21,7 +21,7 @@ struct KawarimiConfigFileWatcherTests {
         #expect(await waitForEvent(gate.stream, timeout: .seconds(2)))
     }
 
-    @Test func storeFileWatch_appliesExternalEdit() async throws {
+    @Test(.timeLimit(.minutes(1))) func storeFileWatch_appliesExternalEdit() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: url) }
 
@@ -47,7 +47,7 @@ struct KawarimiConfigFileWatcherTests {
         await store.stopFileWatch()
     }
 
-    @Test func startFileWatchIfEnabled_respectsDisabledPolicy() async throws {
+    @Test(.timeLimit(.minutes(1))) func startFileWatchIfEnabled_respectsDisabledPolicy() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: url) }
 

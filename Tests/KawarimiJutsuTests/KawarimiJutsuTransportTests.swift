@@ -2,7 +2,7 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func kawarimiTransportUsesCreatedStatusFor201JsonResponse() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiTransportUsesCreatedStatusFor201JsonResponse() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found")
         return
@@ -26,7 +26,7 @@ import Testing
     try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(json, specJSON)
 }
 
-@Test func kawarimiTransportUsesNoContentFor204Response() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiTransportUsesNoContentFor204Response() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found")
         return
@@ -41,7 +41,7 @@ import Testing
     #expect(slice.contains("HTTPResponse(status: .noContent)"))
     #expect(slice.contains("nil)"))
 }
-@Test func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuLoadsSpecAndGeneratesMockTransport() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
         Issue.record("openapi.yaml not found in test resources")
         return

@@ -2,13 +2,13 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func lineParserDefaultsWhenConfigMissing() throws {
+@Test(.timeLimit(.minutes(1))) func lineParserDefaultsWhenConfigMissing() throws {
     let options = try KawarimiGeneratorConfigLineParser.load(kawarimiConfigURL: nil)
     #expect(options == .defaults)
     #expect(options.outputFileNames == ["Kawarimi.swift", "KawarimiHandler.swift", "KawarimiSpec.swift"])
 }
 
-@Test func lineParserAcceptsTrueFalseOnly() {
+@Test(.timeLimit(.minutes(1))) func lineParserAcceptsTrueFalseOnly() {
     let text = """
     generateKawarimi: true
     generateHandler: false
@@ -21,7 +21,7 @@ import Testing
     #expect(options.outputFileNames == ["Kawarimi.swift", "KawarimiSpec.swift"])
 }
 
-@Test func lineParserIgnoresNonBooleanSynonyms() {
+@Test(.timeLimit(.minutes(1))) func lineParserIgnoresNonBooleanSynonyms() {
     let text = """
     generateKawarimi: yes
     generateHandler: on
@@ -33,7 +33,7 @@ import Testing
     #expect(!options.generateSpec)
 }
 
-@Test func lineParserRejectsAllOutputsDisabled() throws {
+@Test(.timeLimit(.minutes(1))) func lineParserRejectsAllOutputsDisabled() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kw-plugin-support-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }

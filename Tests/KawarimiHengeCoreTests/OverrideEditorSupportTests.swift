@@ -22,7 +22,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Endpoint filter
 
-@Test func endpointFilterEmptyOrWhitespaceReturnsAllAndMatchesPathMethodOperationId() {
+@Test(.timeLimit(.minutes(1))) func endpointFilterEmptyOrWhitespaceReturnsAllAndMatchesPathMethodOperationId() {
     let ep = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -43,7 +43,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Save payload
 
-@Test func savePayloadWhenDisabledSpecShapedClearsBodyKeepsStatus() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenDisabledSpecShapedClearsBodyKeepsStatus() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -70,7 +70,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == nil)
 }
 
-@Test func savePayloadWhenDisabledWithEditedBodyOnDefaultSpecRowKeepsBody() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenDisabledWithEditedBodyOnDefaultSpecRowKeepsBody() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -95,7 +95,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == "{ \"a\": 1 }")
 }
 
-@Test func savePayloadWhenDisabledOnNonFirstSpecRowPreservesStatusCode() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenDisabledOnNonFirstSpecRowPreservesStatusCode() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .post,
@@ -122,7 +122,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == nil)
 }
 
-@Test func savePayloadWhenDisabledPreservesNamedExampleIdentity() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenDisabledPreservesNamedExampleIdentity() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -148,7 +148,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == nil)
 }
 
-@Test func savePayloadBuildWhenDisabledKeepsNonEmptyBody() {
+@Test(.timeLimit(.minutes(1))) func savePayloadBuildWhenDisabledKeepsNonEmptyBody() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -175,7 +175,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == "{\"id\":1}")
 }
 
-@Test func savePayloadWhenEnabledPreservesStatusExampleAndBody() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenEnabledPreservesStatusExampleAndBody() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -203,7 +203,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Disable row planner
 
-@Test func disablePlannerWhenEnabledWithoutUnsavedDraftIsNoOp() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenEnabledWithoutUnsavedDraftIsNoOp() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -226,7 +226,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     }
 }
 
-@Test func disablePlannerWhenInactiveWithUnsavedDraftClearsLocally() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenInactiveWithUnsavedDraftClearsLocally() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -249,7 +249,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     }
 }
 
-@Test func disablePlannerWhenActiveWithoutStoredRowClearsDraftLocally() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenActiveWithoutStoredRowClearsDraftLocally() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -272,7 +272,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     }
 }
 
-@Test func disablePlannerWhenActiveWithStoredRowRemoves() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenActiveWithStoredRowRemoves() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -306,7 +306,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(storedRow.path == "/x")
 }
 
-@Test func disablePlannerWhenInactiveWithStoredRowRemoves() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenInactiveWithStoredRowRemoves() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -343,7 +343,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(cleared.exampleId == nil)
 }
 
-@Test func removeIdentityUsesStoredPathAndExampleId() {
+@Test(.timeLimit(.minutes(1))) func removeIdentityUsesStoredPathAndExampleId() {
     let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let stored = MockOverride(
         name: "getGreeting",
@@ -365,7 +365,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(wire.body == nil)
 }
 
-@Test func isSameOverrideRowUsesRowIdWhenBothPresent() {
+@Test(.timeLimit(.minutes(1))) func isSameOverrideRowUsesRowIdWhenBothPresent() {
     let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let a = MockOverride(
         rowId: rowId,
@@ -386,7 +386,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(OverrideListQueries.isSameOverrideRow(a, b, pathPrefix: "/api"))
 }
 
-@Test func isSameOverrideRowRejectsMixedRowIdPresence() {
+@Test(.timeLimit(.minutes(1))) func isSameOverrideRowRejectsMixedRowIdPresence() {
     let rowId = MockOverrideRowID(rawValue: UUID().uuidString)!
     let withRowId = MockOverride(
         rowId: rowId,
@@ -405,7 +405,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(!OverrideListQueries.isSameOverrideRow(withRowId, withoutRowId, pathPrefix: "/api"))
 }
 
-@Test func storedOverrideForDelFindsLegacyRowWithoutExampleId() {
+@Test(.timeLimit(.minutes(1))) func storedOverrideForDelFindsLegacyRowWithoutExampleId() {
     let formalBody = "{\"message\":\"Good day from API\"}"
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",
@@ -448,7 +448,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(found?.body == formalBody)
 }
 
-@Test func disablePlannerRemovesLegacyRowWithoutExampleIdWhenFormalChipSelected() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerRemovesLegacyRowWithoutExampleIdWhenFormalChipSelected() {
     let formalBody = "{\"message\":\"Good day from API\"}"
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",
@@ -496,7 +496,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(storedRow.body == formalBody)
 }
 
-@Test func disablePlannerWhenInactiveWithoutRowIsNoOp() {
+@Test(.timeLimit(.minutes(1))) func disablePlannerWhenInactiveWithoutRowIsNoOp() {
     let endpoint = FakeSpecEndpoint(
         path: "/x",
         method: .get,
@@ -521,7 +521,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Response chips
 
-@Test func responseChipSpecOptionSelectedWhenMockOffAndNoStoredRow() {
+@Test(.timeLimit(.minutes(1))) func responseChipSpecOptionSelectedWhenMockOffAndNoStoredRow() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -544,7 +544,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(selected == true)
 }
 
-@Test func responseChipSpecWinsWhenDisabledStoredRowButDraftBodyCleared() {
+@Test(.timeLimit(.minutes(1))) func responseChipSpecWinsWhenDisabledStoredRowButDraftBodyCleared() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -588,7 +588,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func responseChipSpecNotSelectedWhenDraftIsUnsavedCustomStatus() {
+@Test(.timeLimit(.minutes(1))) func responseChipSpecNotSelectedWhenDraftIsUnsavedCustomStatus() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -628,7 +628,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(ResponseChips.chipIsSelected(option: customChip, mock: mock, endpoint: endpoint))
 }
 
-@Test func responseChipStatusWinsWhenDisabledStoredRowAndDraftKeepsBody() {
+@Test(.timeLimit(.minutes(1))) func responseChipStatusWinsWhenDisabledStoredRowAndDraftKeepsBody() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -680,7 +680,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func savePayloadSpecOnlyShapeIsDisabledFirstSpecRow() {
+@Test(.timeLimit(.minutes(1))) func savePayloadSpecOnlyShapeIsDisabledFirstSpecRow() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -706,7 +706,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.statusCode == 200)
 }
 
-@Test func savePayloadWhenMockOffDespiteStoredEnabledRowSendsDisable() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenMockOffDespiteStoredEnabledRowSendsDisable() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -741,7 +741,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(applyBuilt.isEnabled == false)
 }
 
-@Test func savePayloadApplyPrimaryPromotesWhenBodyDiffersFromSpec() {
+@Test(.timeLimit(.minutes(1))) func savePayloadApplyPrimaryPromotesWhenBodyDiffersFromSpec() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -763,7 +763,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == "{\"x\":1}")
 }
 
-@Test func applyChipSpecClearsMock() {
+@Test(.timeLimit(.minutes(1))) func applyChipSpecClearsMock() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -793,7 +793,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.body == nil)
 }
 
-@Test func applyChipWithStoredRowCopiesStored() {
+@Test(.timeLimit(.minutes(1))) func applyChipWithStoredRowCopiesStored() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -825,7 +825,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.body == "{\"k\":1}")
 }
 
-@Test func applyChipWithoutStoredEnablesAndSeedsFromSpec() {
+@Test(.timeLimit(.minutes(1))) func applyChipWithoutStoredEnablesAndSeedsFromSpec() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -848,7 +848,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.body == "{\"s\":true}")
 }
 
-@Test func chipOptionsIncludeSpecAndSpecRows() {
+@Test(.timeLimit(.minutes(1))) func chipOptionsIncludeSpecAndSpecRows() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -871,7 +871,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(opts.first?.isSpec == true)
 }
 
-@Test func chipOptionsOmitsSpecFollowGhostRowOnNamedExamples() {
+@Test(.timeLimit(.minutes(1))) func chipOptionsOmitsSpecFollowGhostRowOnNamedExamples() {
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",
         method: .get,
@@ -915,7 +915,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Primary override (Core-aligned)
 
-@Test func hengePrimaryMatchesCoreForOperationIdDespitePathTypo() {
+@Test(.timeLimit(.minutes(1))) func hengePrimaryMatchesCoreForOperationIdDespitePathTypo() {
     let rowKey = EndpointRowKey(method: .get, path: "/api/items")
     let overrides = [
         MockOverride(
@@ -953,7 +953,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(hengePrimary?.exampleId == nil)
 }
 
-@Test func hengeEnabledOverridesForOperationMatchesCoreOrdering() {
+@Test(.timeLimit(.minutes(1))) func hengeEnabledOverridesForOperationMatchesCoreOrdering() {
     let rowKey = EndpointRowKey(method: .get, path: "/api/items")
     let overrides = [
         MockOverride(path: "/api/zebra", method: .get, statusCode: 500, isEnabled: true),
@@ -977,7 +977,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(hengeList.map { $0.path } == ["/api/items"])
 }
 
-@Test func specResponseListIndexForPrimaryBadgeDisambiguatesDuplicateStatusAndExample() {
+@Test(.timeLimit(.minutes(1))) func specResponseListIndexForPrimaryBadgeDisambiguatesDuplicateStatusAndExample() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
         method: .get,
@@ -1003,7 +1003,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Spec template vs chip selection
 
-@Test func responseChipSpecWinsWhenDisabledRowShowsTemplateBodyWithoutNumberedPin() {
+@Test(.timeLimit(.minutes(1))) func responseChipSpecWinsWhenDisabledRowShowsTemplateBodyWithoutNumberedPin() {
     let specBody = "{\"message\":\"Hello from API\"}"
     let prettyBody =
         """
@@ -1061,7 +1061,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(ResponseChips.chipIsSelected(option: row200, mock: mock, endpoint: endpoint) == false)
 }
 
-@Test func responseChip200WinsWhenNumberedChipPinnedAndTemplateBodyMatches() {
+@Test(.timeLimit(.minutes(1))) func responseChip200WinsWhenNumberedChipPinnedAndTemplateBodyMatches() {
     let specBody = "{\"message\":\"Hello from API\"}"
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",
@@ -1116,7 +1116,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func savePayloadSpecOnlyWhenDraftShowsTemplateJson() {
+@Test(.timeLimit(.minutes(1))) func savePayloadSpecOnlyWhenDraftShowsTemplateJson() {
     let specBody = "{\"message\":\"Hello from API\"}"
     let endpoint = FakeSpecEndpoint(
         path: "/greet",
@@ -1149,7 +1149,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 /// Stored row is **off** but the draft matches the OpenAPI 200 template — without pin, **Save** uses Spec-only disable; with **numbered chip** pin, **Save** must **enable** (user chose **200 OK**, not **Spec**).
-@Test func savePayloadWhenNumberedChipPinnedPromotesDisabledStoredRow() {
+@Test(.timeLimit(.minutes(1))) func savePayloadWhenNumberedChipPinnedPromotesDisabledStoredRow() {
     let specBody = "{\"message\":\"Hello from API\"}"
     let endpoint = FakeSpecEndpoint(
         path: "/greet",
@@ -1185,7 +1185,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.contentType == "application/json")
 }
 
-@Test func hasMultipleEnabledOverridesForOperationDetectsTwoOnSameOperation() {
+@Test(.timeLimit(.minutes(1))) func hasMultipleEnabledOverridesForOperationDetectsTwoOnSameOperation() {
     let endpoint = FakeSpecEndpoint(
         path: "/api/pets",
         method: .get,
@@ -1233,7 +1233,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Exclusive enabled row (configure)
 
-@Test func peerShouldDisableWhenDifferentStatusSameOperation() {
+@Test(.timeLimit(.minutes(1))) func peerShouldDisableWhenDifferentStatusSameOperation() {
     let saved = MockOverride(
         name: "getGreeting",
         path: "/api/greet",
@@ -1263,7 +1263,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func peerShouldDisableWhenSameStatusDifferentExampleId() {
+@Test(.timeLimit(.minutes(1))) func peerShouldDisableWhenSameStatusDifferentExampleId() {
     let saved = MockOverride(
         name: "op",
         path: "/api/p",
@@ -1293,7 +1293,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func peerShouldNotDisableSameIdentityRow() {
+@Test(.timeLimit(.minutes(1))) func peerShouldNotDisableSameIdentityRow() {
     let row = MockOverride(
         name: "op",
         path: "/api/p",
@@ -1313,7 +1313,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
 }
 
-@Test func peerShouldNotDisableWhenPeerOff() {
+@Test(.timeLimit(.minutes(1))) func peerShouldNotDisableWhenPeerOff() {
     let saved = MockOverride(
         name: "op",
         path: "/api/p",
@@ -1345,7 +1345,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 
 // MARK: - Persistable mock configuration / server diff (Not saved)
 
-@Test func persistableMockConfigurationEqualTreatsJSONWhitespaceAsSame() {
+@Test(.timeLimit(.minutes(1))) func persistableMockConfigurationEqualTreatsJSONWhitespaceAsSame() {
     let a = MockOverride(
         name: "op",
         path: "/p",
@@ -1369,7 +1369,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(OverrideListQueries.persistableMockConfigurationEqual(a, b))
 }
 
-@Test func persistableMockDiffersFromServerFalseWhenDirtyButMatchesStoredSnapshot() {
+@Test(.timeLimit(.minutes(1))) func persistableMockDiffersFromServerFalseWhenDirtyButMatchesStoredSnapshot() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,
@@ -1405,7 +1405,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(!draft.persistableMockDiffersFromServer(overrides: [stored], endpoints: [endpoint], pathPrefix: "/api"))
 }
 
-@Test func persistableMockDiffersFromServerTrueWhenBodyDiffersFromStored() {
+@Test(.timeLimit(.minutes(1))) func persistableMockDiffersFromServerTrueWhenBodyDiffersFromStored() {
     let endpoint = FakeSpecEndpoint(
         path: "/pets",
         method: .get,

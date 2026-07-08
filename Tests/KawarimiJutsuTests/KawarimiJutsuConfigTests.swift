@@ -2,7 +2,7 @@ import Foundation
 import KawarimiJutsu
 import Testing
 
-@Test func kawarimiJutsuErrorDescription() {
+@Test(.timeLimit(.minutes(1))) func kawarimiJutsuErrorDescription() {
     let notFound = KawarimiJutsuError.specFileNotFound(path: "/foo")
     #expect(notFound.description.contains("not found"))
     #expect(notFound.description.contains("/foo"))
@@ -25,7 +25,7 @@ import Testing
     )
 }
 
-@Test func kawarimiNamingStrategyRejectsUnknownValue() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiNamingStrategyRejectsUnknownValue() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiNaming-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -43,7 +43,7 @@ import Testing
     }
 }
 
-@Test func kawarimiHandlerStubPolicyInOpenAPIGeneratorConfigIsIgnoredAndDefaultsToThrow() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerStubPolicyInOpenAPIGeneratorConfigIsIgnoredAndDefaultsToThrow() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubPolicy-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -60,7 +60,7 @@ import Testing
     #expect(loaded.handlerStubPolicy == .throw)
 }
 
-@Test func kawarimiHandlerStubPolicyDefaultsToThrowWhenGeneratorKeyOmitted() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiHandlerStubPolicyDefaultsToThrowWhenGeneratorKeyOmitted() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiStubOmit-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -77,7 +77,7 @@ import Testing
     #expect(loaded.handlerStubPolicy == .throw)
 }
 
-@Test func kawarimiAccessModifierRejectsUnknownValue() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAccessModifierRejectsUnknownValue() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiAccess-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -95,7 +95,7 @@ import Testing
     }
 }
 
-@Test func handlerStubPolicyBesideOpenAPIThrowsWhenMultipleKawarimiConfigs() throws {
+@Test(.timeLimit(.minutes(1))) func handlerStubPolicyBesideOpenAPIThrowsWhenMultipleKawarimiConfigs() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-multi-kaw-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -130,7 +130,7 @@ import Testing
     #expect(caught == expected)
 }
 
-@Test func loadBesideOpenAPIGeneratorConfigMissingMatchesUpstreamMessage() throws {
+@Test(.timeLimit(.minutes(1))) func loadBesideOpenAPIGeneratorConfigMissingMatchesUpstreamMessage() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("Kawarimi-no-gen-cfg-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }
@@ -149,7 +149,7 @@ import Testing
     #expect(caught == expected)
 }
 
-@Test func kawarimiAccessModifierAcceptsPackage() throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiAccessModifierAcceptsPackage() throws {
     let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("KawarimiAccessPkg-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: tmp) }

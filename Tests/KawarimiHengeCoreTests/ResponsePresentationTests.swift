@@ -19,7 +19,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     var responseList: [any SpecMockResponseProviding]
 }
 
-@Test func responsePresentationResolvesSelectedChipByIndex() {
+@Test(.timeLimit(.minutes(1))) func responsePresentationResolvesSelectedChipByIndex() {
     let responses: [any SpecMockResponseProviding] = [
         FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: "a", summary: "OK", description: "Success body"),
         FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: "b", summary: "Alt", description: nil),
@@ -55,7 +55,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(doc?.description == nil)
 }
 
-@Test func responsePresentationReturnsNilForSpecChip() {
+@Test(.timeLimit(.minutes(1))) func responsePresentationReturnsNilForSpecChip() {
     let endpoint = FakeSpecEndpoint(
         path: "/",
         method: .get,

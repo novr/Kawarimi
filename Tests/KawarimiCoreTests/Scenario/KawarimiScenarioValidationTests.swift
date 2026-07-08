@@ -3,9 +3,9 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("KawarimiScenarioValidation")
+@Suite("KawarimiScenarioValidation", .timeLimit(.minutes(1)))
 struct KawarimiScenarioValidationTests {
-    @Test func warnsOnDuplicateScenarioId() {
+    @Test(.timeLimit(.minutes(1))) func warnsOnDuplicateScenarioId() {
         let scenarios = [
             KawarimiScenario(scenarioId: "login", initial: "a", cases: []),
             KawarimiScenario(scenarioId: "login", initial: "b", cases: []),
@@ -15,7 +15,7 @@ struct KawarimiScenarioValidationTests {
         #expect(warnings.contains(where: { $0.contains("Duplicate scenarioId 'login'") }))
     }
 
-    @Test func warnsOnOrphanRowId() {
+    @Test(.timeLimit(.minutes(1))) func warnsOnOrphanRowId() {
         let rowId = MockOverrideRowID.generate()
         let scenarios = [
             KawarimiScenario(
@@ -36,7 +36,7 @@ struct KawarimiScenarioValidationTests {
         #expect(warnings.contains(where: { $0.contains("rowId \(rowId.rawValue) not found") }))
     }
 
-    @Test func warnsOnInitialWithoutMatchingCase() {
+    @Test(.timeLimit(.minutes(1))) func warnsOnInitialWithoutMatchingCase() {
         let scenarios = [
             KawarimiScenario(scenarioId: "login", initial: "missing", cases: []),
         ]
@@ -45,7 +45,7 @@ struct KawarimiScenarioValidationTests {
         #expect(warnings.contains(where: { $0.contains("initial 'missing' has no matching case") }))
     }
 
-    @Test func resolvesScenariosPathFromEnvironment() {
+    @Test(.timeLimit(.minutes(1))) func resolvesScenariosPathFromEnvironment() {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-env-\(UUID().uuidString)")
         let configPath = dir.appendingPathComponent("kawarimi.json").path
         let scenarioPath = dir.appendingPathComponent("custom-scenarios.json").path
@@ -58,7 +58,7 @@ struct KawarimiScenarioValidationTests {
         #expect(resolved == scenarioPath)
     }
 
-    @Test func explicitScenariosPathOverridesEnvironment() {
+    @Test(.timeLimit(.minutes(1))) func explicitScenariosPathOverridesEnvironment() {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-env-\(UUID().uuidString)")
         let configPath = dir.appendingPathComponent("kawarimi.json").path
         let explicitPath = dir.appendingPathComponent("explicit.json").path
@@ -72,7 +72,7 @@ struct KawarimiScenarioValidationTests {
         #expect(resolved == explicitPath)
     }
 
-    @Test func pathIsExplicitForCLIAndEnvironment() {
+    @Test(.timeLimit(.minutes(1))) func pathIsExplicitForCLIAndEnvironment() {
         #expect(
             KawarimiScenarioDefaults.pathIsExplicit(
                 cliExplicit: "/tmp/scenarios.json",
@@ -99,7 +99,7 @@ struct KawarimiScenarioValidationTests {
         )
     }
 
-    @Test func rejectsInvalidScenariosPathWithParentTraversal() {
+    @Test(.timeLimit(.minutes(1))) func rejectsInvalidScenariosPathWithParentTraversal() {
         #expect(throws: (any Error).self) {
             _ = try KawarimiConfigStore(
                 configPath: "/tmp/kawarimi.json",

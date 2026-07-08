@@ -22,7 +22,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 // MARK: `validationMessageBinding` set → ``OverrideEditorStore/setDetailValidationMessage``
 
 @MainActor
-@Test func setDetailValidationMessageUpdatesObservableDetail() {
+@Test(.timeLimit(.minutes(1))) func setDetailValidationMessageUpdatesObservableDetail() {
     let store = OverrideEditorStore()
     store.detail = OverrideDetailDraft(
         mock: MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil),
@@ -38,7 +38,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 // MARK: `mockBinding` set → ``OverrideEditorStore/applyMockEdit(from:newMock:)``
 
 @MainActor
-@Test func applyMockEditNoOpWhenRowAndOperationMismatch() {
+@Test(.timeLimit(.minutes(1))) func applyMockEditNoOpWhenRowAndOperationMismatch() {
     let store = OverrideEditorStore()
     let epB = FakeSpecEndpoint(
         path: "/b",
@@ -62,7 +62,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
 }
 
 @MainActor
-@Test func applyMockEditSameOperationIdRealignsPathWhenSpecPathDiffers() {
+@Test(.timeLimit(.minutes(1))) func applyMockEditSameOperationIdRealignsPathWhenSpecPathDiffers() {
     let store = OverrideEditorStore()
     let specEndpoint = FakeSpecEndpoint(
         path: "/spec/pets",

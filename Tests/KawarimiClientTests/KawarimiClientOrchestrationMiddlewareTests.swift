@@ -6,9 +6,9 @@ import Testing
 
 @testable import KawarimiClient
 
-@Suite("KawarimiClientOrchestrationMiddleware")
+@Suite("KawarimiClientOrchestrationMiddleware", .timeLimit(.minutes(1)))
 struct KawarimiClientOrchestrationMiddlewareTests {
-    @Test func initialRequestSendsScenarioIdOnly() async throws {
+    @Test(.timeLimit(.minutes(1))) func initialRequestSendsScenarioIdOnly() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" }
         )
@@ -27,7 +27,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         _ = outRequest
     }
 
-    @Test func requestHeaderOverridesProvider() async throws {
+    @Test(.timeLimit(.minutes(1))) func requestHeaderOverridesProvider() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "from-provider" }
         )
@@ -45,7 +45,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         )
     }
 
-    @Test func continuationInjectsStoredKawarimiId() async throws {
+    @Test(.timeLimit(.minutes(1))) func continuationInjectsStoredKawarimiId() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" }
         )
@@ -75,7 +75,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         )
     }
 
-    @Test func terminalResponseClearsScenarioState() async throws {
+    @Test(.timeLimit(.minutes(1))) func terminalResponseClearsScenarioState() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "favorite" }
         )
@@ -114,7 +114,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         )
     }
 
-    @Test func errorResponseWithoutNextClearsScenarioState() async throws {
+    @Test(.timeLimit(.minutes(1))) func errorResponseWithoutNextClearsScenarioState() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" }
         )
@@ -150,7 +150,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         )
     }
 
-    @Test func resetScenarioIdClearsInjectedKawarimiId() async throws {
+    @Test(.timeLimit(.minutes(1))) func resetScenarioIdClearsInjectedKawarimiId() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" }
         )
@@ -184,7 +184,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         )
     }
 
-    @Test func resetAllClearsEveryScenarioState() async throws {
+    @Test(.timeLimit(.minutes(1))) func resetAllClearsEveryScenarioState() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { context in
                 context.request.path?.contains("login") == true ? "login" : "favorite"
@@ -223,7 +223,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         }
     }
 
-    @Test func onNextKawarimiIdReportsTransitions() async throws {
+    @Test(.timeLimit(.minutes(1))) func onNextKawarimiIdReportsTransitions() async throws {
         let log = ScenarioTransitionLog()
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" },
@@ -260,7 +260,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         #expect(snapshot[1].1 == nil)
     }
 
-    @Test func onNextKawarimiIdNotCalledWithoutScenarioId() async throws {
+    @Test(.timeLimit(.minutes(1))) func onNextKawarimiIdNotCalledWithoutScenarioId() async throws {
         let log = ScenarioTransitionLog()
         let middleware = KawarimiClientOrchestrationMiddleware(
             onNextKawarimiId: { scenarioId, next in log.append((scenarioId, next)) }
@@ -279,7 +279,7 @@ struct KawarimiClientOrchestrationMiddlewareTests {
         #expect(log.snapshot().isEmpty)
     }
 
-    @Test func lastCompletedResponseWinsForConcurrentInFlight() async throws {
+    @Test(.timeLimit(.minutes(1))) func lastCompletedResponseWinsForConcurrentInFlight() async throws {
         let middleware = KawarimiClientOrchestrationMiddleware(
             scenarioIdProvider: { _ in "login" }
         )

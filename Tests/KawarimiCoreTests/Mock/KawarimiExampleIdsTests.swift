@@ -2,18 +2,18 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func kawarimiExampleIdsDefaultKey() {
+@Test(.timeLimit(.minutes(1))) func kawarimiExampleIdsDefaultKey() {
     #expect(KawarimiExampleIds.defaultResponseMapKey == "__default")
 }
 
-@Test func kawarimiExampleIdsLookupNormalizesNilAndEmpty() {
+@Test(.timeLimit(.minutes(1))) func kawarimiExampleIdsLookupNormalizesNilAndEmpty() {
     #expect(KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: nil) == "__default")
     #expect(KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: "") == "__default")
     #expect(KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: "   ") == "__default")
     #expect(KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: "alpha") == "alpha")
 }
 
-@Test func kawarimiMockRequestHeadersFilterOverrides() {
+@Test(.timeLimit(.minutes(1))) func kawarimiMockRequestHeadersFilterOverrides() {
     let a = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "one", isEnabled: true)!
     let b = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: "two", isEnabled: true)!
     let c = MockOverride(path: "/x", method: "GET", statusCode: 200, exampleId: nil, isEnabled: true)!
@@ -30,7 +30,7 @@ import Testing
     #expect(unknown == all)
 }
 
-@Test func kawarimiMockResponseResolverLookup() {
+@Test(.timeLimit(.minutes(1))) func kawarimiMockResponseResolverLookup() {
     let map: KawarimiMockResponseResolver.NestedResponseMap = [
         "GET:/api/x": [
             200: [
@@ -46,7 +46,7 @@ import Testing
     #expect(KawarimiMockResponseResolver.lookup(map: map, methodUppercased: "GET", path: "/api/x", statusCode: 404, exampleId: nil) == nil)
 }
 
-@Test func kawarimiConfigStoreDistinguishesExampleId() async throws {
+@Test(.timeLimit(.minutes(1))) func kawarimiConfigStoreDistinguishesExampleId() async throws {
     let url = FileManager.default.temporaryDirectory.appendingPathComponent("henge-ex-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: url) }
     let store = try KawarimiConfigStore(configPath: url.path)

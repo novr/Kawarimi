@@ -7,7 +7,7 @@ private struct AllOfMergePayload: Codable {
     let b: Int
 }
 
-@Test func mockJSONDateTimeWithoutExampleUsesISO8601FallbackNotEmptyString() throws {
+@Test(.timeLimit(.minutes(1))) func mockJSONDateTimeWithoutExampleUsesISO8601FallbackNotEmptyString() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-no-example", extension: "yaml") else {
         Issue.record("openapi-datetime-no-example.yaml not found")
         return
@@ -29,7 +29,7 @@ private struct AllOfMergePayload: Codable {
     #expect(decoded.updatedAt == Date(timeIntervalSince1970: 0))
 }
 
-@Test func mockJSONDateOnlyWithoutExampleUses1970FallbackAndMatchesSpec() throws {
+@Test(.timeLimit(.minutes(1))) func mockJSONDateOnlyWithoutExampleUses1970FallbackAndMatchesSpec() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-edge-date-only-no-example", extension: "yaml") else {
         Issue.record("openapi-datetime-edge-date-only-no-example.yaml not found")
         return
@@ -50,7 +50,7 @@ private struct AllOfMergePayload: Codable {
     #expect(decoded.day == Date(timeIntervalSince1970: 0))
 }
 
-@Test func mockJSONUnparseableDateTimeExampleUsesISO8601FallbackNotRawString() throws {
+@Test(.timeLimit(.minutes(1))) func mockJSONUnparseableDateTimeExampleUsesISO8601FallbackNotRawString() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-edge-unparseable", extension: "yaml") else {
         Issue.record("fixture not found")
         return
@@ -65,7 +65,7 @@ private struct AllOfMergePayload: Codable {
     #expect(specJSON == transportJSON)
 }
 
-@Test func specMockJSONMatchesHandlerDecodeStubForAllOfDateTime() throws {
+@Test(.timeLimit(.minutes(1))) func specMockJSONMatchesHandlerDecodeStubForAllOfDateTime() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-handler-decode", extension: "yaml") else {
         Issue.record("openapi-datetime-handler-decode.yaml not found")
         return
@@ -82,7 +82,7 @@ private struct AllOfMergePayload: Codable {
     try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getSnapshotDecode", actual: specJSON)
 }
 
-@Test func mockJSONStopsOnComponentsSchemaRefCycle() throws {
+@Test(.timeLimit(.minutes(1))) func mockJSONStopsOnComponentsSchemaRefCycle() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-ref-cycle", extension: "yaml") else {
         Issue.record("openapi-ref-cycle.yaml not found in test resources")
         return
@@ -103,7 +103,7 @@ private struct AllOfMergePayload: Codable {
     try assertJSONDecoderAcceptsMockBody(specJSON)
 }
 
-@Test func mockJSONMergesAllOfObjectProperties() throws {
+@Test(.timeLimit(.minutes(1))) func mockJSONMergesAllOfObjectProperties() throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-allof-merge", extension: "yaml") else {
         Issue.record("openapi-allof-merge.yaml not found in test resources")
         return

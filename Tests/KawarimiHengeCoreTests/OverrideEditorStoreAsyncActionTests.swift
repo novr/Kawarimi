@@ -28,7 +28,7 @@ private enum TestAsyncError: LocalizedError {
 // MARK: ``OverrideEditorStore/applyWithBody``
 
 @MainActor
-@Test func savePropagatesErrorViaSetter() async {
+@Test(.timeLimit(.minutes(1))) func savePropagatesErrorViaSetter() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -54,7 +54,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func saveEnabledClearsErrorThenSuccessUpdatesDraft() async {
+@Test(.timeLimit(.minutes(1))) func saveEnabledClearsErrorThenSuccessUpdatesDraft() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -84,7 +84,7 @@ private enum TestAsyncError: LocalizedError {
 
 /// After save, ``OverrideEditorStore/applyWithBody`` must resync from the list returned by `configureOverride` (post-fetch), not only merge the outbound payload — otherwise UI chips / primary state can stay on pre-save identity.
 @MainActor
-@Test func applyWithBodyFreshOverridesResyncAdoptsServerExampleId() async {
+@Test(.timeLimit(.minutes(1))) func applyWithBodyFreshOverridesResyncAdoptsServerExampleId() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -121,7 +121,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func applyWithBodyResyncKeepsCustom503Enabled() async {
+@Test(.timeLimit(.minutes(1))) func applyWithBodyResyncKeepsCustom503Enabled() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -160,7 +160,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func saveDisabledSendsBodyAndIsEnabledFalse() async {
+@Test(.timeLimit(.minutes(1))) func saveDisabledSendsBodyAndIsEnabledFalse() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -192,7 +192,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func applyWithBodySkipsConfiguratorWhenDetailMissing() async {
+@Test(.timeLimit(.minutes(1))) func applyWithBodySkipsConfiguratorWhenDetailMissing() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -215,7 +215,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func applyWithBodySpecOnlySaveRemovesStoredGhostRow() async {
+@Test(.timeLimit(.minutes(1))) func applyWithBodySpecOnlySaveRemovesStoredGhostRow() async {
     let endpoint = FakeSpecEndpoint(
         path: "/api/greet",
         method: .get,
@@ -276,7 +276,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func disableCurrentMockRowClearDraftLocallySkipsServerCalls() async {
+@Test(.timeLimit(.minutes(1))) func disableCurrentMockRowClearDraftLocallySkipsServerCalls() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -323,7 +323,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func disableCurrentMockRowRemoveStoredRowCallsRemoveOnly() async {
+@Test(.timeLimit(.minutes(1))) func disableCurrentMockRowRemoveStoredRowCallsRemoveOnly() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -370,7 +370,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func clearOverrideAndDisableMockRowPropagateConfiguratorErrors() async {
+@Test(.timeLimit(.minutes(1))) func clearOverrideAndDisableMockRowPropagateConfiguratorErrors() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -427,7 +427,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func removeDisabledOverridesForOperationSkipsWhenNone() async {
+@Test(.timeLimit(.minutes(1))) func removeDisabledOverridesForOperationSkipsWhenNone() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -454,7 +454,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func removeDisabledOverridesForOperationRemovesAllMatchingRows() async {
+@Test(.timeLimit(.minutes(1))) func removeDisabledOverridesForOperationRemovesAllMatchingRows() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -484,7 +484,7 @@ private enum TestAsyncError: LocalizedError {
 }
 
 @MainActor
-@Test func removeDisabledOverridesForOperationPropagatesRemoveErrors() async {
+@Test(.timeLimit(.minutes(1))) func removeDisabledOverridesForOperationPropagatesRemoveErrors() async {
     let store = OverrideEditorStore()
     let endpoint = FakeSpecEndpoint(
         path: "/p",

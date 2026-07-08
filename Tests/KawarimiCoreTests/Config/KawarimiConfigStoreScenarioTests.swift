@@ -3,9 +3,9 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("KawarimiConfigStore scenarios")
+@Suite("KawarimiConfigStore scenarios", .timeLimit(.minutes(1)))
 struct KawarimiConfigStoreScenarioTests {
-    @Test func loadsScenariosFromDedicatedFile() async throws {
+    @Test(.timeLimit(.minutes(1))) func loadsScenariosFromDedicatedFile() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -38,7 +38,7 @@ struct KawarimiConfigStoreScenarioTests {
         #expect(scenarios[0].initial == "start")
     }
 
-    @Test func reloadFromDiskDetectsScenarioChanges() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDiskDetectsScenarioChanges() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -64,7 +64,7 @@ struct KawarimiConfigStoreScenarioTests {
         #expect(await store.scenarios().count == 1)
     }
 
-    @Test func fileWatchReloadsScenariosFile() async throws {
+    @Test(.timeLimit(.minutes(1))) func fileWatchReloadsScenariosFile() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-watch-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }

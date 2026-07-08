@@ -2,7 +2,7 @@ import KawarimiCore
 import Testing
 @testable import KawarimiHengeCore
 
-@Test func kawarimiConfigReloadPresentationNoticeMessages() {
+@Test(.timeLimit(.minutes(1))) func kawarimiConfigReloadPresentationNoticeMessages() {
     #expect(
         KawarimiConfigReloadPresentation.noticeMessage(for: .applied)
             == "Reload applied: server re-read kawarimi.json."

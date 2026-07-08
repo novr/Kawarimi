@@ -3,7 +3,7 @@ import HTTPTypes
 import KawarimiCore
 import Testing
 
-@Test func kawarimiAdminRouteContract() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminRouteContract() {
     #expect(KawarimiAdminRoute.spec.httpMethod == .get)
     #expect(KawarimiAdminRoute.spec.relativePath == "spec")
     #expect(KawarimiAdminRoute.spec.successStatusCode == 200)
@@ -29,7 +29,7 @@ import Testing
     #expect(KawarimiAdminRoute.reload.successStatusCode == 200)
 }
 
-@Test func kawarimiAdminRouteAdminURLMatchesLegacyClientPaths() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminRouteAdminURLMatchesLegacyClientPaths() {
     let baseWithoutSlash = URL(string: "http://127.0.0.1:8080/api")!
     let baseWithSlash = URL(string: "http://127.0.0.1:8080/api/")!
 
@@ -48,7 +48,7 @@ import Testing
     }
 }
 
-@Test func kawarimiAdminRouteInitRoundTrip() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminRouteInitRoundTrip() {
     for route in KawarimiAdminRoute.allCases {
         let resolved = KawarimiAdminRoute(relativePath: route.relativePath, httpMethod: route.httpMethod)
         #expect(resolved == route)
@@ -58,7 +58,7 @@ import Testing
     #expect(KawarimiAdminRoute(relativePath: "unknown", httpMethod: .get) == nil)
 }
 
-@Test func kawarimiAdminRouteMatching() {
+@Test(.timeLimit(.minutes(1))) func kawarimiAdminRouteMatching() {
     let prefix = "/api"
 
     #expect(

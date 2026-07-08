@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Test func specParameterMergeOperationOverridesPathItem() {
+@Test(.timeLimit(.minutes(1))) func specParameterMergeOperationOverridesPathItem() {
     let pathItem = [
         SpecParameter(location: .query, name: "limit", required: false, description: "path", schemaType: "integer"),
     ]
@@ -16,11 +16,11 @@ import Testing
     #expect(merged?.first?.schemaType == "string")
 }
 
-@Test func specParameterMergeEmptyReturnsNil() {
+@Test(.timeLimit(.minutes(1))) func specParameterMergeEmptyReturnsNil() {
     #expect(SpecParameter.merge(pathItem: [], operation: []) == nil)
 }
 
-@Test func specParameterMergeSortsByLocationThenName() {
+@Test(.timeLimit(.minutes(1))) func specParameterMergeSortsByLocationThenName() {
     let merged = SpecParameter.merge(
         pathItem: [
             SpecParameter(location: .header, name: "X-Trace", required: false),

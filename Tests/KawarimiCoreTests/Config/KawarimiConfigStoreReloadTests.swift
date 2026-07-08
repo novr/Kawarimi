@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Suite("KawarimiConfigStore reload")
+@Suite("KawarimiConfigStore reload", .timeLimit(.minutes(1)))
 struct KawarimiConfigStoreReloadTests {
     private func tempConfigURL() -> URL {
         FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
@@ -13,7 +13,7 @@ struct KawarimiConfigStoreReloadTests {
         try data.write(to: url, options: .atomic)
     }
 
-    @Test func reloadFromDisk_appliesExternalEdit() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_appliesExternalEdit() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -32,7 +32,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides() == onDisk)
     }
 
-    @Test func reloadFromDisk_unchanged_afterPersist() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_unchanged_afterPersist() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -49,7 +49,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides().count == 1)
     }
 
-    @Test func reloadFromDisk_lastWriteWins_configureAfterReload() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_lastWriteWins_configureAfterReload() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -72,7 +72,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(overrides.contains { $0.path.hasSuffix("/b") || $0.path == "/b" })
     }
 
-    @Test func reloadFromDisk_lastWriteWins_reloadAfterConfigure() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_lastWriteWins_reloadAfterConfigure() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -100,7 +100,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides() == fromDisk)
     }
 
-    @Test func reloadFromDisk_invalidJSON_clearsToEmpty() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_invalidJSON_clearsToEmpty() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -113,7 +113,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides().isEmpty)
     }
 
-    @Test func reloadFromDisk_invalidJSON_unchangedWhenAlreadyEmpty() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_invalidJSON_unchangedWhenAlreadyEmpty() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)
@@ -124,7 +124,7 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides().isEmpty)
     }
 
-    @Test func reloadFromDisk_missingFile_clearsOverrides() async throws {
+    @Test(.timeLimit(.minutes(1))) func reloadFromDisk_missingFile_clearsOverrides() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
         let store = try KawarimiConfigStore(configPath: url.path)

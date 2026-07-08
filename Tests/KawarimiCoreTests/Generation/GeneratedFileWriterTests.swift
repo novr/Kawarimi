@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import KawarimiCore
 
-@Test func writeIfChangedSkipsWriteWhenContentIsSame() throws {
+@Test(.timeLimit(.minutes(1))) func writeIfChangedSkipsWriteWhenContentIsSame() throws {
     let dir = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-same-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -19,7 +19,7 @@ import Testing
     #expect(written == content)
 }
 
-@Test func writeIfChangedOverwritesWhenContentDiffers() throws {
+@Test(.timeLimit(.minutes(1))) func writeIfChangedOverwritesWhenContentDiffers() throws {
     let dir = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-diff-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -35,7 +35,7 @@ import Testing
     #expect(written == "after\n")
 }
 
-@Test func writeIfChangedPreservesMtimeWhenContentIsSame() throws {
+@Test(.timeLimit(.minutes(1))) func writeIfChangedPreservesMtimeWhenContentIsSame() throws {
     let dir = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-mtime-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -63,7 +63,7 @@ import Testing
     #expect(mtimeBefore == mtimeAfter)
 }
 
-@Test func writeIfChangedThrowsWhenDirectoryMissing() throws {
+@Test(.timeLimit(.minutes(1))) func writeIfChangedThrowsWhenDirectoryMissing() throws {
     let missing = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-no-such-dir-\(UUID().uuidString)")
     let target = missing.appendingPathComponent("Out.swift")
@@ -73,7 +73,7 @@ import Testing
     }
 }
 
-@Test func writeIfChangedCreatesNewFile() throws {
+@Test(.timeLimit(.minutes(1))) func writeIfChangedCreatesNewFile() throws {
     let dir = FileManager.default.temporaryDirectory
         .appendingPathComponent("GeneratedFileWriterTests-new-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
