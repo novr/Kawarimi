@@ -771,7 +771,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
     )
     let item = SpecEndpointItem(endpoint)
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 404, exampleId: "x", isEnabled: true, body: "{}", contentType: "application/json")
+    var mock = MockOverride(path: "/p", method: .get, statusCode: 404, exampleId: "x", isEnabled: true, body: "{}", contentType: "application/json", delayMs: 500)
     let specOpt = ResponseChip(
         id: ResponseChip.specRowId,
         statusCode: -1,
@@ -791,6 +791,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.statusCode == 200)
     #expect(mock.exampleId == nil)
     #expect(mock.body == nil)
+    #expect(mock.delayMs == nil) // Spec selection must clear a stale delay
 }
 
 @Test func applyChipWithStoredRowCopiesStored() {
@@ -809,9 +810,10 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         exampleId: nil,
         isEnabled: false,
         body: "{\"k\":1}",
-        contentType: "application/json"
+        contentType: "application/json",
+        delayMs: 500
     )
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: nil, contentType: nil)
+    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: nil, contentType: nil, delayMs: 999)
     let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: true)
     ResponseChips.applyChipSelection(
         option: rowOpt,
@@ -823,6 +825,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     )
     #expect(mock.isEnabled == false)
     #expect(mock.body == "{\"k\":1}")
+    #expect(mock.delayMs == 500) // must adopt the stored row's delay, not keep the stale 999
 }
 
 @Test func applyChipWithoutStoredEnablesAndSeedsFromSpec() {
