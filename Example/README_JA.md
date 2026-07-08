@@ -19,9 +19,9 @@
 
 依存の全体像: [`DemoPackage/Package.swift`](DemoPackage/Package.swift)（`DemoServer` ターゲット）。
 
-サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)。
+サーバー起動まわり: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift)、[`KawarimiAdminVaporMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)。
 
-**DemoServer** は管理 segment を **`KawarimiAdminRoute`** / **`KawarimiAdminPath`** から登録し、**`main.swift`** は listen 前に **`DemoServerSpecResponse.validateWireAtStartup()`** を呼ぶ。**`GET …/spec`** も **`DemoServerSpecResponse.encodedWireData()`**（同一 **`JSONEncoder`** 出力）を返す。
+**DemoServer** の admin ロジックは **`KawarimiAdminHTTPHandler`**（ライブラリ）に集約し、Vapor 配線のみ **`KawarimiAdminVaporMiddleware`**。**`main.swift`** は listen 前に **`DemoServerSpecResponse.validateWireAtStartup()`** を呼び、`GET …/spec` の Henge 互換を担保する。
 
 ```swift
 try DemoServerSpecResponse.validateWireAtStartup()
@@ -262,7 +262,7 @@ curl -i -X POST http://localhost:8080/api/__kawarimi/reload
 
 詳細は [henge.md](../docs/ja/henge.md) の `KawarimiMockRequestHeaders.exampleId` を参照してください。
 
-Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift) を参照してください。
+Vapor での登録パターンは [henge.md](../docs/ja/henge.md) と [`KawarimiAdminVaporMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift) を参照してください。
 
 ## クライアント: モックと DemoServer
 

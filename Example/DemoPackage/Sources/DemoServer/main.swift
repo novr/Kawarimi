@@ -73,7 +73,11 @@ struct DemoServer {
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
         )
         await store.startFileWatchIfEnabled()
-        await registerKawarimiRoutes(app: app, store: store)
+        let adminHandler = KawarimiAdminHTTPHandler(
+            store: store,
+            specWireData: { try DemoServerSpecResponse.encodedWireData() }
+        )
+        app.middleware.use(KawarimiAdminVaporMiddleware(handler: adminHandler))
         let transport = VaporTransport(routesBuilder: app)
         let handler = KawarimiHandler()
         let stubPath = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(await store.pathPrefix))

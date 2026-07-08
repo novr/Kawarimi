@@ -127,7 +127,7 @@ Install with [skills CLI](https://github.com/vercel-labs/skills): `npx skills ad
 
 ### Admin route segments and spec wire validation
 
-When wiring **`__kawarimi`** routes on your server, use **`KawarimiAdminPath.managementSegment`** and **`KawarimiAdminRoute.*.relativePath`** instead of string literals (see [Example `KawarimiRoutes.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiRoutes.swift)). At startup, encode your host **`SpecResponse`** and call **`KawarimiAdminSpecWire.validate(_:)`** so `GET …/spec` stays decodable as **`HengeSpecSnapshot`** — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift).
+Wire **`__kawarimi`** with **`KawarimiAdminHTTPHandler`** so path rules stay in **`KawarimiAdminRoute`** without per-framework copies. Vapor: [Example `KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift). Call **`KawarimiAdminSpecWire.validate(_:)`** at startup so `GET …/spec` stays Henge-decodable — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift).
 
 ## 2. OpenAPI spec location
 

@@ -57,3 +57,43 @@ import Testing
     #expect(KawarimiAdminRoute(relativePath: "spec", httpMethod: .post) == nil)
     #expect(KawarimiAdminRoute(relativePath: "unknown", httpMethod: .get) == nil)
 }
+
+@Test func kawarimiAdminRouteMatching() {
+    let prefix = "/api"
+
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/status",
+            method: .get,
+            pathPrefix: prefix
+        ) == .status
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/wrong/__kawarimi/status",
+            method: .get,
+            pathPrefix: prefix
+        ) == nil
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/status/extra",
+            method: .get,
+            pathPrefix: prefix
+        ) == nil
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/configure",
+            method: .get,
+            pathPrefix: prefix
+        ) == nil
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/__kawarimi/spec",
+            method: .get,
+            pathPrefix: ""
+        ) == .spec
+    )
+}

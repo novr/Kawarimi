@@ -19,9 +19,9 @@ This document is the **reference for this repository’s sample layout**, run co
 
 Wiring: [`DemoPackage/Package.swift`](DemoPackage/Package.swift) (`DemoServer` target).
 
-Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
+Server entrypoints: [`main.swift`](DemoPackage/Sources/DemoServer/main.swift), [`KawarimiAdminVaporMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift).
 
-**DemoServer** registers admin segments from **`KawarimiAdminRoute`** / **`KawarimiAdminPath`**, and **`main.swift`** calls **`DemoServerSpecResponse.validateWireAtStartup()`** before listening. **`GET …/spec`** serves the same **`JSONEncoder`** bytes via **`DemoServerSpecResponse.encodedWireData()`**.
+**DemoServer** keeps admin logic in **`KawarimiAdminHTTPHandler`** (library); Vapor-only wiring is **`KawarimiAdminVaporMiddleware`**. **`main.swift`** calls **`DemoServerSpecResponse.validateWireAtStartup()`** before listen so `GET …/spec` matches Henge.
 
 ```swift
 try DemoServerSpecResponse.validateWireAtStartup()
@@ -281,7 +281,7 @@ When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example
 
 See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).
 
-Vapor registration pattern: [henge.md](../docs/henge.md) and [`KawarimiRoutes.swift`](DemoPackage/Sources/DemoServer/KawarimiRoutes.swift).
+Vapor registration pattern: [henge.md](../docs/henge.md) and [`KawarimiAdminVaporMiddleware.swift`](DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift).
 
 ## Client: mock vs this DemoServer
 

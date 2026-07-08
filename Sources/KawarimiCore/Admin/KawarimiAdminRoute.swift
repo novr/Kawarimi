@@ -45,4 +45,22 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
             .appendingPathComponent(KawarimiAdminPath.managementSegment)
             .appendingPathComponent(route.relativePath)
     }
+
+    /// Same path rules as ``adminURL`` so server dispatch cannot drift from ``KawarimiAPIClient``.
+    public static func matching(
+        requestPath: String,
+        method: HTTPRequest.Method,
+        pathPrefix: String
+    ) -> KawarimiAdminRoute? {
+        let pathOnly = KawarimiRequestPath.pathOnly(requestPath)
+        let segments = KawarimiPath.splitPathSegments(pathOnly)
+        let prefixSegs = KawarimiPath.splitPathSegments(pathPrefix)
+        guard segments.count == prefixSegs.count + 2 else { return nil }
+        guard Array(segments.prefix(prefixSegs.count)) == prefixSegs else { return nil }
+        guard segments[prefixSegs.count] == KawarimiAdminPath.managementSegment else { return nil }
+        return KawarimiAdminRoute(
+            relativePath: segments[prefixSegs.count + 1],
+            httpMethod: method
+        )
+    }
 }

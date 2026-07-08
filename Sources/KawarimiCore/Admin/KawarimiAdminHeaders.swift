@@ -1,4 +1,5 @@
 import Foundation
+import HTTPTypes
 
 /// HTTP header names for the Henge admin API (`{pathPrefix}/__kawarimi/*`).
 public enum KawarimiAdminHeaders {
@@ -7,6 +8,9 @@ public enum KawarimiAdminHeaders {
 
     /// JSON request/response bodies on admin routes (`POST …/configure`, `POST …/reload`, `GET …/spec`, …).
     public static let jsonContentType = "application/json"
+
+    /// Force-unwrap once so call sites stay aligned with ``reloadOutcome``.
+    public static let reloadOutcomeField = HTTPField.Name(reloadOutcome)!
 }
 
 /// Result of ``KawarimiConfigStore/reloadFromDisk()`` and the `X-Kawarimi-Reload` header on `POST …/__kawarimi/reload`.
