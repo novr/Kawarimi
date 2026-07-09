@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiCore**: Linux `KawarimiConfigFileWatcher` — decode inotify `name` by trimming at the first NUL so directory-mode watches detect config file modifications ([#204](https://github.com/novr/Kawarimi/pull/204), [#197](https://github.com/novr/Kawarimi/issues/197)).
 - **KawarimiCore**: `KawarimiPath.aligned` and `KawarimiConfigStore` path normalization — treat a path as already prefixed only on a segment boundary (e.g. `/apixyz` is aligned under `/api`, while `/api/greet` is not double-prefixed) ([#201](https://github.com/novr/Kawarimi/pull/201), [#198](https://github.com/novr/Kawarimi/issues/198)).
 - **KawarimiHandler** JSON decode stubs: `$ref` component schema names now use sanitized Swift identifiers aligned with swift-openapi-generator (e.g. `Error` → `Components.Schemas._Error`), fixing compile errors when the OpenAPI schema name is a Swift keyword ([#200](https://github.com/novr/Kawarimi/pull/200)).
+- **KawarimiHenge**: response chip selection now adopts or clears `delayMs` on the draft, matching `resyncMockFromServer` ([#202](https://github.com/novr/Kawarimi/pull/202), [#199](https://github.com/novr/Kawarimi/issues/199)).
 
 ## [3.3.4] - 2026-07-08
 

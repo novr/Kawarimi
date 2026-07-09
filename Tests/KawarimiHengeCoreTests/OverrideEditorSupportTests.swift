@@ -836,7 +836,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"s\":true}", exampleId: nil, summary: nil, description: nil)]
     )
     let item = SpecEndpointItem(endpoint)
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil)
+    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil, delayMs: 500)
     let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: false)
     ResponseChips.applyChipSelection(
         option: rowOpt,
@@ -849,6 +849,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.isEnabled == true)
     #expect(mock.statusCode == 200)
     #expect(mock.body == "{\"s\":true}")
+    #expect(mock.delayMs == nil) // New-custom branch must clear a stale delay
 }
 
 @Test func chipOptionsIncludeSpecAndSpecRows() {
