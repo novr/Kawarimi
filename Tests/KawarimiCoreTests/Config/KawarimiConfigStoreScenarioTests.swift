@@ -3,7 +3,7 @@ import Testing
 
 @testable import KawarimiCore
 
-@Suite("KawarimiConfigStore scenarios")
+@Suite("KawarimiConfigStore scenarios", .timeLimit(.minutes(1)))
 struct KawarimiConfigStoreScenarioTests {
     @Test func loadsScenariosFromDedicatedFile() async throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-scenario-\(UUID().uuidString)")

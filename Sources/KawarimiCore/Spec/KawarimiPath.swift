@@ -20,7 +20,9 @@ public enum KawarimiPath {
         if !result.hasPrefix("/") {
             result = "/" + result
         }
-        if !result.hasPrefix(prefix) {
+        // Match only on a path-segment boundary so `/apixyz` is not mistaken for being
+        // under the prefix `/api`.
+        if !prefix.isEmpty, result != prefix, !result.hasPrefix(prefix + "/") {
             result = prefix + (result == "/" ? "" : result)
         }
         return (result as NSString).standardizingPath // resolve . / .. so paths match persisted JSON

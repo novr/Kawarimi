@@ -2,7 +2,7 @@ import Foundation
 @testable import KawarimiCore
 import Testing
 
-@Suite("KawarimiConfigFileWatcher")
+@Suite("KawarimiConfigFileWatcher", .timeLimit(.minutes(1)))
 struct KawarimiConfigFileWatcherTests {
     @Test func fileWrite_triggersDebouncedCallback() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
@@ -135,5 +135,24 @@ struct KawarimiConfigFileWatcherTests {
             try await Task.sleep(for: poll)
         }
         Issue.record("Condition not met before timeout")
+    }
+
+    // MARK: - inotify name decoding
+
+    @Test func decodeInotifyName_stripsNulPaddingBeyondTerminator() {
+        // inotify pads the name field with NULs up to the record-declared length; the
+        // declared length is larger than the actual name + single terminator.
+        let name = Array("kawarimi.json".utf8)
+        let declaredLength = 16 // name is 13 bytes, padded with 3 trailing NULs
+        var field = name
+        field.append(contentsOf: [UInt8](repeating: 0, count: declaredLength - name.count))
+        #expect(decodeInotifyEventName(field, declaredLength: declaredLength) == "kawarimi.json")
+    }
+
+    @Test func decodeInotifyName_handlesSingleTerminatorAndEmpty() {
+        let name = Array("a.json".utf8) + [0]
+        #expect(decodeInotifyEventName(name, declaredLength: name.count) == "a.json")
+        #expect(decodeInotifyEventName([UInt8](repeating: 0, count: 8), declaredLength: 8) == nil)
+        #expect(decodeInotifyEventName([UInt8](), declaredLength: 0) == nil)
     }
 }

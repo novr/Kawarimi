@@ -49,6 +49,24 @@ struct KawarimiConfigStoreReloadTests {
         #expect(await store.overrides().count == 1)
     }
 
+    @Test func configure_alignsPrefixOnSegmentBoundaryOnly() async throws {
+        let url = tempConfigURL()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let store = try KawarimiConfigStore(configPath: url.path, pathPrefix: "/api")
+        // `/apixyz` shares a substring with `/api` but is not under it: it must be aligned.
+        try await store.configure(
+            MockOverride(path: "/apixyz", method: .get, statusCode: 200, body: "{}", contentType: "application/json")
+        )
+        // A path already under the prefix must be left untouched (no double-prefixing).
+        try await store.configure(
+            MockOverride(path: "/api/greet", method: .get, statusCode: 200, body: "{}", contentType: "application/json")
+        )
+        let overrides = await store.overrides()
+        #expect(overrides.contains { $0.path == "/api/apixyz" && $0.method == .get })
+        #expect(overrides.contains { $0.path == "/api/greet" && $0.method == .get })
+        #expect(!overrides.contains { $0.path == "/apixyz" })
+    }
+
     @Test func reloadFromDisk_lastWriteWins_configureAfterReload() async throws {
         let url = tempConfigURL()
         defer { try? FileManager.default.removeItem(at: url) }
