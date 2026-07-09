@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: Enum ref keyword fixture
+  version: 1.0.0
+paths:
+  /items:
+    post:
+      operationId: createItem
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Error:
+      type: string
+      enum:
+        - active
+        - pending

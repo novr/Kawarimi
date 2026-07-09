@@ -1,0 +1,21 @@
+openapi: 3.1.0
+info:
+  title: Reserved property name repro
+  version: 1.0.0
+paths:
+  /item:
+    get:
+      operationId: getItem
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: example-value
+                required:
+                  - type

@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: Enum ref sanitized schema names fixture
+  version: 1.0.0
+paths:
+  /items-hyphen:
+    post:
+      operationId: createItemHyphen
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/retry-after'
+  /items-digit:
+    post:
+      operationId: createItemDigit
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/123Status'
+components:
+  schemas:
+    retry-after:
+      type: string
+      enum:
+        - active
+    123Status:
+      type: string
+      enum:
+        - active

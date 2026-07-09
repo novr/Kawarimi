@@ -6,7 +6,7 @@ import FoundationNetworking
 #endif
 import Testing
 
-@Suite(.serialized)
+@Suite(.serialized, .timeLimit(.minutes(1)))
 final class DemoServerE2ETests {
     private let server: DemoServerHarness
 

@@ -2,7 +2,7 @@ import Foundation
 @testable import KawarimiCore
 import Testing
 
-@Suite("KawarimiConfigFileWatcher")
+@Suite("KawarimiConfigFileWatcher", .timeLimit(.minutes(1)))
 struct KawarimiConfigFileWatcherTests {
     @Test func fileWrite_triggersDebouncedCallback() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
@@ -43,6 +43,35 @@ struct KawarimiConfigFileWatcherTests {
 
         try await expectEventually(timeout: .seconds(2)) {
             await store.overrides() == onDisk
+        }
+        await store.stopFileWatch()
+    }
+
+    @Test func storeFileWatch_appliesAtomicReplaceOfPreexistingFile() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // File already exists when the watcher starts → Darwin watches the file's inode directly.
+        let initial = [
+            MockOverride(path: "/pets", method: .get, statusCode: 200, body: "{\"v\":1}", contentType: "application/json"),
+        ]
+        let initialData = try JSONEncoder().encode(KawarimiConfig(overrides: initial))
+        try initialData.write(to: url, options: .atomic)
+
+        let store = try KawarimiConfigStore(configPath: url.path)
+        #expect(await store.overrides() == initial)
+        await store.startFileWatchIfEnabled(policy: .enabled)
+
+        try await Task.sleep(for: .milliseconds(50))
+        // Atomic rename-over replaces the inode the watcher's fd points at.
+        let updated = [
+            MockOverride(path: "/pets", method: .get, statusCode: 200, body: "{\"v\":2}", contentType: "application/json"),
+        ]
+        let updatedData = try JSONEncoder().encode(KawarimiConfig(overrides: updated))
+        try updatedData.write(to: url, options: .atomic)
+
+        try await expectEventually(timeout: .seconds(5)) {
+            await store.overrides() == updated
         }
         await store.stopFileWatch()
     }
@@ -106,5 +135,24 @@ struct KawarimiConfigFileWatcherTests {
             try await Task.sleep(for: poll)
         }
         Issue.record("Condition not met before timeout")
+    }
+
+    // MARK: - inotify name decoding
+
+    @Test func decodeInotifyName_stripsNulPaddingBeyondTerminator() {
+        // inotify pads the name field with NULs up to the record-declared length; the
+        // declared length is larger than the actual name + single terminator.
+        let name = Array("kawarimi.json".utf8)
+        let declaredLength = 16 // name is 13 bytes, padded with 3 trailing NULs
+        var field = name
+        field.append(contentsOf: [UInt8](repeating: 0, count: declaredLength - name.count))
+        #expect(decodeInotifyEventName(field, declaredLength: declaredLength) == "kawarimi.json")
+    }
+
+    @Test func decodeInotifyName_handlesSingleTerminatorAndEmpty() {
+        let name = Array("a.json".utf8) + [0]
+        #expect(decodeInotifyEventName(name, declaredLength: name.count) == "a.json")
+        #expect(decodeInotifyEventName([UInt8](repeating: 0, count: 8), declaredLength: 8) == nil)
+        #expect(decodeInotifyEventName([UInt8](), declaredLength: 0) == nil)
     }
 }

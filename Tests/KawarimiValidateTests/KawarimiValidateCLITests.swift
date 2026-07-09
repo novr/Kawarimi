@@ -2,7 +2,7 @@ import Foundation
 import KawarimiCore
 import Testing
 
-@Suite("KawarimiValidate CLI")
+@Suite("KawarimiValidate CLI", .timeLimit(.minutes(1)))
 struct KawarimiValidateCLITests {
     @Test func cliExitsZeroForExampleFixtures() throws {
         let packageRoot = resolvePackageRoot()

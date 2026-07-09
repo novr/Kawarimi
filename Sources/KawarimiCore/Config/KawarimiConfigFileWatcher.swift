@@ -34,6 +34,20 @@ final class KawarimiConfigFileWatcher: @unchecked Sendable {
     }
 }
 
+/// Decodes the `name` field of a Linux inotify record.
+///
+/// The field is NUL-terminated **and** NUL-padded up to the record-declared `declaredLength`
+/// for alignment, so decoding the full `declaredLength` would leave embedded NUL bytes in the
+/// string. This trims at the first NUL. Declared as a free function so it is unit-testable on
+/// every platform, not only Linux.
+func decodeInotifyEventName<Bytes: Collection>(_ bytes: Bytes, declaredLength: Int) -> String?
+where Bytes.Element == UInt8 {
+    guard declaredLength > 0 else { return nil }
+    let nameBytes = bytes.prefix(declaredLength).prefix { $0 != 0 }
+    if nameBytes.isEmpty { return nil }
+    return String(bytes: nameBytes, encoding: .utf8)
+}
+
 // MARK: - Backend
 
 private final class ConfigFileWatchBackend: @unchecked Sendable {
@@ -214,11 +228,9 @@ private final class LinuxInotifyWatch: @unchecked Sendable {
 
                 if watchingDirectory {
                     var nameMatches = false
-                    if nameLen > 1 {
+                    if nameLen > 0 {
                         let nameStart = offset + InotifyEventHeader.byteSize
-                        let nameEnd = nameStart + nameLen - 1
-                        if nameEnd > nameStart,
-                           let name = String(bytes: buffer[nameStart ..< nameEnd], encoding: .utf8),
+                        if let name = decodeInotifyEventName(buffer[nameStart...], declaredLength: nameLen),
                            name == targetFileName
                         {
                             nameMatches = true
@@ -305,13 +317,25 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
         }
         fileDescriptor = fd
         watchingDirectory = false
+        // `.write` alone misses atomic replacements (write-temp + rename-over, which is how
+        // `KawarimiConfigStore.persist()` and most editors save): the rename unlinks the inode
+        // this fd points at, so no further `.write` ever fires. Also watch for the inode being
+        // replaced/removed and reinstall the watch against the new file.
+        let mask: DispatchSource.FileSystemEvent = [.write, .extend, .rename, .delete, .revoke]
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
-            eventMask: .write,
+            eventMask: mask,
             queue: queue
         )
         source.setEventHandler { [weak self] in
-            self?.onEvent()
+            guard let self, let source = self.source else { return }
+            if !source.data.isDisjoint(with: [.rename, .delete, .revoke]) {
+                // The watched inode is gone; reopen against the current path, then reload.
+                self.onNeedsReinstall()
+                self.onEvent()
+            } else {
+                self.onEvent()
+            }
         }
         source.setCancelHandler { [fd] in
             close(fd)

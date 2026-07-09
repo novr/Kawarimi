@@ -58,6 +58,38 @@ func kawarimiNamingStrategyDefensiveMapsOperationId(case sample: DefensiveNaming
     #expect(try strategy.swiftOperationMethodName(forOperationId: sample.operationId) == sample.expectedMethod)
 }
 
+struct SchemaTypeNamingCase: Sendable {
+    let schemaName: String
+    let expectedType: String
+}
+
+private let defensiveSchemaTypeNamingCases: [SchemaTypeNamingCase] = [
+    SchemaTypeNamingCase(schemaName: "Error", expectedType: "_Error"),
+    SchemaTypeNamingCase(schemaName: "enum", expectedType: "_enum"),
+    SchemaTypeNamingCase(schemaName: "create-item", expectedType: "create_hyphen_item"),
+    SchemaTypeNamingCase(schemaName: "retry-after", expectedType: "retry_hyphen_after"),
+    SchemaTypeNamingCase(schemaName: "123Status", expectedType: "_123Status"),
+]
+
+private let idiomaticSchemaTypeNamingCases: [SchemaTypeNamingCase] = [
+    SchemaTypeNamingCase(schemaName: "Error", expectedType: "_Error"),
+    SchemaTypeNamingCase(schemaName: "hello-world", expectedType: "HelloWorld"),
+    SchemaTypeNamingCase(schemaName: "retry-after", expectedType: "RetryAfter"),
+    SchemaTypeNamingCase(schemaName: "123Status", expectedType: "_123Status"),
+]
+
+@Test(arguments: defensiveSchemaTypeNamingCases)
+func kawarimiNamingStrategyDefensiveMapsSchemaTypeName(case sample: SchemaTypeNamingCase) throws {
+    let strategy = KawarimiNamingStrategy.defensive
+    #expect(try strategy.swiftSchemaTypeName(for: sample.schemaName) == sample.expectedType)
+}
+
+@Test(arguments: idiomaticSchemaTypeNamingCases)
+func kawarimiNamingStrategyIdiomaticMapsSchemaTypeName(case sample: SchemaTypeNamingCase) throws {
+    let strategy = KawarimiNamingStrategy.idiomatic
+    #expect(try strategy.swiftSchemaTypeName(for: sample.schemaName) == sample.expectedType)
+}
+
 @Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
     guard let openAPIURL = KawarimiJutsuTestSupport.fixtureURL(
         name: "openapi",
