@@ -25,6 +25,15 @@ import Testing
     #expect(KawarimiPath.aligned(path: "greet", pathPrefix: "") == "/greet")
 }
 
+@Test func kawarimiPathAlignedRequiresSegmentBoundary() {
+    // A path that merely shares a substring prefix with the API prefix must still be aligned.
+    #expect(KawarimiPath.aligned(path: "/apixyz", pathPrefix: "/api") == "/api/apixyz")
+    #expect(KawarimiPath.aligned(path: "/api-v2/thing", pathPrefix: "/api") == "/api/api-v2/thing")
+    // Exact prefix and true sub-paths are left untouched.
+    #expect(KawarimiPath.aligned(path: "/api", pathPrefix: "/api") == "/api")
+    #expect(KawarimiPath.aligned(path: "/api/greet", pathPrefix: "/api") == "/api/greet")
+}
+
 @Test func kawarimiAdminPathDetectsManagementSegment() {
     #expect(KawarimiAdminPath.isManagementRequestPath("/api/__kawarimi/spec"))
     #expect(KawarimiAdminPath.isManagementRequestPath("/__kawarimi/configure"))
