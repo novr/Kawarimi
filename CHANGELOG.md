@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Tests**: broaden reserved-name coverage for `KawarimiHandler` stub initializer labels — unit `swiftMemberName` escaping plus a generated-output matrix (`protocol`/`self`/`default`) across both naming strategies ([#211](https://github.com/novr/Kawarimi/pull/211), [#209](https://github.com/novr/Kawarimi/issues/209)).
+
 ## [3.3.5] - 2026-07-09
 
 ### Fixed
