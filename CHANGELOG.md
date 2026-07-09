@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **KawarimiCore**: macOS `KawarimiConfigFileWatcher` — detect atomic file replacement (rename-over) when watching an existing config file and reinstall the vnode watch ([#208](https://github.com/novr/Kawarimi/pull/208), [#196](https://github.com/novr/Kawarimi/issues/196)).
 - **KawarimiHandler** JSON decode stubs: `$ref` component schema names now use sanitized Swift identifiers aligned with swift-openapi-generator (e.g. `Error` → `Components.Schemas._Error`), fixing compile errors when the OpenAPI schema name is a Swift keyword ([#200](https://github.com/novr/Kawarimi/pull/200)).
 
 ## [3.3.4] - 2026-07-08
