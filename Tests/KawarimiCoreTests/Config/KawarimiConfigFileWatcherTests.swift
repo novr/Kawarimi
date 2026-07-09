@@ -47,6 +47,35 @@ struct KawarimiConfigFileWatcherTests {
         await store.stopFileWatch()
     }
 
+    @Test func storeFileWatch_appliesAtomicReplaceOfPreexistingFile() async throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        // File already exists when the watcher starts → Darwin watches the file's inode directly.
+        let initial = [
+            MockOverride(path: "/pets", method: .get, statusCode: 200, body: "{\"v\":1}", contentType: "application/json"),
+        ]
+        let initialData = try JSONEncoder().encode(KawarimiConfig(overrides: initial))
+        try initialData.write(to: url, options: .atomic)
+
+        let store = try KawarimiConfigStore(configPath: url.path)
+        #expect(await store.overrides() == initial)
+        await store.startFileWatchIfEnabled(policy: .enabled)
+
+        try await Task.sleep(for: .milliseconds(50))
+        // Atomic rename-over replaces the inode the watcher's fd points at.
+        let updated = [
+            MockOverride(path: "/pets", method: .get, statusCode: 200, body: "{\"v\":2}", contentType: "application/json"),
+        ]
+        let updatedData = try JSONEncoder().encode(KawarimiConfig(overrides: updated))
+        try updatedData.write(to: url, options: .atomic)
+
+        try await expectEventually(timeout: .seconds(5)) {
+            await store.overrides() == updated
+        }
+        await store.stopFileWatch()
+    }
+
     @Test func startFileWatchIfEnabled_respectsDisabledPolicy() async throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
         defer { try? FileManager.default.removeItem(at: url) }
