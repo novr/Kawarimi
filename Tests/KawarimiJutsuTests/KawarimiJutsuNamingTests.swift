@@ -90,6 +90,32 @@ func kawarimiNamingStrategyIdiomaticMapsSchemaTypeName(case sample: SchemaTypeNa
     #expect(try strategy.swiftSchemaTypeName(for: sample.schemaName) == sample.expectedType)
 }
 
+struct MemberNameCase: Sendable {
+    let raw: String
+    let expected: String
+}
+
+// Reserved property names must be escaped the same way for member (argument-label) names as
+// swift-openapi-generator escapes struct members; these all map identically under both strategies
+// because they are single lowercase words (idiomatic leaves them unchanged, then escapes reserved).
+private let reservedMemberNameCases: [MemberNameCase] = [
+    MemberNameCase(raw: "type", expected: "_type"),
+    MemberNameCase(raw: "protocol", expected: "_protocol"),
+    MemberNameCase(raw: "self", expected: "_self"),
+    MemberNameCase(raw: "default", expected: "_default"),
+    MemberNameCase(raw: "normal", expected: "normal"),
+]
+
+@Test(arguments: reservedMemberNameCases)
+func kawarimiNamingStrategyDefensiveEscapesReservedMemberName(case sample: MemberNameCase) throws {
+    #expect(try KawarimiNamingStrategy.defensive.swiftMemberName(for: sample.raw) == sample.expected)
+}
+
+@Test(arguments: reservedMemberNameCases)
+func kawarimiNamingStrategyIdiomaticEscapesReservedMemberName(case sample: MemberNameCase) throws {
+    #expect(try KawarimiNamingStrategy.idiomatic.swiftMemberName(for: sample.raw) == sample.expected)
+}
+
 @Test func kawarimiJutsuHandlerUsesIdiomaticOperationsTypeNames() throws {
     guard let openAPIURL = KawarimiJutsuTestSupport.fixtureURL(
         name: "openapi",

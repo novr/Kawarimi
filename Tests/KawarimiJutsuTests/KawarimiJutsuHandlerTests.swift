@@ -98,6 +98,46 @@ func kawarimiHandlerStubEscapesReservedPropertyNameLabel(strategy: KawarimiNamin
     #expect(!source.contains(".init(type:"))
 }
 
+// Sibling of the `type` fixture test (#205/#206): covers additional reserved property names via an
+// inline spec, so the escaped initializer label (`_protocol`, `_self`, `_default`) stays aligned
+// with swift-openapi-generator across both naming strategies (#209).
+@Test(arguments: ["protocol", "self", "default"], [KawarimiNamingStrategy.defensive, .idiomatic])
+func kawarimiHandlerStubEscapesReservedPropertyNameLabelMatrix(
+    reservedName: String,
+    strategy: KawarimiNamingStrategy
+) throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-reserved-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.1.0
+    info: { title: Repro, version: '1.0.0' }
+    paths:
+      /item:
+        get:
+          operationId: getItem
+          responses:
+            '200':
+              description: OK
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [\(reservedName)]
+                    properties:
+                      \(reservedName):
+                        type: string
+                        example: example-value
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: strategy)
+    #expect(warnings.isEmpty)
+    #expect(source.contains(".init(_\(reservedName): \"example-value\")"))
+    #expect(!source.contains(".init(\(reservedName):"))
+}
+
 @Test(arguments: enumHandlerGenerationCases)
 func kawarimiHandlerUsesJSONDecodeStubForStringEnum(case config: EnumHandlerGenerationCase) throws {
     guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-enum-response", extension: "yaml") else {
