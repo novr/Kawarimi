@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.5] - 2026-07-09
+
 ### Fixed
 
 - **KawarimiCore**: macOS `KawarimiConfigFileWatcher` — detect atomic file replacement (rename-over) when watching an existing config file and reinstall the vnode watch ([#208](https://github.com/novr/Kawarimi/pull/208), [#196](https://github.com/novr/Kawarimi/issues/196)).
@@ -489,6 +491,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.3.5]: https://github.com/novr/Kawarimi/releases/tag/v3.3.5
 [3.3.4]: https://github.com/novr/Kawarimi/releases/tag/v3.3.4
 [3.3.3]: https://github.com/novr/Kawarimi/releases/tag/v3.3.3
 [3.3.2]: https://github.com/novr/Kawarimi/releases/tag/v3.3.2
