@@ -1,11 +1,10 @@
 import Foundation
 
-/// Active upstream forward configuration (`KAWARIMI_UPSTREAM_URL` resolved to an origin).
 public struct KawarimiUpstreamForwardingConfiguration: Sendable, Equatable {
     public let origin: URL
     public let strictOriginOnly: Bool
     public let proxyDebug: Bool
-    /// Non-`nil` when the configured URL carried a path component (origin-only is recommended).
+    /// Path on `KAWARIMI_UPSTREAM_URL` is re-applied at forward time; origin-only avoids double-prefix risk.
     public let nonOriginPathWarning: String?
 
     public init(
@@ -21,10 +20,8 @@ public struct KawarimiUpstreamForwardingConfiguration: Sendable, Equatable {
     }
 }
 
-/// Resolved Proxy environment (read at process startup).
 public struct KawarimiUpstreamSettings: Sendable, Equatable {
     public let forwarding: KawarimiUpstreamForwardingConfiguration?
-    /// Set when `KAWARIMI_UPSTREAM_URL` is non-empty but cannot be parsed.
     public let invalidURLWarning: String?
 
     public init(forwarding: KawarimiUpstreamForwardingConfiguration?, invalidURLWarning: String? = nil) {

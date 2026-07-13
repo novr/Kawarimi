@@ -79,5 +79,28 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
             #expect(collected.isEmpty)
         }
     }
+
+    @Test func liveTransportOmitsBodyForHEAD() async throws {
+        let server = try LoopbackHTTPServer.start()
+        defer { server.stop() }
+        server.run { request in
+            #expect(request.method == "HEAD")
+            return LoopbackHTTPResponse(
+                status: 200,
+                headers: [
+                    "Content-Type": "application/json",
+                    "Content-Length": "13",
+                ],
+                body: Data("{\"ignored\":1}".utf8)
+            )
+        }
+        await server.waitUntilAccepting()
+
+        let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: server.origin)
+        let request = HTTPRequest(method: .head, scheme: "http", authority: "127.0.0.1", path: "/resource")
+        let (response, body) = try await forwarder.forward(request: request, body: nil, pathPrefix: "")
+        #expect(response.status.code == 200)
+        #expect(body == nil)
+    }
 }
 #endif

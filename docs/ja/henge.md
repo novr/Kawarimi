@@ -166,9 +166,9 @@ upstream 透過は **`KawarimiServerMiddleware`** が **`KawarimiUpstreamHTTPFor
 
 転送時は hop-by-hop ヘッダー（`Host`、`Connection` 等）と Kawarimi 制御ヘッダー（`X-Kawarimi-*`、`X-Next-Kawarimi-*`）を除外し、それ以外のリクエストヘッダーは透過。body 付き転送時は `Content-Length` を省略し、送信側クライアントが再設定する。Cookie セッション認証の Proxy 経由は **v1 対象外**（Bearer 想定）。
 
-`URLSession` はデフォルトでリダイレクトを**追従**する。リクエスト body は temp file → `httpBodyStream` で upstream へストリーム転送（上限 **10 MiB**）。レスポンスは macOS / Linux とも `URLSession.bytes(for:)` の `AsyncBytes` を 16 KiB チャンクで `HTTPBody` に流す（上限 **10 MiB**、超過は `502`）。
+`URLSession` はデフォルトでリダイレクトを**追従**する。リクエスト body は temp file → `httpBodyStream` で upstream へストリーム転送（上限 **10 MiB**）。レスポンスは `URLSession.bytes(for:)` の `AsyncBytes` を 16 KiB チャンクで `HTTPBody` に流す（上限 **10 MiB**）。`Content-Length` / `expectedContentLength` が上限超のときは body 読取前に `502`；chunked は読取中に同上限。
 
-`URLSession` は**内部実装詳細**（`KawarimiProxyURLSessionTransport.live()`）であり、公開 API では差し替え不可。delegate は session 生成時に固定されるため、注入を許すとストリーム転送が黙って壊れる。
+カスタム `URLSession` 注入は不可（delegate は session 生成時に固定され、差し替えるとストリーム転送が黙って壊れる）。
 
 転送 path は **`KawarimiPath.aligned`** と `apiPathPrefix`（不足時のみ再付与。**strip 禁止**）。
 

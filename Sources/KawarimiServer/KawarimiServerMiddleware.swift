@@ -13,7 +13,7 @@ private let kawarimiProxyLog = Logger(subsystem: "Kawarimi", category: "Kawarimi
 ///
 /// - ``KawarimiConfigStore`` overrides refresh via `POST …/configure`, `POST …/reload`, or file watch when ``KawarimiConfigStore/startFileWatchIfEnabled()`` is active.
 /// - ``responseMap`` is fixed at init (build-time ``KawarimiSpec``); rebuild and re-register middleware after OpenAPI regen.
-/// - When ``KawarimiUpstreamSettings/isForwardingEnabled`` is `true`, override misses are forwarded to upstream via raw HTTP instead of calling `next`.
+/// - Override miss with upstream enabled must not call ``next`` (would run generated stubs, not upstream).
 public struct KawarimiServerMiddleware: ServerMiddleware {
     public let store: KawarimiConfigStore
     /// Spec example bodies; not updated until you construct a new middleware instance.

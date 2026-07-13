@@ -1,6 +1,6 @@
 import Foundation
 
-/// Bounds for Proxy upstream forward (dev sidecar; not override JSON storage).
+/// Dev-sidecar bounds; not read from override JSON.
 public enum KawarimiProxyForwardLimits {
     /// Maximum request body size (bytes) forwarded to upstream.
     public static let maxRequestBodyBytes = 10_485_760

@@ -24,7 +24,6 @@ struct LoopbackHTTPResponse: Sendable {
     }
 }
 
-/// Minimal loopback HTTP/1.1 server for transport integration tests.
 final class LoopbackHTTPServer: @unchecked Sendable {
     enum ServerError: Error, Sendable {
         case socketCreateFailed

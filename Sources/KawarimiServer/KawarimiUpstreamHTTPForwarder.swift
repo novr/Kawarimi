@@ -8,10 +8,6 @@ import OSLog
 private let kawarimiProxyForwarderLog = Logger(subsystem: "Kawarimi", category: "KawarimiProxy")
 #endif
 
-/// Raw HTTP forward from Proxy `ServerMiddleware` to an upstream origin.
-///
-/// Upstream I/O uses internal ``KawarimiProxyURLSessionTransport/live()``; `URLSession` is not part of the public API.
-/// Tests may inject ``KawarimiProxyURLSessionTransport/mock(_:)`` via ``init(upstreamOrigin:proxyDebug:transport:)``.
 public struct KawarimiUpstreamHTTPForwarder: Sendable {
     private let upstreamOrigin: URL
     private let transport: KawarimiProxyURLSessionTransport
