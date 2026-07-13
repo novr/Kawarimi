@@ -31,4 +31,14 @@ struct KawarimiProxyHeadersTests {
         #expect(forwarded[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] == nil)
         #expect(forwarded[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] == nil)
     }
+
+    @Test func omitsContentLengthWhenRequested() {
+        var fields = HTTPFields()
+        fields[HTTPField.Name("Content-Length")!] = "42"
+        fields[HTTPField.Name("Authorization")!] = "Bearer token"
+
+        let forwarded = KawarimiProxyHeaders.forwardingRequestHeaders(from: fields, omitContentLength: true)
+        #expect(forwarded[HTTPField.Name("Content-Length")!] == nil)
+        #expect(forwarded[HTTPField.Name("Authorization")!] == "Bearer token")
+    }
 }

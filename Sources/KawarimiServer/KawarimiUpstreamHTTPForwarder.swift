@@ -3,25 +3,30 @@ import HTTPTypes
 import KawarimiCore
 import OpenAPIRuntime
 
-#if canImport(FoundationNetworking)
-import FoundationNetworking
+#if canImport(OSLog)
+import OSLog
+private let kawarimiProxyForwarderLog = Logger(subsystem: "Kawarimi", category: "KawarimiProxy")
 #endif
 
 /// Raw HTTP forward from Proxy `ServerMiddleware` to an upstream origin.
+///
+/// Upstream I/O uses internal ``KawarimiProxyURLSessionTransport/live()``; `URLSession` is not part of the public API.
+/// Tests may inject ``KawarimiProxyURLSessionTransport/mock(_:)`` via ``init(upstreamOrigin:proxyDebug:transport:)``.
 public struct KawarimiUpstreamHTTPForwarder: Sendable {
-    public typealias URLSessionSend = @Sendable (URLRequest, HTTPBody?) async throws -> (HTTPURLResponse, HTTPBody?)
-
     private let upstreamOrigin: URL
-    private let sessionSend: URLSessionSend
+    private let transport: KawarimiProxyURLSessionTransport
+    private let proxyDebug: Bool
 
-    public init(upstreamOrigin: URL, session: URLSession = .shared) {
+    public init(upstreamOrigin: URL, proxyDebug: Bool = false) {
         self.upstreamOrigin = upstreamOrigin
-        self.sessionSend = Self.makeDefaultSessionSend(session: session)
+        self.proxyDebug = proxyDebug
+        self.transport = .live()
     }
 
-    init(upstreamOrigin: URL, sessionSend: @escaping URLSessionSend) {
+    init(upstreamOrigin: URL, proxyDebug: Bool = false, transport: KawarimiProxyURLSessionTransport) {
         self.upstreamOrigin = upstreamOrigin
-        self.sessionSend = sessionSend
+        self.proxyDebug = proxyDebug
+        self.transport = transport
     }
 
     public func forward(
@@ -40,13 +45,15 @@ public struct KawarimiUpstreamHTTPForwarder: Sendable {
         var urlRequest = URLRequest(url: targetURL)
         urlRequest.httpMethod = request.method.rawValue
 
-        let forwardedHeaders = KawarimiProxyHeaders.forwardingRequestHeaders(from: request.headerFields)
-        for field in forwardedHeaders {
-            urlRequest.setValue(field.value, forHTTPHeaderField: field.name.rawName)
-        }
+        let hasBody = body.map { !KawarimiProxyRequestBody.isEmpty($0) } ?? false
+        let forwardedHeaders = KawarimiProxyHeaders.forwardingRequestHeaders(
+            from: request.headerFields,
+            omitContentLength: hasBody
+        )
+        Self.applyForwardedHeaders(forwardedHeaders, to: &urlRequest)
 
         do {
-            let (http, responseBody) = try await sessionSend(urlRequest, body)
+            let (http, responseBody) = try await transport.send(urlRequest, body: hasBody ? body : nil)
             var response = HTTPResponse(status: .init(code: http.statusCode))
             for (name, value) in http.allHeaderFields {
                 guard let name = name as? String, let value = value as? String else { continue }
@@ -55,7 +62,15 @@ public struct KawarimiUpstreamHTTPForwarder: Sendable {
             }
             response.headerFields = KawarimiProxyHeaders.forwardingResponseHeaders(from: response.headerFields)
             return (response, responseBody)
+        } catch let error as KawarimiProxyForwardError {
+            switch error {
+            case .bodyTooLarge(let limit):
+                return Self.payloadTooLargeResponse(limit: limit)
+            case .responseTooLarge(let limit):
+                return Self.badGatewayResponse(message: "Upstream response exceeds \(limit) bytes")
+            }
         } catch {
+            logForwardFailure(error)
             return Self.badGatewayResponse(message: "Upstream unreachable")
         }
     }
@@ -78,38 +93,20 @@ public struct KawarimiUpstreamHTTPForwarder: Sendable {
         return components.url
     }
 
-    private static func makeDefaultSessionSend(session: URLSession) -> URLSessionSend {
-        { urlRequest, body in
-            let urlResponse: URLResponse
-            let responseBody: HTTPBody?
-            if let body, !isEmptyBody(body) {
-                let bodyData = try await uploadBodyData(from: body)
-                let (data, response) = try await session.upload(for: urlRequest, from: bodyData)
-                urlResponse = response
-                responseBody = data.isEmpty ? nil : HTTPBody(data)
-            } else {
-                let (data, response) = try await session.data(for: urlRequest)
-                urlResponse = response
-                responseBody = data.isEmpty ? nil : HTTPBody(data)
-            }
-            guard let http = urlResponse as? HTTPURLResponse else {
-                throw URLError(.badServerResponse)
-            }
-            return (http, responseBody)
+    private static func applyForwardedHeaders(_ fields: HTTPFields, to request: inout URLRequest) {
+        for field in fields {
+            request.addValue(field.value, forHTTPHeaderField: field.name.rawName)
         }
     }
 
-    private static func isEmptyBody(_ body: HTTPBody) -> Bool {
-        if case .known(0) = body.length { return true }
-        return false
-    }
-
-    private static func uploadBodyData(from body: HTTPBody) async throws -> Data {
-        let upTo: Int = switch body.length {
-        case .known(let length): Int(length)
-        case .unknown: .max
-        }
-        return try await Data(collecting: body, upTo: upTo)
+    private func logForwardFailure(_ error: any Error) {
+        guard proxyDebug else { return }
+        let message = "Upstream forward failed: \(error.localizedDescription)"
+#if canImport(OSLog)
+        kawarimiProxyForwarderLog.debug("\(message, privacy: .public)")
+#else
+        StandardError.write("KawarimiProxy: \(message)")
+#endif
     }
 
     private static func queryString(from rawPath: String) -> String? {
@@ -125,5 +122,11 @@ public struct KawarimiUpstreamHTTPForwarder: Sendable {
         var response = HTTPResponse(status: .init(code: 502))
         response.headerFields[.contentType] = "text/plain; charset=utf-8"
         return (response, HTTPBody(message))
+    }
+
+    private static func payloadTooLargeResponse(limit: Int) -> (HTTPResponse, HTTPBody?) {
+        var response = HTTPResponse(status: .init(code: 413))
+        response.headerFields[.contentType] = "text/plain; charset=utf-8"
+        return (response, HTTPBody("Request body exceeds \(limit) bytes"))
     }
 }

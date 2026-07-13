@@ -30,7 +30,10 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
         self.responseMap = responseMap
         self.forwarding = upstreamSettings.forwarding
         if let forwarding = upstreamSettings.forwarding {
-            self.forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: forwarding.origin)
+            self.forwarder = KawarimiUpstreamHTTPForwarder(
+                upstreamOrigin: forwarding.origin,
+                proxyDebug: forwarding.proxyDebug
+            )
         } else {
             self.forwarder = nil
         }

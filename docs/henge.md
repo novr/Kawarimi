@@ -165,7 +165,11 @@ When **`KAWARIMI_UPSTREAM_URL` is unset**, override misses behave as today: **`n
 
 Upstream passthrough is implemented in **`KawarimiServerMiddleware`** via **`KawarimiUpstreamHTTPForwarder`** (raw HTTP, not generated `KawarimiHandler` / Client). **`__kawarimi/*`** stays on **`KawarimiAdminHTTPHandler`** and is never forwarded.
 
-On forward, hop-by-hop headers (`Host`, `Connection`, …) and Kawarimi control headers (`X-Kawarimi-*`, `X-Next-Kawarimi-*`) are dropped; other request headers pass through. Cookie-based session auth through Proxy is **out of scope** for v1 (use Bearer tokens).
+On forward, hop-by-hop headers (`Host`, `Connection`, …) and Kawarimi control headers (`X-Kawarimi-*`, `X-Next-Kawarimi-*`) are dropped; other request headers pass through. `Content-Length` is omitted when a body is forwarded so the outbound client can set it. Cookie-based session auth through Proxy is **out of scope** for v1 (use Bearer tokens).
+
+`URLSession` follows redirects by default. Request bodies stream to upstream via temp file → `httpBodyStream` (max **10 MiB**). Responses stream on macOS and Linux via `URLSession.bytes(for:)` `AsyncBytes` into `HTTPBody` in 16 KiB chunks (max **10 MiB**; overflow → `502`).
+
+`URLSession` is an **implementation detail** (`KawarimiProxyURLSessionTransport.live()`) and is not replaceable through the public API. Delegates are fixed at session creation; allowing injection would silently break streamed forwarding.
 
 Path forwarding uses **`KawarimiPath.aligned`** with `apiPathPrefix` (re-apply prefix when missing; **do not strip** an existing prefix).
 

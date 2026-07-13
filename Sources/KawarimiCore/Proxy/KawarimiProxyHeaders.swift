@@ -29,12 +29,18 @@ public enum KawarimiProxyHeaders {
     }
 
     /// Request headers to send upstream: drops hop-by-hop and Kawarimi control fields.
-    public static func forwardingRequestHeaders(from source: HTTPFields) -> HTTPFields {
+    ///
+    /// When ``omitContentLength`` is `true`, drops `Content-Length` so the outbound transport can set it from the forwarded body.
+    public static func forwardingRequestHeaders(
+        from source: HTTPFields,
+        omitContentLength: Bool = false
+    ) -> HTTPFields {
         var result = HTTPFields()
         for field in source {
             let lower = field.name.rawName.lowercased()
             if isHopByHopHeader(name: lower) { continue }
             if isKawarimiControlHeader(name: lower) { continue }
+            if omitContentLength, lower == "content-length" { continue }
             result.append(field)
         }
         return result

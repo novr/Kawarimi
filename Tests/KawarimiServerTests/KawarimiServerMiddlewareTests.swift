@@ -235,16 +235,19 @@ struct KawarimiServerMiddlewareTests {
     let forwarding = KawarimiUpstreamForwardingConfiguration(origin: origin)
     final class Capture: @unchecked Sendable { var request: URLRequest? }
     let capture = Capture()
-    let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: origin) { request, _ in
-      capture.request = request
-      let response = HTTPURLResponse(
-        url: request.url!,
-        statusCode: 200,
-        httpVersion: nil,
-        headerFields: ["Content-Type": "application/json"]
-      )!
-      return (response, HTTPBody("{\"message\":\"from-upstream\"}"))
-    }
+    let forwarder = KawarimiUpstreamHTTPForwarder(
+      upstreamOrigin: origin,
+      transport: .mock { request, _ in
+        capture.request = request
+        let response = HTTPURLResponse(
+          url: request.url!,
+          statusCode: 200,
+          httpVersion: nil,
+          headerFields: ["Content-Type": "application/json"]
+        )!
+        return (response, HTTPBody("{\"message\":\"from-upstream\"}"))
+      }
+    )
     let middleware = KawarimiServerMiddleware(
       store: store,
       responseMap: [:],
@@ -291,10 +294,13 @@ struct KawarimiServerMiddlewareTests {
     let forwarding = KawarimiUpstreamForwardingConfiguration(origin: origin)
     final class ForwardCalled: @unchecked Sendable { var value = false }
     let forwardCalled = ForwardCalled()
-    let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: origin) { _, _ in
-      forwardCalled.value = true
-      throw URLError(.cannotConnectToHost)
-    }
+    let forwarder = KawarimiUpstreamHTTPForwarder(
+      upstreamOrigin: origin,
+      transport: .mock { _, _ in
+        forwardCalled.value = true
+        throw URLError(.cannotConnectToHost)
+      }
+    )
     let middleware = KawarimiServerMiddleware(
       store: store,
       responseMap: [:],
