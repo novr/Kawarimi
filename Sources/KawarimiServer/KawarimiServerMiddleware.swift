@@ -6,23 +6,47 @@ import OpenAPIRuntime
 #if canImport(OSLog)
 import OSLog
 private let kawarimiServerMiddlewareLog = Logger(subsystem: "Kawarimi", category: "KawarimiServerMiddleware")
+private let kawarimiProxyLog = Logger(subsystem: "Kawarimi", category: "KawarimiProxy")
 #endif
 
 /// Applies Henge dynamic mock overrides for registered OpenAPI operations (`ServerMiddleware`).
 ///
 /// - ``KawarimiConfigStore`` overrides refresh via `POST …/configure`, `POST …/reload`, or file watch when ``KawarimiConfigStore/startFileWatchIfEnabled()`` is active.
 /// - ``responseMap`` is fixed at init (build-time ``KawarimiSpec``); rebuild and re-register middleware after OpenAPI regen.
+/// - When ``KawarimiUpstreamSettings/isForwardingEnabled`` is `true`, override misses are forwarded to upstream via raw HTTP instead of calling `next`.
 public struct KawarimiServerMiddleware: ServerMiddleware {
     public let store: KawarimiConfigStore
     /// Spec example bodies; not updated until you construct a new middleware instance.
     public let responseMap: KawarimiMockResponseResolver.NestedResponseMap
+    private let forwarding: KawarimiUpstreamForwardingConfiguration?
+    private let forwarder: KawarimiUpstreamHTTPForwarder?
 
     public init(
         store: KawarimiConfigStore,
-        responseMap: KawarimiMockResponseResolver.NestedResponseMap
+        responseMap: KawarimiMockResponseResolver.NestedResponseMap,
+        upstreamSettings: KawarimiUpstreamSettings = .fromEnvironment()
     ) {
         self.store = store
         self.responseMap = responseMap
+        self.forwarding = upstreamSettings.forwarding
+        if let forwarding = upstreamSettings.forwarding {
+            self.forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: forwarding.origin)
+        } else {
+            self.forwarder = nil
+        }
+    }
+
+    /// Test hook: ``forwarding`` requires a resolved origin; ``forwarder`` must target the same origin.
+    init(
+        store: KawarimiConfigStore,
+        responseMap: KawarimiMockResponseResolver.NestedResponseMap,
+        forwarding: KawarimiUpstreamForwardingConfiguration,
+        forwarder: KawarimiUpstreamHTTPForwarder
+    ) {
+        self.store = store
+        self.responseMap = responseMap
+        self.forwarding = forwarding
+        self.forwarder = forwarder
     }
 
     public func intercept(
@@ -33,7 +57,7 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
         next: @Sendable (HTTPRequest, HTTPBody?, ServerRequestMetadata) async throws -> (HTTPResponse, HTTPBody?)
     ) async throws -> (HTTPResponse, HTTPBody?) {
         _ = metadata
-        let requestPath = KawarimiRequestPath.pathOnly(request.path)
+        let requestPath = KawarimiRequestPath.pathOnly(request.path ?? "")
         let pathPrefix = await store.pathPrefix
         let overrides = await store.overrides()
         let scenarios = await store.scenarios()
@@ -59,6 +83,8 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
                 if let nextKawarimiId {
                     response.headerFields[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] = nextKawarimiId
                 }
+                applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionMock)
+                logProxy(action: KawarimiProxyHeaders.actionMock, path: requestPath, method: request.method)
                 return (response, HTTPBody(resolved.body))
             }
             if case .fallback(let reason) = resolution {
@@ -86,6 +112,16 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
 #endif
         }
         guard let override = hits.first else {
+            if let forwarder {
+                logProxy(action: KawarimiProxyHeaders.actionForward, path: requestPath, method: request.method)
+                var (response, responseBody) = try await forwarder.forward(
+                    request: request,
+                    body: body,
+                    pathPrefix: pathPrefix
+                )
+                applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionForward)
+                return (response, responseBody)
+            }
             return try await next(request, body, metadata)
         }
 
@@ -99,7 +135,25 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
         }
         var response = HTTPResponse(status: .init(code: resolved.statusCode))
         response.headerFields[.contentType] = resolved.contentType
+        applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionMock)
+        logProxy(action: KawarimiProxyHeaders.actionMock, path: requestPath, method: request.method)
         return (response, HTTPBody(resolved.body))
+    }
+
+    private func applyProxyActionHeader(_ response: inout HTTPResponse, action: String) {
+        guard forwarding != nil else { return }
+        response.headerFields[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] = action
+    }
+
+    private func logProxy(action: String, path: String, method: HTTPRequest.Method) {
+        guard forwarding?.proxyDebug == true else { return }
+#if canImport(OSLog)
+        kawarimiProxyLog.debug(
+            "\(action, privacy: .public) \(method.rawValue, privacy: .public) \(path, privacy: .public)"
+        )
+#else
+        StandardError.write("KawarimiProxy: \(action) \(method.rawValue) \(path)")
+#endif
     }
 
     private func logScenarioFallback(

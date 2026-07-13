@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore:** `KawarimiUpstreamSettings`, `KawarimiProxyHeaders` — Proxy upstream URL resolution and hop-by-hop / Kawarimi control header rules ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiCore:** `KawarimiUpstreamForwardingConfiguration` — typed upstream origin required when forwarding is enabled.
+- **KawarimiServer:** `KawarimiUpstreamHTTPForwarder` — raw HTTP upstream forward from `KawarimiServerMiddleware` when `KAWARIMI_UPSTREAM_URL` is set and no override matches ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **Example DemoServer:** reads `KAWARIMI_UPSTREAM_URL` at startup (invalid URL / path warnings; `KAWARIMI_UPSTREAM_STRICT` support).
+
+### Changed
+
+- **KawarimiServer:** `KawarimiServerMiddleware` — override miss + upstream configured forwards without calling `next`; adds `X-Kawarimi-Proxy-Action` only when upstream is set ([#213](https://github.com/novr/Kawarimi/issues/213)).
+
 ## [3.3.5] - 2026-07-09
 
 ### Fixed

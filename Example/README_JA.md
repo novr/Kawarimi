@@ -29,6 +29,8 @@ try DemoServerSpecResponse.validateWireAtStartup()
 
 動的モックは製品 **KawarimiServer** の **`KawarimiServerMiddleware`**（`registerHandlers(middlewares:)`）を使用。詳細は [henge.md](../docs/ja/henge.md)。
 
+任意の **Proxy** upstream 透過: **DemoServer** に **`KAWARIMI_UPSTREAM_URL`**（origin のみ。例 `https://staging.example.com`）を設定すると、オーバーライド未マッチが実 API へ届く。未設定時は OpenAPI スタブのまま。 [Proxy（upstream 透過）](../docs/ja/henge.md#proxy-upstream-forward) を参照。
+
 ## セキュリティ（サンプル限定）
 
 **`__kawarimi`** 管理 API に**認証はありません**。

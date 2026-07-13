@@ -24,6 +24,7 @@ final class DemoServerE2ETests {
         let (response, data) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(response.statusCode == 200)
         #expect(DemoServerE2EHTTPChecks.isJSONContentType(response))
+        #expect(response.value(forHTTPHeaderField: KawarimiProxyHeaders.proxyAction) == nil)
         let body = try DemoServerE2EJSON.decodeGreeting(from: data)
         #expect(body.message == "Hello from API")
     }

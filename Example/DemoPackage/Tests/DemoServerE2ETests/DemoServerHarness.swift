@@ -8,6 +8,8 @@ import KawarimiCore
 /// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
 struct DemoServerHarness {
     private(set) var baseURL: URL
+    /// Listen origin without `apiPathPrefix` (`http://host:port`).
+    private(set) var listenOrigin: URL
     var kawarimiBaseURL: URL { baseURL.appending(path: KawarimiAdminPath.managementSegment) }
 
     let configFileURL: URL
@@ -21,7 +23,11 @@ struct DemoServerHarness {
     private let listenReadyFile: URL
     private let stderrMonitor: StderrMonitor
 
-    static func start(packageRoot: URL, timeout: TimeInterval = 45) async throws -> DemoServerHarness {
+    static func start(
+        packageRoot: URL,
+        timeout: TimeInterval = 45,
+        extraEnvironment: [String: String] = [:]
+    ) async throws -> DemoServerHarness {
         guard let executable = findDemoServerExecutable(packageRoot: packageRoot) else {
             throw HarnessError.demoServerNotBuilt(
                 "DemoServer executable not found. Run `swift build --product DemoServer` in Example/DemoPackage."
@@ -45,6 +51,9 @@ struct DemoServerHarness {
         environment["PORT"] = "0"
         environment["KAWARIMI_CONFIG"] = configPath.path
         environment["KAWARIMI_LISTEN_READY_FILE"] = listenReadyFile.path
+        for (key, value) in extraEnvironment {
+            environment[key] = value
+        }
         process.environment = environment
         process.standardOutput = FileHandle.nullDevice
         process.standardError = stderrPipe
@@ -52,6 +61,7 @@ struct DemoServerHarness {
 
         var harness = DemoServerHarness(
             baseURL: URL(string: "http://127.0.0.1:0")!,
+            listenOrigin: URL(string: "http://127.0.0.1:0")!,
             configFileURL: configPath,
             process: process,
             configDir: configDir,
@@ -132,6 +142,7 @@ struct DemoServerHarness {
 
     private init(
         baseURL: URL,
+        listenOrigin: URL,
         configFileURL: URL,
         process: Process,
         configDir: URL,
@@ -139,6 +150,7 @@ struct DemoServerHarness {
         stderrMonitor: StderrMonitor
     ) {
         self.baseURL = baseURL
+        self.listenOrigin = listenOrigin
         self.configFileURL = configFileURL
         self.process = process
         self.configDir = configDir
@@ -164,6 +176,7 @@ struct DemoServerHarness {
                     let (_, response) = try await URLSession.shared.data(for: request)
                     if let http = response as? HTTPURLResponse, http.statusCode == 200 {
                         baseURL = apiBase
+                        listenOrigin = origin
                         return
                     }
                 } catch {

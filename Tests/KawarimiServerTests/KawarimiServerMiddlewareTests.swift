@@ -224,4 +224,95 @@ struct KawarimiServerMiddlewareTests {
     #expect(response.status.code == 201)
     #expect(response.headerFields[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] == nil)
   }
+
+  @Test func forwardsToUpstreamWithoutCallingNext() async throws {
+    let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+    try Data("{\"overrides\":[]}".utf8).write(to: configURL)
+    defer { try? FileManager.default.removeItem(at: configURL) }
+
+    let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
+    let origin = try #require(URL(string: "https://upstream.test"))
+    let forwarding = KawarimiUpstreamForwardingConfiguration(origin: origin)
+    final class Capture: @unchecked Sendable { var request: URLRequest? }
+    let capture = Capture()
+    let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: origin) { request, _ in
+      capture.request = request
+      let response = HTTPURLResponse(
+        url: request.url!,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+      )!
+      return (response, HTTPBody("{\"message\":\"from-upstream\"}"))
+    }
+    let middleware = KawarimiServerMiddleware(
+      store: store,
+      responseMap: [:],
+      forwarding: forwarding,
+      forwarder: forwarder
+    )
+    final class NextFlag: @unchecked Sendable { var value = false }
+    let nextCalled = NextFlag()
+    let request = HTTPRequest(method: .get, scheme: "http", authority: "127.0.0.1", path: "/api/greet")
+    let (response, body) = try await middleware.intercept(
+      request,
+      body: nil,
+      metadata: ServerRequestMetadata(),
+      operationID: "greet",
+      next: { _, _, _ in
+        nextCalled.value = true
+        return (HTTPResponse(status: .ok), nil)
+      }
+    )
+    #expect(!nextCalled.value)
+    #expect(response.status.code == 200)
+    #expect(response.headerFields[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] == KawarimiProxyHeaders.actionForward)
+    let collected = try await String(collecting: body!, upTo: 1024)
+    #expect(collected == "{\"message\":\"from-upstream\"}")
+    #expect(capture.request?.url?.path == "/api/greet")
+  }
+
+  @Test func overrideTakesPriorityOverUpstreamForward() async throws {
+    let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+    let config = KawarimiConfig(overrides: [
+      MockOverride(
+        path: "/api/greet",
+        method: .get,
+        statusCode: 200,
+        body: "{\"message\":\"mocked\"}",
+        contentType: "application/json"
+      ),
+    ])
+    try JSONEncoder().encode(config).write(to: configURL)
+    defer { try? FileManager.default.removeItem(at: configURL) }
+
+    let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
+    let origin = try #require(URL(string: "https://upstream.test"))
+    let forwarding = KawarimiUpstreamForwardingConfiguration(origin: origin)
+    final class ForwardCalled: @unchecked Sendable { var value = false }
+    let forwardCalled = ForwardCalled()
+    let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: origin) { _, _ in
+      forwardCalled.value = true
+      throw URLError(.cannotConnectToHost)
+    }
+    let middleware = KawarimiServerMiddleware(
+      store: store,
+      responseMap: [:],
+      forwarding: forwarding,
+      forwarder: forwarder
+    )
+
+    let request = HTTPRequest(method: .get, scheme: "http", authority: "127.0.0.1", path: "/api/greet")
+    let (response, body) = try await middleware.intercept(
+      request,
+      body: nil,
+      metadata: ServerRequestMetadata(),
+      operationID: "greet",
+      next: { _, _, _ in (HTTPResponse(status: .ok), nil) }
+    )
+    #expect(!forwardCalled.value)
+    #expect(response.headerFields[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] == KawarimiProxyHeaders.actionMock)
+    let collected = try await String(collecting: body!, upTo: 1024)
+    #expect(collected == "{\"message\":\"mocked\"}")
+  }
 }
