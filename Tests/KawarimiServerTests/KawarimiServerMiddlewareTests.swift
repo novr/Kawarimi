@@ -6,6 +6,8 @@ import Testing
 
 @testable import KawarimiServer
 
+private let disabledUpstreamSettings = KawarimiUpstreamSettings(forwarding: nil)
+
 @Suite("KawarimiServerMiddleware")
 struct KawarimiServerMiddlewareTests {
   @Test func returnsMockWithoutCallingNext() async throws {
@@ -24,7 +26,7 @@ struct KawarimiServerMiddlewareTests {
     defer { try? FileManager.default.removeItem(at: configURL) }
 
     let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
-    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:])
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
   final class NextFlag: @unchecked Sendable { var value = false }
   let nextCalled = NextFlag()
     let request = HTTPRequest(method: .get, scheme: "https", authority: "example.com", path: "/api/widgets")
@@ -70,7 +72,7 @@ struct KawarimiServerMiddlewareTests {
     defer { try? FileManager.default.removeItem(at: configURL) }
 
     #expect(await store.reloadFromDisk() == .applied)
-    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:])
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
     let request = HTTPRequest(method: .get, scheme: "https", authority: "example.com", path: "/api/widgets")
     let (response, body) = try await middleware.intercept(
       request,
@@ -120,7 +122,7 @@ struct KawarimiServerMiddlewareTests {
     try JSONEncoder().encode(scenarios).write(to: URL(fileURLWithPath: scenarioPath), options: .atomic)
     _ = await store.reloadFromDisk()
 
-    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:])
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
     var request = HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/login")
     request.headerFields[HTTPField.Name(KawarimiScenarioHeaders.scenarioId)!] = "login"
 
@@ -157,7 +159,7 @@ struct KawarimiServerMiddlewareTests {
     try Data("{\"scenarios\":[]}".utf8).write(to: URL(fileURLWithPath: scenarioPath), options: .atomic)
     _ = await store.reloadFromDisk()
 
-    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:])
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
     var request = HTTPRequest(method: .get, scheme: "https", authority: "example.com", path: "/api/widgets")
     request.headerFields[HTTPField.Name(KawarimiScenarioHeaders.scenarioId)!] = "missing"
 
@@ -209,7 +211,7 @@ struct KawarimiServerMiddlewareTests {
     try JSONEncoder().encode(scenarios).write(to: URL(fileURLWithPath: scenarioPath), options: .atomic)
     _ = await store.reloadFromDisk()
 
-    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:])
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
     var request = HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/favorites")
     request.headerFields[HTTPField.Name(KawarimiScenarioHeaders.scenarioId)!] = "favorite"
     request.headerFields[HTTPField.Name(KawarimiScenarioHeaders.kawarimiId)!] = "add"

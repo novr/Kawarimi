@@ -172,7 +172,7 @@ private enum KawarimiProxyStreamingURLSessionTransport {
 
     private static func responseBody(from asyncBytes: URLSession.AsyncBytes, maxBytes: Int) -> HTTPBody {
         let (stream, continuation) = AsyncThrowingStream<ArraySlice<UInt8>, Error>.makeStream()
-        Task {
+        let task = Task {
             do {
                 var total = 0
                 var iterator = asyncBytes.makeAsyncIterator()
@@ -196,6 +196,7 @@ private enum KawarimiProxyStreamingURLSessionTransport {
                 continuation.finish(throwing: error)
             }
         }
+        continuation.onTermination = { _ in task.cancel() }
         return HTTPBody(stream, length: .unknown, iterationBehavior: .single)
     }
 }
