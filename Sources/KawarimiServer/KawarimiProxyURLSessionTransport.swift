@@ -11,7 +11,7 @@ enum KawarimiProxyForwardError: Error, Sendable {
     case responseTooLarge(limit: Int)
 }
 
-enum KawarimiProxyURLSessionTransport: Sendable {
+struct KawarimiProxyURLSessionTransport: Sendable {
     private let sendRequest: @Sendable (URLRequest, HTTPBody?) async throws -> (HTTPURLResponse, HTTPBody?)
 
     fileprivate init(sendRequest: @escaping @Sendable (URLRequest, HTTPBody?) async throws -> (HTTPURLResponse, HTTPBody?)) {
@@ -180,6 +180,7 @@ private enum KawarimiProxyStreamingURLSessionTransport {
                     var chunk = [UInt8]()
                     chunk.reserveCapacity(responseChunkSize)
                     while chunk.count < responseChunkSize {
+                        try Task.checkCancellation()
                         guard let byte = try await iterator.next() else { break }
                         chunk.append(byte)
                     }

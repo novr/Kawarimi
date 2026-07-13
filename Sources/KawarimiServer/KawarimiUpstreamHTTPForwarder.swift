@@ -51,6 +51,7 @@ public struct KawarimiUpstreamHTTPForwarder: Sendable {
         do {
             let (http, responseBody) = try await transport.send(urlRequest, body: hasBody ? body : nil)
             var response = HTTPResponse(status: .init(code: http.statusCode))
+            // Cookie-based session auth is out of scope for v1; Foundation collapses multi-value Set-Cookie.
             for (name, value) in http.allHeaderFields {
                 guard let name = name as? String, let value = value as? String else { continue }
                 guard let fieldName = HTTPField.Name(name) ?? HTTPField.Name(name.lowercased()) else { continue }
