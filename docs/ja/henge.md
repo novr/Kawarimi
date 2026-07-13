@@ -140,29 +140,35 @@ try handler.registerHandlers(
 
 - 有効なオーバーライド（パステンプレート、または `MockOverride.name` と `operationId`、HTTP メソッド）にマッチしたら、オーバーライド本文、または **`statusCode` と実効の例キー**（未設定の `exampleId` は `__default`）で `KawarimiSpec.responseMap` を参照してボディを組み立てる。
 - モックが当たったら **`next` を呼ばず** 合成レスポンスを返す。
-- **`KAWARIMI_UPSTREAM_URL`** 設定時にオーバーライド未マッチなら、生 HTTP で upstream に転送する（**`next` を呼ばない**）。詳細は [Proxy](#proxy-upstream-forward) を参照。
+- **`KAWARIMI_UPSTREAM_URL`** 設定時にオーバーライド未マッチなら、生 HTTP で upstream に転送する（**`next` を呼ばない**）。詳細は [Proxy（dev sidecar）](#proxy-upstream-forward) を参照。
 - 上記以外は生成 handler に委譲（**`next`** → OpenAPI スタブ）。
 
 **プロセス内の `Kawarimi`（`ClientTransport`）は `kawarimi.json` を読まず、実行時オーバーライドも適用しません** — 上記サーバ経路（または自前統合）のみです。
 
 <a id="proxy-upstream-forward"></a>
 
-## Proxy（upstream 透過）
+## Proxy（dev sidecar）
 
-**Proxy** は Kawarimi ランタイムの sidecar（**DemoServer** + Henge admin + `KawarimiServerMiddleware` + `kawarimi.json`）。挙動は有効オーバーライドと upstream 設定による**スペクトラム**であり、「直結 / Proxy / フルモック」という別モードではありません。
+**Proxy** は **ローカル開発向け sidecar** です。本番 API ゲートウェイや透過リバースプロキシではありません。典型構成は **DemoServer** + Henge admin + `KawarimiServerMiddleware` + `kawarimi.json`。アプリは sidecar に向け、未 override の operation だけ dev/staging API へ forward し、変更中の operation だけ差し替えます。
+
+挙動は有効オーバーライドと upstream 設定による**スペクトラム**であり、「直結 / Proxy / フルモック」という別モードではありません。
 
 | 状況 | 運用 | 結果 |
 | --- | --- | --- |
 | **直結** | Proxy を起動せず、アプリを実 API へ | Kawarimi ランタイムは経路に入らない |
-| **Proxy + upstream、override 0** | Proxy 起動 + `KAWARIMI_UPSTREAM_URL` | 登録 operation は upstream へ透過 |
+| **Proxy + upstream、override 0** | Proxy 起動 + `KAWARIMI_UPSTREAM_URL` | 登録 operation は upstream へ forward |
 | **一部 override** | 一部 operation のみ有効化 | マッチ → モック、他 → upstream |
 | **フルモック相当** | 対象 operation をすべて override | それらは upstream に届かない |
+
+**向いている用途:** 実バックエンドを叩きつつ一部だけ mock；Bearer 想定の JSON API；OpenAPI 登録 operation。
+
+**向いていない用途:** Cookie セッション中継；上限超の大きな payload；生成 operation 外の path；本番 ingress。
 
 **`KAWARIMI_UPSTREAM_URL` 未設定**時は従来どおり：オーバーライド未マッチ → **`next`** → 生成 OpenAPI スタブ。新規レスポンスヘッダーは付かず、既存 E2E 挙動は変わりません。
 
 ### 転送の実装
 
-upstream 透過は **`KawarimiServerMiddleware`** が **`KawarimiUpstreamHTTPForwarder`** で行う（生 HTTP。生成 `KawarimiHandler` / Client 委譲ではない）。**`__kawarimi/*`** は **`KawarimiAdminHTTPHandler`** のみで、upstream へ転送しません。
+upstream への forward は **`KawarimiServerMiddleware`** が **`KawarimiUpstreamHTTPForwarder`** で行う（生 HTTP。生成 `KawarimiHandler` / Client 委譲ではない）。**`__kawarimi/*`** は **`KawarimiAdminHTTPHandler`** のみで、upstream へ転送しません。
 
 転送時は hop-by-hop ヘッダー（`Host`、`Connection` 等）と Kawarimi 制御ヘッダー（`X-Kawarimi-*`、`X-Next-Kawarimi-*`）を除外し、それ以外のリクエストヘッダーは透過。body 付き転送時は `Content-Length` を省略し、送信側クライアントが再設定する。Cookie セッション認証の Proxy 経由は **v1 対象外**（Bearer 想定）。
 
@@ -188,7 +194,7 @@ upstream 透過は **`KawarimiServerMiddleware`** が **`KawarimiUpstreamHTTPFor
 
 upstream 設定時のみ、レスポンスに **`X-Kawarimi-Proxy-Action: mock`** または **`forward`** が付くことがあります。未設定時は付きません。
 
-**v1 スコープ外:** Client middleware による切り替え、未登録 path の catch-all、path リマップ、Cookie リライト、admin 認証。
+**v1 スコープ外:** 本番透過プロキシ / API ゲートウェイとしての利用；Client middleware による切り替え；未登録 path の catch-all；path リマップ；Cookie リライト；admin 認証。
 
 ### オーバーライドマッチングの Product ルール
 
