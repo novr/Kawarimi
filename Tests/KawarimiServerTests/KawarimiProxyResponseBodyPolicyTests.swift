@@ -4,6 +4,10 @@ import KawarimiCore
 import OpenAPIRuntime
 import Testing
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 @testable import KawarimiServer
 
 @Suite("KawarimiProxyResponseBodyPolicy")

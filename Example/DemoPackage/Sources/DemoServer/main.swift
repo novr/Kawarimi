@@ -73,10 +73,10 @@ struct DemoServer {
         let configPath = resolvedKawarimiConfigPath()
         let upstreamSettings = KawarimiUpstreamSettings.fromEnvironment()
         if let warning = upstreamSettings.invalidURLWarning {
-            fputs("Kawarimi: warning: \(warning)\n", stderr)
+            StandardError.write("Kawarimi: warning: \(warning)")
         }
         if let warning = upstreamSettings.forwarding?.nonOriginPathWarning {
-            fputs("Kawarimi: warning: \(warning)\n", stderr)
+            StandardError.write("Kawarimi: warning: \(warning)")
         }
         if upstreamSettings.strictOriginViolation {
             throw DemoServerError.upstreamURLHasPath(

@@ -173,7 +173,7 @@ Upstream passthrough is implemented in **`KawarimiServerMiddleware`** via **`Kaw
 
 On forward, hop-by-hop headers (`Host`, `Connection`, …) and Kawarimi control headers (`X-Kawarimi-*`, `X-Next-Kawarimi-*`) are dropped; other request headers pass through. `Content-Length` is omitted when a body is forwarded so the outbound client can set it. Cookie-based session auth through Proxy is **out of scope** for v1 (use Bearer tokens).
 
-`URLSession` follows redirects by default. Request bodies stream to upstream via temp file → `httpBodyStream` (max **10 MiB**). Responses stream via `URLSession.bytes(for:)` `AsyncBytes` into `HTTPBody` in 16 KiB chunks (max **10 MiB**). When `Content-Length` / `expectedContentLength` exceeds the cap, the forwarder returns `502` before reading the body; chunked responses enforce the same cap while streaming.
+`URLSession` follows redirects by default. Request bodies stream to upstream via temp file → `httpBodyStream` (max **10 MiB**). On Apple platforms, responses stream via `URLSession.bytes(for:)` `AsyncBytes` into `HTTPBody` in 16 KiB chunks; on Linux, `data(for:)` buffers up to the same cap (CI / headless validation). When `Content-Length` / `expectedContentLength` exceeds the cap, the forwarder returns `502` before reading the body; chunked responses enforce the same cap while streaming (Apple only).
 
 Custom `URLSession` injection is not supported (delegates are fixed at session creation; injection would silently break streamed forwarding).
 

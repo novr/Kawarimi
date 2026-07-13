@@ -3,6 +3,10 @@ import HTTPTypes
 import KawarimiCore
 import OpenAPIRuntime
 
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
+
 #if canImport(OSLog)
 import OSLog
 private let kawarimiProxyForwarderLog = Logger(subsystem: "Kawarimi", category: "KawarimiProxy")

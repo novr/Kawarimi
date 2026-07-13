@@ -19,7 +19,11 @@ struct KawarimiProxyURLSessionTransport: Sendable {
     }
 
     static func live() -> KawarimiProxyURLSessionTransport {
+        #if os(Linux)
+        KawarimiProxyBufferedURLSessionTransport.makeTransport()
+        #else
         KawarimiProxyStreamingURLSessionTransport.makeTransport()
+        #endif
     }
 
     static func mock(
@@ -99,23 +103,46 @@ enum KawarimiProxyResponseBodyPolicy {
     }
 }
 
-private enum KawarimiProxyStreamingURLSessionTransport {
-    private static let responseChunkSize = 16_384
-
-    static func makeTransport() -> KawarimiProxyURLSessionTransport {
-        let session = makeSession()
-        return KawarimiProxyURLSessionTransport(sendRequest: { request, body in
-            try await send(session: session, request: request, body: body)
-        })
-    }
-
-    private static func makeSession() -> URLSession {
+private enum KawarimiProxyURLSessionTransportCore {
+    static func makeSession() -> URLSession {
         let config = URLSessionConfiguration.default
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
         config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 300
         return URLSession(configuration: config)
+    }
+
+    static func isHeadRequest(_ request: URLRequest) -> Bool {
+        request.httpMethod?.uppercased() == "HEAD"
+    }
+
+    static func isNoBodyStatus(_ statusCode: Int) -> Bool {
+        statusCode == 204 || statusCode == 304
+    }
+
+    static func attachRequestBody(_ body: HTTPBody, to request: inout URLRequest) async throws -> URL? {
+        let fileURL = try await KawarimiProxyRequestBody.materializeToTemporaryFile(body)
+        #if os(Linux)
+        let data = try Data(contentsOf: fileURL)
+        if !data.isEmpty {
+            request.httpBody = data
+            request.setValue("\(data.count)", forHTTPHeaderField: "Content-Length")
+        }
+        #else
+        try KawarimiProxyRequestBody.attachStreamingBody(to: &request, fileURL: fileURL)
+        #endif
+        return fileURL
+    }
+}
+
+#if os(Linux)
+private enum KawarimiProxyBufferedURLSessionTransport {
+    static func makeTransport() -> KawarimiProxyURLSessionTransport {
+        let session = KawarimiProxyURLSessionTransportCore.makeSession()
+        return KawarimiProxyURLSessionTransport(sendRequest: { request, body in
+            try await send(session: session, request: request, body: body)
+        })
     }
 
     private static func send(
@@ -126,9 +153,58 @@ private enum KawarimiProxyStreamingURLSessionTransport {
         var urlRequest = request
         var tempFileURL: URL?
         if let body {
-            let fileURL = try await KawarimiProxyRequestBody.materializeToTemporaryFile(body)
-            tempFileURL = fileURL
-            try KawarimiProxyRequestBody.attachStreamingBody(to: &urlRequest, fileURL: fileURL)
+            tempFileURL = try await KawarimiProxyURLSessionTransportCore.attachRequestBody(body, to: &urlRequest)
+        }
+        defer {
+            if let tempFileURL {
+                try? FileManager.default.removeItem(at: tempFileURL)
+            }
+        }
+
+        let (data, urlResponse) = try await session.data(for: urlRequest)
+        guard let http = urlResponse as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        let maxResponseBytes = KawarimiProxyForwardLimits.maxResponseBodyBytes
+        if let declaredLength = KawarimiProxyResponseBodyPolicy.declaredBodyLength(http),
+            declaredLength > maxResponseBytes
+        {
+            throw KawarimiProxyForwardError.responseTooLarge(limit: maxResponseBytes)
+        }
+
+        if KawarimiProxyURLSessionTransportCore.isHeadRequest(urlRequest)
+            || KawarimiProxyURLSessionTransportCore.isNoBodyStatus(http.statusCode)
+        {
+            return (http, nil)
+        }
+
+        if data.count > maxResponseBytes {
+            throw KawarimiProxyForwardError.responseTooLarge(limit: maxResponseBytes)
+        }
+        return (http, data.isEmpty ? nil : HTTPBody(data))
+    }
+}
+#else
+private enum KawarimiProxyStreamingURLSessionTransport {
+    private static let responseChunkSize = 16_384
+
+    static func makeTransport() -> KawarimiProxyURLSessionTransport {
+        let session = KawarimiProxyURLSessionTransportCore.makeSession()
+        return KawarimiProxyURLSessionTransport(sendRequest: { request, body in
+            try await send(session: session, request: request, body: body)
+        })
+    }
+
+    private static func send(
+        session: URLSession,
+        request: URLRequest,
+        body: HTTPBody?
+    ) async throws -> (HTTPURLResponse, HTTPBody?) {
+        var urlRequest = request
+        var tempFileURL: URL?
+        if let body {
+            tempFileURL = try await KawarimiProxyURLSessionTransportCore.attachRequestBody(body, to: &urlRequest)
         }
         defer {
             if let tempFileURL {
@@ -149,21 +225,15 @@ private enum KawarimiProxyStreamingURLSessionTransport {
             throw KawarimiProxyForwardError.responseTooLarge(limit: maxResponseBytes)
         }
 
-        if Self.isHeadRequest(urlRequest) || Self.isNoBodyStatus(http.statusCode) {
+        if KawarimiProxyURLSessionTransportCore.isHeadRequest(urlRequest)
+            || KawarimiProxyURLSessionTransportCore.isNoBodyStatus(http.statusCode)
+        {
             try await Self.drain(asyncBytes)
             return (http, nil)
         }
 
         let responseBody = Self.responseBody(from: asyncBytes, maxBytes: maxResponseBytes)
         return (http, responseBody)
-    }
-
-    private static func isHeadRequest(_ request: URLRequest) -> Bool {
-        request.httpMethod?.uppercased() == "HEAD"
-    }
-
-    private static func isNoBodyStatus(_ statusCode: Int) -> Bool {
-        statusCode == 204 || statusCode == 304
     }
 
     private static func drain(_ asyncBytes: URLSession.AsyncBytes) async throws {
@@ -200,3 +270,4 @@ private enum KawarimiProxyStreamingURLSessionTransport {
         return HTTPBody(stream, length: .unknown, iterationBehavior: .single)
     }
 }
+#endif
