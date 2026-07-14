@@ -216,14 +216,43 @@ private func runCLI(
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
     try process.run()
-    process.waitUntilExit()
-    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    let (stdoutData, stderrData) = collectProcessOutput(
+        process: process,
+        stdout: stdoutPipe,
+        stderr: stderrPipe
+    )
     return CLIResult(
         exitCode: process.terminationStatus,
         stdout: String(data: stdoutData, encoding: .utf8) ?? "",
         stderr: String(data: stderrData, encoding: .utf8) ?? ""
     )
+}
+
+private func collectProcessOutput(
+    process: Process,
+    stdout: Pipe?,
+    stderr: Pipe?
+) -> (stdout: Data, stderr: Data) {
+    var stdoutData = Data()
+    var stderrData = Data()
+    let group = DispatchGroup()
+    if let stdout {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    if let stderr {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    process.waitUntilExit()
+    group.wait()
+    return (stdoutData, stderrData)
 }
 
 private func buildInfoVersion(packageRoot: URL) -> String? {
@@ -248,8 +277,7 @@ private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
     try? process.run()
-    process.waitUntilExit()
+    let (stdoutData, _) = collectProcessOutput(process: process, stdout: pipe, stderr: nil)
     guard process.terminationStatus == 0 else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
 }

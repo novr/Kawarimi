@@ -23,18 +23,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openapiPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "Kawarimi should exit 0 (stderr: \(stderrStr))")
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openapiPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "Kawarimi should exit 0 (stderr: \(result.stderr))")
 
     let kawarimiURLOut = outputDirURL.appendingPathComponent("Kawarimi.swift")
     let handlerURL = outputDirURL.appendingPathComponent("KawarimiHandler.swift")
@@ -84,18 +78,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openapiPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "Kawarimi should exit 0 (stderr: \(stderrStr))")
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openapiPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "Kawarimi should exit 0 (stderr: \(result.stderr))")
 
     let kawarimiURLOut = outputDirURL.appendingPathComponent("Kawarimi.swift")
     let handlerURL = outputDirURL.appendingPathComponent("KawarimiHandler.swift")
@@ -159,14 +147,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openAPIPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    try process.run()
-    process.waitUntilExit()
-
-    #expect(process.terminationStatus == 0)
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openAPIPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0)
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
     #expect(!FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiHandler.swift").path))
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiSpec.swift").path))
@@ -262,20 +248,14 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openAPIPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "stderr: \(stderrStr)")
-    #expect(stderrStr.contains("Kawarimi warning: invalid kawarimi-generator-config YAML"))
-    #expect(stderrStr.contains("kawarimi-generator-config.yaml"))
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openAPIPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "stderr: \(result.stderr)")
+    #expect(result.stderr.contains("Kawarimi warning: invalid kawarimi-generator-config YAML"))
+    #expect(result.stderr.contains("kawarimi-generator-config.yaml"))
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
 }
 
@@ -384,14 +364,43 @@ private func runKawarimiCLI(executable: URL, arguments: [String], packageRoot: U
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
     try process.run()
-    process.waitUntilExit()
-    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    let (stdoutData, stderrData) = collectProcessOutput(
+        process: process,
+        stdout: stdoutPipe,
+        stderr: stderrPipe
+    )
     return KawarimiCLIResult(
         exitCode: process.terminationStatus,
         stdout: String(data: stdoutData, encoding: .utf8) ?? "",
         stderr: String(data: stderrData, encoding: .utf8) ?? ""
     )
+}
+
+private func collectProcessOutput(
+    process: Process,
+    stdout: Pipe?,
+    stderr: Pipe?
+) -> (stdout: Data, stderr: Data) {
+    var stdoutData = Data()
+    var stderrData = Data()
+    let group = DispatchGroup()
+    if let stdout {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    if let stderr {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    process.waitUntilExit()
+    group.wait()
+    return (stdoutData, stderrData)
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
@@ -403,8 +412,7 @@ private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
     try? process.run()
-    process.waitUntilExit()
+    let (stdoutData, _) = collectProcessOutput(process: process, stdout: pipe, stderr: nil)
     guard process.terminationStatus == 0 else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
 }
