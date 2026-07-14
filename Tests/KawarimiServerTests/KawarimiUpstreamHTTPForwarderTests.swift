@@ -186,4 +186,29 @@ struct KawarimiUpstreamHTTPForwarderTests {
         let text = try await String(collecting: body!, upTo: 256)
         #expect(text == "Upstream unreachable")
     }
+
+    @Test func forwardOmitsBodyForHEAD() async throws {
+        let origin = try #require(URL(string: "http://127.0.0.1"))
+        let forwarder = KawarimiUpstreamHTTPForwarder(
+            upstreamOrigin: origin,
+            transport: .mock { request, body in
+                #expect(request.httpMethod == "HEAD")
+                #expect(body == nil)
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: [
+                        "Content-Type": "application/json",
+                        "Content-Length": "13",
+                    ]
+                )!
+                return (response, nil)
+            }
+        )
+        let request = HTTPRequest(method: .head, scheme: "http", authority: "127.0.0.1", path: "/resource")
+        let (response, body) = try await forwarder.forward(request: request, body: nil, pathPrefix: "")
+        #expect(response.status.code == 200)
+        #expect(body == nil)
+    }
 }

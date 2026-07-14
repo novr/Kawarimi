@@ -1,4 +1,4 @@
-#if os(Linux) || os(macOS)
+#if os(macOS)
 import Foundation
 import HTTPTypes
 import KawarimiCore
@@ -7,6 +7,7 @@ import Testing
 
 @testable import KawarimiServer
 
+/// Live URLSession + loopback HTTP. Linux CI uses mock transport tests instead (see KawarimiUpstreamHTTPForwarderTests).
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct KawarimiProxyURLSessionTransportIntegrationTests {
     @Test(.timeLimit(.minutes(1))) func liveTransportStreamsGETThroughDelegatePath() async throws {
