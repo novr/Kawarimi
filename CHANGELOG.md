@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiCore:** `KawarimiUpstreamForwardingConfiguration` — typed upstream origin required when forwarding is enabled.
 - **KawarimiServer:** `KawarimiUpstreamHTTPForwarder` — dev sidecar upstream forward from `KawarimiServerMiddleware` when `KAWARIMI_UPSTREAM_URL` is set and no override matches ([#213](https://github.com/novr/Kawarimi/issues/213)).
 - **KawarimiServer:** `KawarimiProxyURLSessionTransport` — Linux uses buffered `data(for:)` forward; Apple platforms stream via `bytes(for:)` ([#213](https://github.com/novr/Kawarimi/issues/213)).
-- **KawarimiServer:** loopback integration tests for `live()` transport (`URLSession.bytes(for:)` streaming path) ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiServer:** loopback integration tests for `live()` transport on **macOS only** (`URLSession.bytes(for:)` streaming path); Linux CI uses mock transport tests ([#213](https://github.com/novr/Kawarimi/issues/213)).
 - **Example DemoServer:** reads `KAWARIMI_UPSTREAM_URL` at startup (invalid URL / path warnings; `KAWARIMI_UPSTREAM_STRICT` support).
 
 ### Changed

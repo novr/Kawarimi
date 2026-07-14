@@ -247,7 +247,25 @@ private enum KawarimiProxyStreamingURLSessionTransport {
     }
 
     private static func drain(_ asyncBytes: URLSession.AsyncBytes) async throws {
-        for try await _ in asyncBytes {}
+        var iterator = asyncBytes.makeAsyncIterator()
+        while true {
+            let chunk = try await readChunk(from: &iterator, upTo: responseChunkSize)
+            if chunk.isEmpty { break }
+        }
+    }
+
+    private static func readChunk(
+        from iterator: inout URLSession.AsyncBytes.AsyncIterator,
+        upTo maxCount: Int
+    ) async throws -> Data {
+        var chunk = Data()
+        chunk.reserveCapacity(maxCount)
+        while chunk.count < maxCount {
+            try Task.checkCancellation()
+            guard let byte = try await iterator.next() else { break }
+            chunk.append(byte)
+        }
+        return chunk
     }
 
     private static func responseBody(from asyncBytes: URLSession.AsyncBytes, maxBytes: Int) -> HTTPBody {
@@ -257,13 +275,7 @@ private enum KawarimiProxyStreamingURLSessionTransport {
                 var total = 0
                 var iterator = asyncBytes.makeAsyncIterator()
                 while true {
-                    var chunk = [UInt8]()
-                    chunk.reserveCapacity(responseChunkSize)
-                    while chunk.count < responseChunkSize {
-                        try Task.checkCancellation()
-                        guard let byte = try await iterator.next() else { break }
-                        chunk.append(byte)
-                    }
+                    let chunk = try await readChunk(from: &iterator, upTo: responseChunkSize)
                     guard !chunk.isEmpty else { break }
                     total += chunk.count
                     if total > maxBytes {

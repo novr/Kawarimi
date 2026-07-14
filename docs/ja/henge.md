@@ -172,7 +172,7 @@ upstream への forward は **`KawarimiServerMiddleware`** が **`KawarimiUpstre
 
 転送時は hop-by-hop ヘッダー（`Host`、`Connection` 等）と Kawarimi 制御ヘッダー（`X-Kawarimi-*`、`X-Next-Kawarimi-*`）を除外し、それ以外のリクエストヘッダーは透過。body 付き転送時は `Content-Length` を省略し、送信側クライアントが再設定する。Cookie セッション認証の Proxy 経由は **v1 対象外**（Bearer 想定）。
 
-`URLSession` はデフォルトでリダイレクトを**追従**する。リクエスト body は temp file → `httpBodyStream` で upstream へストリーム転送（上限 **10 MiB**）。Apple ではレスポンスを `URLSession.bytes(for:)` の `AsyncBytes` を 16 KiB チャンクで `HTTPBody` に流す。Linux では同一上限で `data(for:)` バッファ転送（CI / ヘッドレス検証）。`Content-Length` / `expectedContentLength` が上限超のときは body 読取前に `502`；chunked は読取中に同上限（Apple のみ）。
+`URLSession` はデフォルトでリダイレクトを**追従**する。リクエスト body は temp file → `httpBodyStream` で upstream へストリーム転送（上限 **10 MiB**）。Apple ではレスポンスを `URLSession.bytes(for:)` の `AsyncBytes` を 16 KiB チャンクで `HTTPBody` に流す。Linux では `data(for:)` でレスポンス全文をバッファしてから 10 MiB 上限を適用する（chunked の段階的な上限チェックはない）。`Content-Length` / `expectedContentLength` が上限超のときは body 読取前に `502`。Apple では宣言長のない chunked レスポンスをストリーム読取中に上限適用。Linux では `data(for:)` 完了後に件数チェックする。
 
 カスタム `URLSession` 注入は不可（delegate は session 生成時に固定され、差し替えるとストリーム転送が黙って壊れる）。
 
