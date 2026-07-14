@@ -105,12 +105,22 @@ enum KawarimiProxyResponseBodyPolicy {
 
 private enum KawarimiProxyURLSessionTransportCore {
     static func makeSession() -> URLSession {
+        #if os(Linux)
+        let config = URLSessionConfiguration.ephemeral
+        config.httpShouldSetCookies = false
+        config.httpCookieAcceptPolicy = .never
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 300
+        config.httpMaximumConnectionsPerHost = 1
+        return URLSession(configuration: config)
+        #else
         let config = URLSessionConfiguration.default
         config.httpShouldSetCookies = false
         config.httpCookieAcceptPolicy = .never
         config.timeoutIntervalForRequest = 60
         config.timeoutIntervalForResource = 300
         return URLSession(configuration: config)
+        #endif
     }
 
     static func isHeadRequest(_ request: URLRequest) -> Bool {

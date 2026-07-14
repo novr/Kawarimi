@@ -176,6 +176,9 @@ final class LoopbackHTTPServer: @unchecked Sendable {
         if headers["content-length"] == nil {
             headers["Content-Length"] = "\(response.body.count)"
         }
+        if headers["connection"] == nil {
+            headers["Connection"] = "close"
+        }
         for (name, value) in headers {
             headerLines.append("\(name): \(value)")
         }
@@ -190,6 +193,7 @@ final class LoopbackHTTPServer: @unchecked Sendable {
                 sent += wrote
             }
         }
+        _ = shutdown(client, CInt(SHUT_RDWR))
     }
 }
 

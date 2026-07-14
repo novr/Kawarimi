@@ -174,24 +174,56 @@ private func resolvePackageRoot() -> URL {
 }
 
 private func findKawarimiValidateExecutable(packageRoot: URL) -> URL? {
-    let fm = FileManager.default
-    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty {
-        let url = URL(fileURLWithPath: binPath).appendingPathComponent("KawarimiValidate")
-        if fm.fileExists(atPath: url.path) { return url }
+    KawarimiValidateExecutableCache.shared.resolve(packageRoot: packageRoot)
+}
+
+private final class KawarimiValidateExecutableCache: @unchecked Sendable {
+    static let shared = KawarimiValidateExecutableCache()
+    private let lock = NSLock()
+    private var cached: URL?
+
+    func resolve(packageRoot: URL) -> URL? {
+        lock.lock()
+        defer { lock.unlock() }
+        if let cached { return cached }
+        let resolved = locateBuiltExecutable(named: "KawarimiValidate", packageRoot: packageRoot)
+        cached = resolved
+        return resolved
     }
+}
+
+private func locateBuiltExecutable(named name: String, packageRoot: URL) -> URL? {
+    let fm = FileManager.default
+    for candidate in builtExecutableCandidates(named: name, packageRoot: packageRoot) {
+        if fm.fileExists(atPath: candidate.path) { return candidate }
+    }
+    guard ProcessInfo.processInfo.environment["KAWARIMI_LINUX_CI"] != "1" else { return nil }
+    guard let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty else { return nil }
+    let url = URL(fileURLWithPath: binPath).appendingPathComponent(name)
+    return fm.fileExists(atPath: url.path) ? url : nil
+}
+
+private func builtExecutableCandidates(named name: String, packageRoot: URL) -> [URL] {
     let macOSTriples = ["arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx"]
     let linuxTriples = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
     let roots = [packageRoot, packageRoot.deletingLastPathComponent()]
+    var buildRoots: [URL] = roots.map { $0.appendingPathComponent(".build") }
+    if let envBuild = ProcessInfo.processInfo.environment["KAWARIMI_SWIFT_BUILD_PATH"], !envBuild.isEmpty {
+        let customRoot = envBuild.hasPrefix("/")
+            ? URL(fileURLWithPath: envBuild)
+            : packageRoot.appendingPathComponent(envBuild)
+        buildRoots.insert(customRoot, at: 0)
+    }
     var candidates: [URL] = []
-    for root in roots {
+    for buildRoot in buildRoots {
+        candidates.append(buildRoot.appendingPathComponent("debug").appendingPathComponent(name))
         for triple in macOSTriples + linuxTriples {
             candidates.append(
-                root.appendingPathComponent(".build").appendingPathComponent(triple).appendingPathComponent("debug")
-                    .appendingPathComponent("KawarimiValidate")
+                buildRoot.appendingPathComponent(triple).appendingPathComponent("debug").appendingPathComponent(name)
             )
         }
     }
-    return candidates.first { fm.fileExists(atPath: $0.path) }
+    return candidates
 }
 
 private func runCLI(
