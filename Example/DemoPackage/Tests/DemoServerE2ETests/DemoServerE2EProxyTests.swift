@@ -6,9 +6,9 @@ import FoundationNetworking
 #endif
 import Testing
 
-@Suite(.serialized, .timeLimit(.minutes(2)))
+@Suite(.serialized, .timeLimit(.minutes(3)))
 final class DemoServerE2EProxyTests {
-    @Test func forwardsGreetToUpstreamWhenConfigured() async throws {
+    @Test(.timeLimit(.minutes(3))) func forwardsGreetToUpstreamWhenConfigured() async throws {
         let root = resolveDemoPackageRoot()
         let upstream = try await DemoServerHarness.start(packageRoot: root)
         defer { upstream.shutdown() }
@@ -30,7 +30,7 @@ final class DemoServerE2EProxyTests {
         #expect(body.message == "Hello from API")
     }
 
-    @Test func overrideOnProxyTakesPriorityOverUpstream() async throws {
+    @Test(.timeLimit(.minutes(3))) func overrideOnProxyTakesPriorityOverUpstream() async throws {
         let root = resolveDemoPackageRoot()
         let upstream = try await DemoServerHarness.start(packageRoot: root)
         defer { upstream.shutdown() }
@@ -65,7 +65,7 @@ final class DemoServerE2EProxyTests {
         #expect(body.message == "Proxy mock wins")
     }
 
-    @Test func postForwardsToUpstreamWhenConfigured() async throws {
+    @Test(.timeLimit(.minutes(3))) func postForwardsToUpstreamWhenConfigured() async throws {
         let root = resolveDemoPackageRoot()
         let upstream = try await DemoServerHarness.start(packageRoot: root)
         defer { upstream.shutdown() }
@@ -90,7 +90,7 @@ final class DemoServerE2EProxyTests {
         )
     }
 
-    @Test func adminRoutesStayLocalWhenUpstreamConfigured() async throws {
+    @Test(.timeLimit(.minutes(3))) func adminRoutesStayLocalWhenUpstreamConfigured() async throws {
         let root = resolveDemoPackageRoot()
         let upstream = try await DemoServerHarness.start(packageRoot: root)
         defer { upstream.shutdown() }

@@ -9,7 +9,7 @@ import Testing
 
 @Suite(.serialized, .timeLimit(.minutes(1)))
 struct KawarimiProxyURLSessionTransportIntegrationTests {
-    @Test func liveTransportStreamsGETThroughDelegatePath() async throws {
+    @Test(.timeLimit(.minutes(1))) func liveTransportStreamsGETThroughDelegatePath() async throws {
         let server = try LoopbackHTTPServer.start()
         defer { server.stop() }
         let expected = Data("{\"live\":true}".utf8)
@@ -22,7 +22,7 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
                 body: expected
             )
         }
-        await server.waitUntilAccepting()
+        try await server.waitUntilAccepting()
 
         let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: server.origin)
         let request = HTTPRequest(method: .get, scheme: "http", authority: "127.0.0.1", path: "/echo")
@@ -32,7 +32,7 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
         #expect(collected == expected)
     }
 
-    @Test func liveTransportStreamsPOSTRequestAndResponse() async throws {
+    @Test(.timeLimit(.minutes(1))) func liveTransportStreamsPOSTRequestAndResponse() async throws {
         let server = try LoopbackHTTPServer.start()
         defer { server.stop() }
         let expectedRequest = Data("{\"name\":\"loopback\"}".utf8)
@@ -47,7 +47,7 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
                 body: expectedResponse
             )
         }
-        await server.waitUntilAccepting()
+        try await server.waitUntilAccepting()
 
         let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: server.origin)
         let request = HTTPRequest(method: .post, scheme: "http", authority: "127.0.0.1", path: "/items")
@@ -61,14 +61,14 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
         #expect(collected == expectedResponse)
     }
 
-    @Test func liveTransportHandlesEmptyResponseBody() async throws {
+    @Test(.timeLimit(.minutes(1))) func liveTransportHandlesEmptyResponseBody() async throws {
         let server = try LoopbackHTTPServer.start()
         defer { server.stop() }
         server.run { request in
             #expect(request.method == "GET")
             return LoopbackHTTPResponse(status: 204)
         }
-        await server.waitUntilAccepting()
+        try await server.waitUntilAccepting()
 
         let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: server.origin)
         let request = HTTPRequest(method: .get, scheme: "http", authority: "127.0.0.1", path: "/empty")
@@ -80,7 +80,7 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
         }
     }
 
-    @Test func liveTransportOmitsBodyForHEAD() async throws {
+    @Test(.timeLimit(.minutes(1))) func liveTransportOmitsBodyForHEAD() async throws {
         let server = try LoopbackHTTPServer.start()
         defer { server.stop() }
         server.run { request in
@@ -94,7 +94,7 @@ struct KawarimiProxyURLSessionTransportIntegrationTests {
                 body: Data("{\"ignored\":1}".utf8)
             )
         }
-        await server.waitUntilAccepting()
+        try await server.waitUntilAccepting()
 
         let forwarder = KawarimiUpstreamHTTPForwarder(upstreamOrigin: server.origin)
         let request = HTTPRequest(method: .head, scheme: "http", authority: "127.0.0.1", path: "/resource")

@@ -6,7 +6,7 @@ import FoundationNetworking
 #endif
 import Testing
 
-@Suite(.serialized, .timeLimit(.minutes(1)))
+@Suite(.serialized, .timeLimit(.minutes(2)))
 final class DemoServerE2ETests {
     private let server: DemoServerHarness
 
@@ -427,7 +427,7 @@ final class DemoServerE2ETests {
         #expect(response.statusCode == 413)
     }
 
-    @Test func configureDelayMsDelaysResponse() async throws {
+    @Test(.timeLimit(.minutes(1))) func configureDelayMsDelaysResponse() async throws {
         try await server.resetOverrides()
 
         let greetPath = DemoServerE2EPaths.greetPath

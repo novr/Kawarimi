@@ -30,6 +30,7 @@ final class LoopbackHTTPServer: @unchecked Sendable {
         case bindFailed
         case listenFailed
         case portUnavailable
+        case acceptTimeout
     }
 
     private let socketFD: Int32
@@ -105,8 +106,18 @@ final class LoopbackHTTPServer: @unchecked Sendable {
         }
     }
 
-    func waitUntilAccepting() async {
-        await acceptGate.waitUntilReady()
+    func waitUntilAccepting(timeout: Duration = .seconds(10)) async throws {
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            group.addTask {
+                await self.acceptGate.waitUntilReady()
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                throw ServerError.acceptTimeout
+            }
+            try await group.next()
+            group.cancelAll()
+        }
     }
 
     func stop() {
