@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] - 2026-07-14
+
 ### Added
 
 - **KawarimiCore:** `KawarimiUpstreamSettings`, `KawarimiProxyHeaders` — Proxy upstream URL resolution and hop-by-hop / Kawarimi control header rules ([#213](https://github.com/novr/Kawarimi/issues/213)).
@@ -507,6 +509,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[3.4.0]: https://github.com/novr/Kawarimi/releases/tag/v3.4.0
 [3.3.5]: https://github.com/novr/Kawarimi/releases/tag/v3.3.5
 [3.3.4]: https://github.com/novr/Kawarimi/releases/tag/v3.3.4
 [3.3.3]: https://github.com/novr/Kawarimi/releases/tag/v3.3.3
