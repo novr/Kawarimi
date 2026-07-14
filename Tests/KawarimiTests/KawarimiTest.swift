@@ -314,23 +314,13 @@ private func resolvePackageRoot() -> URL {
         .deletingLastPathComponent()
 }
 
-private func findKawarimiExecutable(packageRoot: URL) -> URL? {
-    KawarimiExecutableCache.shared.resolve(packageRoot: packageRoot)
-}
+private let kawarimiExecutable: URL? = locateBuiltExecutable(
+    named: "Kawarimi",
+    packageRoot: resolvePackageRoot()
+)
 
-private final class KawarimiExecutableCache: @unchecked Sendable {
-    static let shared = KawarimiExecutableCache()
-    private let lock = NSLock()
-    private var cached: URL?
-
-    func resolve(packageRoot: URL) -> URL? {
-        lock.lock()
-        defer { lock.unlock() }
-        if let cached { return cached }
-        let resolved = locateBuiltExecutable(named: "Kawarimi", packageRoot: packageRoot)
-        cached = resolved
-        return resolved
-    }
+private func findKawarimiExecutable(packageRoot _: URL) -> URL? {
+    kawarimiExecutable
 }
 
 private func locateBuiltExecutable(named name: String, packageRoot: URL) -> URL? {
