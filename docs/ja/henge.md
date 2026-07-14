@@ -189,8 +189,8 @@ upstream への forward は **`KawarimiServerMiddleware`** が **`KawarimiUpstre
 | --- | --- | --- |
 | `KAWARIMI_UPSTREAM_URL` | 任意 | 設定時のみ override 未マッチを upstream へ forward。origin のみ。 |
 | `KAWARIMI_BASE_URL` | 任意 | Henge / クライアントの Proxy 接続先（`apiPathPrefix` 込み）。 |
-| `KAWARIMI_UPSTREAM_STRICT` | 任意 | `1` で upstream URL に path 成分があると起動失敗。 |
-| `KAWARIMI_PROXY_DEBUG` | 任意 | upstream 設定時の `KawarimiProxy` OSLog を詳細化。 |
+| `KAWARIMI_UPSTREAM_STRICT` | 任意 | 真値（`1` / `true` / `yes` / `on`）で upstream URL に path 成分があると起動失敗。 |
+| `KAWARIMI_PROXY_DEBUG` | 任意 | 真値（`1` / `true` / `yes` / `on`）で upstream 設定時の `KawarimiProxy` OSLog を詳細化。 |
 
 upstream 設定時のみ、レスポンスに **`X-Kawarimi-Proxy-Action: mock`** または **`forward`** が付くことがあります。未設定時は付きません。
 

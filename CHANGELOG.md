@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore:** `KawarimiEnvironment.isTruthy(_:)` — shared truthy parsing for `KAWARIMI_*` boolean env vars (`1`, `true`, `yes`, `on`) ([#214](https://github.com/novr/Kawarimi/issues/214)).
+
+### Changed
+
+- **Kawarimi CLI:** `KAWARIMI_PERF` uses `KawarimiEnvironment.isTruthy` (`true` / `yes` / `on` now enable perf logging in addition to `1`) ([#214](https://github.com/novr/Kawarimi/issues/214)).
+- **KawarimiCore:** `KawarimiUpstreamSettings` uses `KawarimiEnvironment.isTruthy` for `KAWARIMI_UPSTREAM_STRICT` and `KAWARIMI_PROXY_DEBUG` ([#214](https://github.com/novr/Kawarimi/issues/214)).
+
 ## [3.4.0] - 2026-07-14
 
 ### Added
