@@ -4,7 +4,7 @@ import KawarimiCore
 import KawarimiJutsu
 
 private enum KawarimiPerfLog {
-    static let isEnabled = ProcessInfo.processInfo.environment["KAWARIMI_PERF"] == "1"
+    static let isEnabled = KawarimiEnvironment.isTruthy(ProcessInfo.processInfo.environment["KAWARIMI_PERF"])
     static let prefix = "[kawarimi-perf]"
 
     static func seconds(_ duration: Duration) -> String {

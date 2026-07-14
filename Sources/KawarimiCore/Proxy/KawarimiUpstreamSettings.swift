@@ -39,8 +39,8 @@ public struct KawarimiUpstreamSettings: Sendable, Equatable {
     public static func fromEnvironment(
         _ environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> KawarimiUpstreamSettings {
-        let strict = Self.isTruthy(environment["KAWARIMI_UPSTREAM_STRICT"])
-        let proxyDebug = Self.isTruthy(environment["KAWARIMI_PROXY_DEBUG"])
+        let strict = KawarimiEnvironment.isTruthy(environment["KAWARIMI_UPSTREAM_STRICT"])
+        let proxyDebug = KawarimiEnvironment.isTruthy(environment["KAWARIMI_PROXY_DEBUG"])
         let raw = environment["KAWARIMI_UPSTREAM_URL"]?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !raw.isEmpty else {
@@ -82,15 +82,5 @@ public struct KawarimiUpstreamSettings: Sendable, Equatable {
 
         guard let origin = components.url else { return nil }
         return (origin, warning)
-    }
-
-    private static func isTruthy(_ raw: String?) -> Bool {
-        guard let raw else { return false }
-        switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "1", "true", "yes", "on":
-            return true
-        default:
-            return false
-        }
     }
 }

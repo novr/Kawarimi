@@ -40,6 +40,16 @@ struct KawarimiUpstreamSettingsTests {
         #expect(settings.strictOriginViolation)
     }
 
+    @Test func strictAcceptsTruthyEnvValues() {
+        let settings = KawarimiUpstreamSettings.fromEnvironment([
+            "KAWARIMI_UPSTREAM_URL": "https://staging.example.com/api",
+            "KAWARIMI_UPSTREAM_STRICT": "true",
+            "KAWARIMI_PROXY_DEBUG": "yes",
+        ])
+        #expect(settings.strictOriginViolation)
+        #expect(settings.forwarding?.proxyDebug == true)
+    }
+
     @Test func warnsWhenURLCannotBeParsed() {
         let settings = KawarimiUpstreamSettings.fromEnvironment([
             "KAWARIMI_UPSTREAM_URL": "not-a-valid-url",

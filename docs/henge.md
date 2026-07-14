@@ -190,8 +190,8 @@ Path forwarding uses **`KawarimiPath.aligned`** with `apiPathPrefix` (re-apply p
 | --- | --- | --- |
 | `KAWARIMI_UPSTREAM_URL` | No | When set, enables upstream forward on override miss. Origin only. |
 | `KAWARIMI_BASE_URL` | No | Proxy URL for Henge / clients (includes `apiPathPrefix`). |
-| `KAWARIMI_UPSTREAM_STRICT` | No | `1` → fail startup if upstream URL includes a path component. |
-| `KAWARIMI_PROXY_DEBUG` | No | Extra `KawarimiProxy` OSLog when upstream is set. |
+| `KAWARIMI_UPSTREAM_STRICT` | No | Truthy (`1`, `true`, `yes`, `on`) → fail startup if upstream URL includes a path component. |
+| `KAWARIMI_PROXY_DEBUG` | No | Truthy (`1`, `true`, `yes`, `on`) → extra `KawarimiProxy` OSLog when upstream is set. |
 
 When upstream is set, responses may include **`X-Kawarimi-Proxy-Action: mock`** or **`forward`**. This header is **not** added when upstream is unset.
 
