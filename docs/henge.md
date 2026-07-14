@@ -140,9 +140,62 @@ try handler.registerHandlers(
 
 - Matches enabled overrides (path template or `operationId` via `MockOverride.name`, HTTP method).
 - Resolves the body from the override or from `KawarimiSpec.responseMap` using **`statusCode` plus the effective example key** (`exampleId` → `__default` when unset).
-- Returns a synthetic HTTP response **without** calling `next` when a mock applies; otherwise delegates to the handler.
+- Returns a synthetic HTTP response **without** calling `next` when a mock applies.
+- When **`KAWARIMI_UPSTREAM_URL`** is set and no override matches, forwards the raw HTTP request to upstream **without** calling `next` (see [Proxy (dev sidecar)](#proxy-upstream-forward) below).
+- Otherwise delegates to the generated handler (`next` → OpenAPI stubs).
 
 **In-process `Kawarimi` (`ClientTransport`) does not read `kawarimi.json` or apply runtime overrides** — only the server middleware path above (or your own integration) does.
+
+<a id="proxy-upstream-forward"></a>
+
+## Proxy (dev sidecar)
+
+**Proxy** is a **local development sidecar** — not a production API gateway or transparent reverse proxy. Typical stack: **DemoServer** + Henge admin + `KawarimiServerMiddleware` + `kawarimi.json`. Point the app at the sidecar, forward unmatched operations to a dev/staging API, and mock only what you are changing.
+
+Behavior is a **spectrum** driven by enabled overrides and whether upstream is configured — not separate “direct / proxy / full mock” product modes.
+
+| Situation | What you do | Result |
+| --- | --- | --- |
+| **Direct** | Do not run Proxy; point the app at the real API | Kawarimi runtime not in the request path |
+| **Proxy, upstream set, 0 overrides** | Run Proxy; set `KAWARIMI_UPSTREAM_URL` | Registered operations forward to upstream |
+| **Proxy, partial overrides** | Enable overrides for some operations | Matched → mock; others → upstream (when upstream set) |
+| **Full mock equivalent** | Enable overrides for all operations you care about | Upstream receives nothing for those routes |
+
+**Good for:** partial mocks while exercising a real backend; Bearer-token JSON APIs; OpenAPI-registered operations.
+
+**Not for:** cookie session relay; large payloads beyond caps; paths outside generated operations; production ingress.
+
+When **`KAWARIMI_UPSTREAM_URL` is unset**, override misses behave as today: **`next`** → generated OpenAPI stubs. No new response headers; existing E2E behavior is unchanged.
+
+### Forward implementation
+
+Upstream passthrough is implemented in **`KawarimiServerMiddleware`** via **`KawarimiUpstreamHTTPForwarder`** (raw HTTP, not generated `KawarimiHandler` / Client). **`__kawarimi/*`** stays on **`KawarimiAdminHTTPHandler`** and is never forwarded.
+
+On forward, hop-by-hop headers (`Host`, `Connection`, …) and Kawarimi control headers (`X-Kawarimi-*`, `X-Next-Kawarimi-*`) are dropped; other request headers pass through. `Content-Length` is omitted when a body is forwarded so the outbound client can set it. Cookie-based session auth through Proxy is **out of scope** for v1 (use Bearer tokens).
+
+`URLSession` follows redirects by default. Request bodies stream to upstream via temp file → `httpBodyStream` (max **10 MiB**). On Apple platforms, responses stream via `URLSession.bytes(for:)` `AsyncBytes` into `HTTPBody` in 16 KiB chunks; on Linux, `data(for:)` buffers the full response before the 10 MiB cap is applied (no incremental chunked enforcement). When `Content-Length` / `expectedContentLength` exceeds the cap, the forwarder returns `502` before reading the body. On Apple, chunked responses without a declared length are capped while streaming; on Linux, the cap is checked after `data(for:)` returns.
+
+Custom `URLSession` injection is not supported (delegates are fixed at session creation; injection would silently break streamed forwarding).
+
+Path forwarding uses **`KawarimiPath.aligned`** with `apiPathPrefix` (re-apply prefix when missing; **do not strip** an existing prefix).
+
+| URL | Form |
+| --- | --- |
+| `KAWARIMI_BASE_URL` | `{proxy-origin}{apiPathPrefix}` — Henge / app → Proxy |
+| `KAWARIMI_UPSTREAM_URL` | **Origin only** — e.g. `https://staging.example.com` (no `/api` path; aligned at forward time) |
+
+### Environment variables (Proxy)
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `KAWARIMI_UPSTREAM_URL` | No | When set, enables upstream forward on override miss. Origin only. |
+| `KAWARIMI_BASE_URL` | No | Proxy URL for Henge / clients (includes `apiPathPrefix`). |
+| `KAWARIMI_UPSTREAM_STRICT` | No | `1` → fail startup if upstream URL includes a path component. |
+| `KAWARIMI_PROXY_DEBUG` | No | Extra `KawarimiProxy` OSLog when upstream is set. |
+
+When upstream is set, responses may include **`X-Kawarimi-Proxy-Action: mock`** or **`forward`**. This header is **not** added when upstream is unset.
+
+**Out of scope (v1):** production transparent proxy / API gateway use; Client-side middleware switching (app → upstream directly with in-process overrides); catch-all forward for unregistered paths; path remapping; Cookie rewrite; admin auth.
 
 ### Override matching product rules
 

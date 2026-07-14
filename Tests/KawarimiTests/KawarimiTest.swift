@@ -23,18 +23,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openapiPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "Kawarimi should exit 0 (stderr: \(stderrStr))")
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openapiPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "Kawarimi should exit 0 (stderr: \(result.stderr))")
 
     let kawarimiURLOut = outputDirURL.appendingPathComponent("Kawarimi.swift")
     let handlerURL = outputDirURL.appendingPathComponent("KawarimiHandler.swift")
@@ -84,18 +78,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openapiPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "Kawarimi should exit 0 (stderr: \(stderrStr))")
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openapiPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "Kawarimi should exit 0 (stderr: \(result.stderr))")
 
     let kawarimiURLOut = outputDirURL.appendingPathComponent("Kawarimi.swift")
     let handlerURL = outputDirURL.appendingPathComponent("KawarimiHandler.swift")
@@ -159,14 +147,12 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openAPIPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    try process.run()
-    process.waitUntilExit()
-
-    #expect(process.terminationStatus == 0)
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openAPIPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0)
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
     #expect(!FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiHandler.swift").path))
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("KawarimiSpec.swift").path))
@@ -262,20 +248,14 @@ import Testing
         return
     }
 
-    let process = Process()
-    process.executableURL = kawarimiURL
-    process.arguments = [openAPIPath, outputDirPath]
-    process.currentDirectoryURL = packageRoot
-    let stderrPipe = Pipe()
-    process.standardError = stderrPipe
-    try process.run()
-    process.waitUntilExit()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrStr = String(data: stderrData, encoding: .utf8) ?? ""
-
-    #expect(process.terminationStatus == 0, "stderr: \(stderrStr)")
-    #expect(stderrStr.contains("Kawarimi warning: invalid kawarimi-generator-config YAML"))
-    #expect(stderrStr.contains("kawarimi-generator-config.yaml"))
+    let result = try runKawarimiCLI(
+        executable: kawarimiURL,
+        arguments: [openAPIPath, outputDirPath],
+        packageRoot: packageRoot
+    )
+    #expect(result.exitCode == 0, "stderr: \(result.stderr)")
+    #expect(result.stderr.contains("Kawarimi warning: invalid kawarimi-generator-config YAML"))
+    #expect(result.stderr.contains("kawarimi-generator-config.yaml"))
     #expect(FileManager.default.fileExists(atPath: outputDirURL.appendingPathComponent("Kawarimi.swift").path))
 }
 
@@ -334,25 +314,47 @@ private func resolvePackageRoot() -> URL {
         .deletingLastPathComponent()
 }
 
-private func findKawarimiExecutable(packageRoot: URL) -> URL? {
+private let kawarimiExecutable: URL? = locateBuiltExecutable(
+    named: "Kawarimi",
+    packageRoot: resolvePackageRoot()
+)
+
+private func findKawarimiExecutable(packageRoot _: URL) -> URL? {
+    kawarimiExecutable
+}
+
+private func locateBuiltExecutable(named name: String, packageRoot: URL) -> URL? {
     let fm = FileManager.default
-    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty {
-        let url = URL(fileURLWithPath: binPath).appendingPathComponent("Kawarimi")
-        if fm.fileExists(atPath: url.path) { return url }
+    for candidate in builtExecutableCandidates(named: name, packageRoot: packageRoot) {
+        if fm.fileExists(atPath: candidate.path) { return candidate }
     }
+    guard ProcessInfo.processInfo.environment["KAWARIMI_LINUX_CI"] != "1" else { return nil }
+    guard let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty else { return nil }
+    let url = URL(fileURLWithPath: binPath).appendingPathComponent(name)
+    return fm.fileExists(atPath: url.path) ? url : nil
+}
+
+private func builtExecutableCandidates(named name: String, packageRoot: URL) -> [URL] {
     let macOSTriples = ["arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx"]
     let linuxTriples = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
     let roots = [packageRoot, packageRoot.deletingLastPathComponent()]
+    var buildRoots: [URL] = roots.map { $0.appendingPathComponent(".build") }
+    if let envBuild = ProcessInfo.processInfo.environment["KAWARIMI_SWIFT_BUILD_PATH"], !envBuild.isEmpty {
+        let customRoot = envBuild.hasPrefix("/")
+            ? URL(fileURLWithPath: envBuild)
+            : packageRoot.appendingPathComponent(envBuild)
+        buildRoots.insert(customRoot, at: 0)
+    }
     var candidates: [URL] = []
-    for root in roots {
+    for buildRoot in buildRoots {
+        candidates.append(buildRoot.appendingPathComponent("debug").appendingPathComponent(name))
         for triple in macOSTriples + linuxTriples {
             candidates.append(
-                root.appendingPathComponent(".build").appendingPathComponent(triple).appendingPathComponent("debug")
-                    .appendingPathComponent("Kawarimi")
+                buildRoot.appendingPathComponent(triple).appendingPathComponent("debug").appendingPathComponent(name)
             )
         }
     }
-    return candidates.first { fm.fileExists(atPath: $0.path) }
+    return candidates
 }
 
 private struct KawarimiCLIResult {
@@ -384,14 +386,47 @@ private func runKawarimiCLI(executable: URL, arguments: [String], packageRoot: U
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
     try process.run()
-    process.waitUntilExit()
-    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    let (stdoutData, stderrData) = collectProcessOutput(
+        process: process,
+        stdout: stdoutPipe,
+        stderr: stderrPipe
+    )
     return KawarimiCLIResult(
         exitCode: process.terminationStatus,
         stdout: String(data: stdoutData, encoding: .utf8) ?? "",
         stderr: String(data: stderrData, encoding: .utf8) ?? ""
     )
+}
+
+private final class ProcessOutputBox: @unchecked Sendable {
+    var data = Data()
+}
+
+private func collectProcessOutput(
+    process: Process,
+    stdout: Pipe?,
+    stderr: Pipe?
+) -> (stdout: Data, stderr: Data) {
+    let stdoutBox = ProcessOutputBox()
+    let stderrBox = ProcessOutputBox()
+    let group = DispatchGroup()
+    if let stdout {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stdoutBox.data = stdout.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    if let stderr {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stderrBox.data = stderr.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    process.waitUntilExit()
+    group.wait()
+    return (stdoutBox.data, stderrBox.data)
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
@@ -403,8 +438,7 @@ private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
     try? process.run()
-    process.waitUntilExit()
+    let (stdoutData, _) = collectProcessOutput(process: process, stdout: pipe, stderr: nil)
     guard process.terminationStatus == 0 else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
 }

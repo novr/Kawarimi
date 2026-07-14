@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore:** `KawarimiUpstreamSettings`, `KawarimiProxyHeaders` — Proxy upstream URL resolution and hop-by-hop / Kawarimi control header rules ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiCore:** `KawarimiProxyForwardLimits` — 10 MiB caps for upstream request and response bodies ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiCore:** `KawarimiUpstreamForwardingConfiguration` — typed upstream origin required when forwarding is enabled.
+- **KawarimiServer:** `KawarimiUpstreamHTTPForwarder` — dev sidecar upstream forward from `KawarimiServerMiddleware` when `KAWARIMI_UPSTREAM_URL` is set and no override matches ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiServer:** `KawarimiProxyURLSessionTransport` — Linux uses buffered `data(for:)` forward; Apple platforms stream via `bytes(for:)` ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiServer:** loopback integration tests for `live()` transport on **macOS only** (`URLSession.bytes(for:)` streaming path); Linux CI uses mock transport tests ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **Example DemoServer:** reads `KAWARIMI_UPSTREAM_URL` at startup (invalid URL / path warnings; `KAWARIMI_UPSTREAM_STRICT` support).
+
+### Changed
+
+- **KawarimiServer:** `KawarimiServerMiddleware` — override miss + upstream configured forwards without calling `next`; adds `X-Kawarimi-Proxy-Action` only when upstream is set ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiServer:** `KawarimiUpstreamHTTPForwarder` — dev sidecar semantics: URLSession redirect follow, streamed request/response bodies via `URLSession.bytes(for:)`, 10 MiB request/response caps, `Content-Length` omitted on body forward ([#213](https://github.com/novr/Kawarimi/issues/213)).
+- **KawarimiServer:** `KawarimiProxyURLSessionTransport` — `URLSession` is an implementation detail; `live()` / `mock()` only (no custom `URLSession` injection) ([#213](https://github.com/novr/Kawarimi/issues/213)).
+
 ## [3.3.5] - 2026-07-09
 
 ### Fixed

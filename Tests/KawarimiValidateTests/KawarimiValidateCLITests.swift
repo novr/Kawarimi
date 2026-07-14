@@ -173,25 +173,47 @@ private func resolvePackageRoot() -> URL {
         .deletingLastPathComponent()
 }
 
-private func findKawarimiValidateExecutable(packageRoot: URL) -> URL? {
+private let kawarimiValidateExecutable: URL? = locateBuiltExecutable(
+    named: "KawarimiValidate",
+    packageRoot: resolvePackageRoot()
+)
+
+private func findKawarimiValidateExecutable(packageRoot _: URL) -> URL? {
+    kawarimiValidateExecutable
+}
+
+private func locateBuiltExecutable(named name: String, packageRoot: URL) -> URL? {
     let fm = FileManager.default
-    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty {
-        let url = URL(fileURLWithPath: binPath).appendingPathComponent("KawarimiValidate")
-        if fm.fileExists(atPath: url.path) { return url }
+    for candidate in builtExecutableCandidates(named: name, packageRoot: packageRoot) {
+        if fm.fileExists(atPath: candidate.path) { return candidate }
     }
+    guard ProcessInfo.processInfo.environment["KAWARIMI_LINUX_CI"] != "1" else { return nil }
+    guard let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot), !binPath.isEmpty else { return nil }
+    let url = URL(fileURLWithPath: binPath).appendingPathComponent(name)
+    return fm.fileExists(atPath: url.path) ? url : nil
+}
+
+private func builtExecutableCandidates(named name: String, packageRoot: URL) -> [URL] {
     let macOSTriples = ["arm64-apple-macosx", "arm64e-apple-macosx", "x86_64-apple-macosx"]
     let linuxTriples = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
     let roots = [packageRoot, packageRoot.deletingLastPathComponent()]
+    var buildRoots: [URL] = roots.map { $0.appendingPathComponent(".build") }
+    if let envBuild = ProcessInfo.processInfo.environment["KAWARIMI_SWIFT_BUILD_PATH"], !envBuild.isEmpty {
+        let customRoot = envBuild.hasPrefix("/")
+            ? URL(fileURLWithPath: envBuild)
+            : packageRoot.appendingPathComponent(envBuild)
+        buildRoots.insert(customRoot, at: 0)
+    }
     var candidates: [URL] = []
-    for root in roots {
+    for buildRoot in buildRoots {
+        candidates.append(buildRoot.appendingPathComponent("debug").appendingPathComponent(name))
         for triple in macOSTriples + linuxTriples {
             candidates.append(
-                root.appendingPathComponent(".build").appendingPathComponent(triple).appendingPathComponent("debug")
-                    .appendingPathComponent("KawarimiValidate")
+                buildRoot.appendingPathComponent(triple).appendingPathComponent("debug").appendingPathComponent(name)
             )
         }
     }
-    return candidates.first { fm.fileExists(atPath: $0.path) }
+    return candidates
 }
 
 private func runCLI(
@@ -216,14 +238,47 @@ private func runCLI(
     process.standardOutput = stdoutPipe
     process.standardError = stderrPipe
     try process.run()
-    process.waitUntilExit()
-    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+    let (stdoutData, stderrData) = collectProcessOutput(
+        process: process,
+        stdout: stdoutPipe,
+        stderr: stderrPipe
+    )
     return CLIResult(
         exitCode: process.terminationStatus,
         stdout: String(data: stdoutData, encoding: .utf8) ?? "",
         stderr: String(data: stderrData, encoding: .utf8) ?? ""
     )
+}
+
+private final class ProcessOutputBox: @unchecked Sendable {
+    var data = Data()
+}
+
+private func collectProcessOutput(
+    process: Process,
+    stdout: Pipe?,
+    stderr: Pipe?
+) -> (stdout: Data, stderr: Data) {
+    let stdoutBox = ProcessOutputBox()
+    let stderrBox = ProcessOutputBox()
+    let group = DispatchGroup()
+    if let stdout {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stdoutBox.data = stdout.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    if let stderr {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            stderrBox.data = stderr.fileHandleForReading.readDataToEndOfFile()
+            group.leave()
+        }
+    }
+    process.waitUntilExit()
+    group.wait()
+    return (stdoutBox.data, stderrBox.data)
 }
 
 private func buildInfoVersion(packageRoot: URL) -> String? {
@@ -248,8 +303,7 @@ private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
     try? process.run()
-    process.waitUntilExit()
+    let (stdoutData, _) = collectProcessOutput(process: process, stdout: pipe, stderr: nil)
     guard process.terminationStatus == 0 else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return String(data: stdoutData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
 }

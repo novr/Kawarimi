@@ -29,6 +29,8 @@ try DemoServerSpecResponse.validateWireAtStartup()
 
 Dynamic mocks use **`KawarimiServerMiddleware`** from the **KawarimiServer** product (`registerHandlers(middlewares:)`). See [Henge](../docs/henge.md).
 
+Optional **dev Proxy sidecar**: set **`KAWARIMI_UPSTREAM_URL`** (origin only, e.g. `https://staging.example.com`) on **DemoServer** so override misses reach a real dev/staging API; unset keeps OpenAPI stubs. See [Proxy (dev sidecar)](../docs/henge.md#proxy-upstream-forward).
+
 ## Security (sample only)
 
 **`__kawarimi`** admin endpoints have **no authentication**.

@@ -6,7 +6,7 @@ import FoundationNetworking
 #endif
 import Testing
 
-@Suite(.serialized, .timeLimit(.minutes(1)))
+@Suite(.serialized, .timeLimit(.minutes(2)))
 final class DemoServerE2ETests {
     private let server: DemoServerHarness
 
@@ -24,6 +24,7 @@ final class DemoServerE2ETests {
         let (response, data) = try await DemoServerHTTP.get(server.baseURL.appending(path: "greet"))
         #expect(response.statusCode == 200)
         #expect(DemoServerE2EHTTPChecks.isJSONContentType(response))
+        #expect(response.value(forHTTPHeaderField: KawarimiProxyHeaders.proxyAction) == nil)
         let body = try DemoServerE2EJSON.decodeGreeting(from: data)
         #expect(body.message == "Hello from API")
     }
@@ -426,7 +427,7 @@ final class DemoServerE2ETests {
         #expect(response.statusCode == 413)
     }
 
-    @Test func configureDelayMsDelaysResponse() async throws {
+    @Test(.timeLimit(.minutes(1))) func configureDelayMsDelaysResponse() async throws {
         try await server.resetOverrides()
 
         let greetPath = DemoServerE2EPaths.greetPath

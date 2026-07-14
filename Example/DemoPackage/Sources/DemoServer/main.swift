@@ -9,6 +9,7 @@ import Vapor
 enum DemoServerError: Error, LocalizedError {
     case invalidStubURL
     case invalidSpecWire(underlying: Error)
+    case upstreamURLHasPath(String)
 
     var errorDescription: String? {
         switch self {
@@ -16,6 +17,8 @@ enum DemoServerError: Error, LocalizedError {
             "Could not build stub server URL for OpenAPI handler registration"
         case .invalidSpecWire(let underlying):
             "Spec wire JSON failed HengeSpecSnapshot validation: \(underlying)"
+        case .upstreamURLHasPath(let message):
+            message
         }
     }
 }
@@ -68,6 +71,18 @@ struct DemoServer {
             )
         }
         let configPath = resolvedKawarimiConfigPath()
+        let upstreamSettings = KawarimiUpstreamSettings.fromEnvironment()
+        if let warning = upstreamSettings.invalidURLWarning {
+            StandardError.write("Kawarimi: warning: \(warning)")
+        }
+        if let warning = upstreamSettings.forwarding?.nonOriginPathWarning {
+            StandardError.write("Kawarimi: warning: \(warning)")
+        }
+        if upstreamSettings.strictOriginViolation {
+            throw DemoServerError.upstreamURLHasPath(
+                "KAWARIMI_UPSTREAM_STRICT is set but KAWARIMI_UPSTREAM_URL includes a path component"
+            )
+        }
         let store = try KawarimiConfigStore(
             configPath: configPath,
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
@@ -91,7 +106,13 @@ struct DemoServer {
         try handler.registerHandlers(
             on: transport,
             serverURL: serverURL,
-            middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
+            middlewares: [
+                KawarimiServerMiddleware(
+                    store: store,
+                    responseMap: KawarimiSpec.responseMap,
+                    upstreamSettings: upstreamSettings
+                ),
+            ]
         )
         try await app.execute()
     }
