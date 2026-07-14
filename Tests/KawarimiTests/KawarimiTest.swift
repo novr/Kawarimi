@@ -376,31 +376,35 @@ private func runKawarimiCLI(executable: URL, arguments: [String], packageRoot: U
     )
 }
 
+private final class ProcessOutputBox: @unchecked Sendable {
+    var data = Data()
+}
+
 private func collectProcessOutput(
     process: Process,
     stdout: Pipe?,
     stderr: Pipe?
 ) -> (stdout: Data, stderr: Data) {
-    var stdoutData = Data()
-    var stderrData = Data()
+    let stdoutBox = ProcessOutputBox()
+    let stderrBox = ProcessOutputBox()
     let group = DispatchGroup()
     if let stdout {
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            stdoutData = stdout.fileHandleForReading.readDataToEndOfFile()
+            stdoutBox.data = stdout.fileHandleForReading.readDataToEndOfFile()
             group.leave()
         }
     }
     if let stderr {
         group.enter()
         DispatchQueue.global(qos: .utility).async {
-            stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+            stderrBox.data = stderr.fileHandleForReading.readDataToEndOfFile()
             group.leave()
         }
     }
     process.waitUntilExit()
     group.wait()
-    return (stdoutData, stderrData)
+    return (stdoutBox.data, stderrBox.data)
 }
 
 private func runSwiftBuildShowBinPath(packageRoot: URL) -> String? {
