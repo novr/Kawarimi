@@ -227,7 +227,7 @@ private extension String {
 // MARK: - Safe name generators (from Swift OpenAPI Generator)
 
 /// Reserved Swift identifiers from swift-openapi-generator `SafeNameGenerator.keywords`.
-enum SwiftOpenAPISafeNameKeywords {
+private enum SwiftOpenAPISafeNameKeywords {
     static let reserved: Set<String> = [
         "associatedtype", "class", "deinit", "enum", "extension", "func", "import", "init", "inout", "let", "operator",
         "precedencegroup", "protocol", "struct", "subscript", "typealias", "var", "fileprivate", "internal", "private",

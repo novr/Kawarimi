@@ -100,28 +100,33 @@ func kawarimiHandlerStubEscapesReservedPropertyNameLabel(strategy: KawarimiNamin
 
 // Full swift-openapi-generator reserved keyword matrix (#209): handler stub `.init` labels must
 // match `swiftMemberName` for every reserved property name, across both naming strategies.
-@Test(
-    arguments: KawarimiNamingStrategy.swiftReservedKeywordsForTesting,
-    [KawarimiNamingStrategy.defensive, .idiomatic]
-)
-func kawarimiHandlerStubEscapesReservedPropertyNameLabelMatrix(
-    reservedName: String,
-    strategy: KawarimiNamingStrategy
-) throws {
-    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-reserved-\(UUID().uuidString)")
-    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
-    defer { try? FileManager.default.removeItem(at: tmp) }
-    let yaml = KawarimiJutsuTestSupport.reservedPropertyOpenAPIYAML(reservedName: reservedName)
-    let path = tmp.appendingPathComponent("openapi.yaml").path
-    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
-    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
-    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: strategy)
-    #expect(warnings.isEmpty)
-    try KawarimiJutsuTestSupport.assertHandlerStubUsesEscapedMemberLabel(
-        documentedName: reservedName,
-        strategy: strategy,
-        source: source
+@Suite("KawarimiJutsuReservedHandlerStubMatrix", .serialized)
+struct KawarimiJutsuReservedHandlerStubMatrixTests {
+    @Test(
+        arguments: KawarimiNamingStrategy.swiftReservedKeywordsForTesting,
+        [KawarimiNamingStrategy.defensive, .idiomatic]
     )
+    func kawarimiHandlerStubEscapesReservedPropertyNameLabelMatrix(
+        reservedName: String,
+        strategy: KawarimiNamingStrategy
+    ) throws {
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-reserved-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmp) }
+        let yaml = KawarimiJutsuTestSupport.reservedPropertyOpenAPIYAML(reservedName: reservedName)
+        let path = tmp.appendingPathComponent("openapi.yaml").path
+        try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+        let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+        let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: strategy)
+        #expect(warnings.isEmpty)
+        try KawarimiJutsuTestSupport.assertHandlerStubUsesEscapedMemberLabel(
+            documentedName: reservedName,
+            strategy: strategy,
+            source: source
+        )
+        let label = try strategy.swiftMemberName(for: reservedName)
+        try KawarimiJutsuTestSupport.assertInitLabelTypechecks(label)
+    }
 }
 
 @Test(arguments: enumHandlerGenerationCases)

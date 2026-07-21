@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **KawarimiJutsu tests:** full swift-openapi-generator reserved-keyword matrix for handler stub labels, `swiftc -typecheck` smoke for escaped labels ([#209](https://github.com/novr/Kawarimi/issues/209)).
+- **KawarimiJutsu tests:** full swift-openapi-generator reserved-keyword matrix for handler stub labels; `swiftc -typecheck` on labels extracted from generated handler witnesses ([#209](https://github.com/novr/Kawarimi/issues/209)).
 - **KawarimiCore:** `KawarimiEnvironment.isTruthy(_:)` — shared truthy parsing for `KAWARIMI_*` boolean env vars (`1`, `true`, `yes`, `on`) ([#214](https://github.com/novr/Kawarimi/issues/214)).
 
 ### Changed

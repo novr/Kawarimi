@@ -105,14 +105,26 @@ enum KawarimiJutsuTestSupport {
         documentedName: String,
         strategy: KawarimiNamingStrategy,
         source: String,
+        witnessName: String = "onGetItem",
         exampleValue: String = "example-value"
     ) throws {
+        let witnessBlock = try #require(handlerWitnessBlock(witnessName: witnessName, in: source))
         let expectedLabel = try strategy.swiftMemberName(for: documentedName)
         let expectedInit = ".init(\(expectedLabel): \"\(exampleValue)\")"
-        #expect(source.contains(expectedInit))
+        #expect(witnessBlock.contains(expectedInit))
         if expectedLabel != documentedName {
-            #expect(!source.contains(".init(\(documentedName):"))
+            #expect(!witnessBlock.contains(".init(\(documentedName):"))
         }
+    }
+
+    static func assertInitLabelTypechecks(_ label: String, exampleValue: String = "example-value") throws {
+        let source = """
+        struct StubBody {
+            init(\(label): String) {}
+        }
+        let _ = StubBody(\(label): "\(exampleValue)")
+        """
+        try assertSwiftSnippetTypechecks(source)
     }
 
     static func assertSwiftSnippetTypechecks(_ source: String) throws {
@@ -137,11 +149,8 @@ enum KawarimiJutsuTestSupport {
     }
 
     static func yamlSchemaPropertyKey(_ name: String) -> String {
-        let yamlScalars = ["true", "false", "null", "yes", "no"]
-        if yamlScalars.contains(name.lowercased()) {
-            return "\"\(name)\""
-        }
-        return name
+        let escaped = name.replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
     }
 
     static func reservedPropertyOpenAPIYAML(reservedName: String) -> String {
