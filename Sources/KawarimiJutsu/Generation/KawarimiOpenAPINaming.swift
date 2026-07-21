@@ -226,6 +226,18 @@ private extension String {
 
 // MARK: - Safe name generators (from Swift OpenAPI Generator)
 
+/// Reserved Swift identifiers from swift-openapi-generator `SafeNameGenerator.keywords`.
+private enum SwiftOpenAPISafeNameKeywords {
+    static let reserved: Set<String> = [
+        "associatedtype", "class", "deinit", "enum", "extension", "func", "import", "init", "inout", "let", "operator",
+        "precedencegroup", "protocol", "struct", "subscript", "typealias", "var", "fileprivate", "internal", "private",
+        "public", "static", "defer", "if", "guard", "do", "repeat", "else", "for", "in", "while", "return", "break",
+        "continue", "fallthrough", "switch", "case", "default", "where", "catch", "throw", "as", "Any", "false", "is",
+        "nil", "rethrows", "super", "self", "Self", "true", "try", "throws", "yield", "String", "Error", "Int", "Bool",
+        "Array", "Type", "type", "Protocol", "await",
+    ]
+}
+
 private protocol SafeNameGenerator {
     func swiftTypeName(for documentedName: String) throws -> String
     func swiftMemberName(for documentedName: String) throws -> String
@@ -268,18 +280,9 @@ private struct DefensiveSafeNameGenerator: SafeNameGenerator {
 
         let validString = String(String.UnicodeScalarView(sanitizedScalars))
         if validString == "_" { return "_underscore_" }
-        guard Self.keywords.contains(validString) else { return validString }
+        guard SwiftOpenAPISafeNameKeywords.reserved.contains(validString) else { return validString }
         return "_\(validString)"
     }
-
-    private static let keywords: Set<String> = [
-        "associatedtype", "class", "deinit", "enum", "extension", "func", "import", "init", "inout", "let", "operator",
-        "precedencegroup", "protocol", "struct", "subscript", "typealias", "var", "fileprivate", "internal", "private",
-        "public", "static", "defer", "if", "guard", "do", "repeat", "else", "for", "in", "while", "return", "break",
-        "continue", "fallthrough", "switch", "case", "default", "where", "catch", "throw", "as", "Any", "false", "is",
-        "nil", "rethrows", "super", "self", "Self", "true", "try", "throws", "yield", "String", "Error", "Int", "Bool",
-        "Array", "Type", "type", "Protocol", "await",
-    ]
 
     private static let specialCharsMap: [Unicode.Scalar: String] = [
         " ": "space", "!": "excl", "\"": "quot", "#": "num", "$": "dollar", "%": "percnt", "&": "amp", "'": "apos",
@@ -427,5 +430,10 @@ private struct IdiomaticSafeNameGenerator: SafeNameGenerator {
 extension KawarimiNamingStrategy {
     internal static func testingForceIdiomaticInvariantViolation(documentedName: String) throws {
         throw KawarimiJutsuError.idiomaticNamingInvariantViolated(documentedName: documentedName)
+    }
+
+    /// Full swift-openapi-generator reserved set; used by tests for handler stub label coverage (#209).
+    internal static var swiftReservedKeywordsForTesting: [String] {
+        SwiftOpenAPISafeNameKeywords.reserved.sorted()
     }
 }
