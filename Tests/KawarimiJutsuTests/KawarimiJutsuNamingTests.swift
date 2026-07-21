@@ -1,5 +1,5 @@
 import Foundation
-import KawarimiJutsu
+@testable import KawarimiJutsu
 import Testing
 
 struct IdiomaticNamingCase: Sendable {
@@ -96,23 +96,32 @@ struct MemberNameCase: Sendable {
 }
 
 // Reserved property names must be escaped the same way for member (argument-label) names as
-// swift-openapi-generator escapes struct members; these all map identically under both strategies
-// because they are single lowercase words (idiomatic leaves them unchanged, then escapes reserved).
-private let reservedMemberNameCases: [MemberNameCase] = [
-    MemberNameCase(raw: "type", expected: "_type"),
-    MemberNameCase(raw: "protocol", expected: "_protocol"),
-    MemberNameCase(raw: "self", expected: "_self"),
-    MemberNameCase(raw: "default", expected: "_default"),
+// swift-openapi-generator escapes struct members. The full keyword set is the single source in
+// `SwiftOpenAPISafeNameKeywords` (see KawarimiNamingStrategy.swift).
+private let reservedKeywordInputs = KawarimiNamingStrategy.swiftReservedKeywordsForTesting
+
+private let nonReservedMemberNameCases: [MemberNameCase] = [
     MemberNameCase(raw: "normal", expected: "normal"),
 ]
 
-@Test(arguments: reservedMemberNameCases)
-func kawarimiNamingStrategyDefensiveEscapesReservedMemberName(case sample: MemberNameCase) throws {
+@Test(arguments: reservedKeywordInputs)
+func kawarimiNamingStrategyDefensiveEscapesReservedMemberName(reserved: String) throws {
+    #expect(try KawarimiNamingStrategy.defensive.swiftMemberName(for: reserved) == "_\(reserved)")
+}
+
+@Test(arguments: reservedKeywordInputs)
+func kawarimiNamingStrategyIdiomaticEscapesReservedMemberName(reserved: String) throws {
+    let escaped = try KawarimiNamingStrategy.idiomatic.swiftMemberName(for: reserved)
+    #expect(!KawarimiNamingStrategy.swiftReservedKeywordsForTesting.contains(escaped))
+}
+
+@Test(arguments: nonReservedMemberNameCases)
+func kawarimiNamingStrategyDefensiveLeavesNonReservedMemberName(case sample: MemberNameCase) throws {
     #expect(try KawarimiNamingStrategy.defensive.swiftMemberName(for: sample.raw) == sample.expected)
 }
 
-@Test(arguments: reservedMemberNameCases)
-func kawarimiNamingStrategyIdiomaticEscapesReservedMemberName(case sample: MemberNameCase) throws {
+@Test(arguments: nonReservedMemberNameCases)
+func kawarimiNamingStrategyIdiomaticLeavesNonReservedMemberName(case sample: MemberNameCase) throws {
     #expect(try KawarimiNamingStrategy.idiomatic.swiftMemberName(for: sample.raw) == sample.expected)
 }
 

@@ -99,6 +99,74 @@ enum KawarimiJutsuTestSupport {
             #expect(!witnessBlock.contains(forbidden))
         }
     }
+
+    /// Verifies generated handler stub `.init` labels match ``KawarimiNamingStrategy/swiftMemberName(for:)``.
+    static func assertHandlerStubUsesEscapedMemberLabel(
+        documentedName: String,
+        strategy: KawarimiNamingStrategy,
+        source: String,
+        exampleValue: String = "example-value"
+    ) throws {
+        let expectedLabel = try strategy.swiftMemberName(for: documentedName)
+        let expectedInit = ".init(\(expectedLabel): \"\(exampleValue)\")"
+        #expect(source.contains(expectedInit))
+        if expectedLabel != documentedName {
+            #expect(!source.contains(".init(\(documentedName):"))
+        }
+    }
+
+    static func assertSwiftSnippetTypechecks(_ source: String) throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-swiftc-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fileURL = dir.appendingPathComponent("Snippet.swift")
+        try source.write(to: fileURL, atomically: true, encoding: .utf8)
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["swiftc", "-typecheck", fileURL.path]
+        let stderrPipe = Pipe()
+        process.standardError = stderrPipe
+        try process.run()
+        process.waitUntilExit()
+        if process.terminationStatus != 0 {
+            let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            Issue.record("swiftc -typecheck failed: \(stderr)")
+            return
+        }
+    }
+
+    static func yamlSchemaPropertyKey(_ name: String) -> String {
+        let yamlScalars = ["true", "false", "null", "yes", "no"]
+        if yamlScalars.contains(name.lowercased()) {
+            return "\"\(name)\""
+        }
+        return name
+    }
+
+    static func reservedPropertyOpenAPIYAML(reservedName: String) -> String {
+        let key = yamlSchemaPropertyKey(reservedName)
+        return """
+        openapi: 3.1.0
+        info: { title: Repro, version: '1.0.0' }
+        paths:
+          /item:
+            get:
+              operationId: getItem
+              responses:
+                '200':
+                  description: OK
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        required: [\(key)]
+                        properties:
+                          \(key):
+                            type: string
+                            example: example-value
+        """
+    }
 }
 
 /// Accepts any JSON root value for `JSONDecoder` smoke tests.

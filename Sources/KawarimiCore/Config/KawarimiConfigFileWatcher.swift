@@ -320,8 +320,10 @@ private final class DarwinVnodeWatch: @unchecked Sendable {
         // `.write` alone misses atomic replacements (write-temp + rename-over, which is how
         // `KawarimiConfigStore.persist()` and most editors save): the rename unlinks the inode
         // this fd points at, so no further `.write` ever fires. Also watch for the inode being
-        // replaced/removed and reinstall the watch against the new file.
-        let mask: DispatchSource.FileSystemEvent = [.write, .extend, .rename, .delete, .revoke]
+        // replaced/removed and reinstall the watch against the new file. `.link` / `.attrib` are
+        // included for parity with `watchParentDirectory()` (#209); atomic rename-over is handled
+        // by `.rename`, not `.link`.
+        let mask: DispatchSource.FileSystemEvent = [.write, .extend, .attrib, .link, .rename, .delete, .revoke]
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
             eventMask: mask,
