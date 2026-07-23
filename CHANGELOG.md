@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiCore / KawarimiJutsu:** `KawarimiSpec` endpoints expose optional **`requestBodies`** metadata for `application/json` request bodies, using the same named-example rules as responses ([#223](https://github.com/novr/Kawarimi/issues/223)).
+
 ### Changed
 
 - **KawarimiJutsu:** `KawarimiSpec` emits faithful **204 / no-content** rows (`body` and `contentType` empty) and non-JSON media types with the actual `contentType` instead of `{}` + `application/json` ([#224](https://github.com/novr/Kawarimi/issues/224)).

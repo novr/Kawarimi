@@ -919,6 +919,14 @@ public enum KawarimiJutsu {
         var summaryLiteral: String
     }
 
+    private struct SpecRequestBodyRow {
+        var required: Bool
+        var mockExampleIdLiteral: String
+        var contentType: String
+        var body: String
+        var requestDescription: String?
+    }
+
     /// OpenAPI `examples` map entries with inline JSON values (skips `externalValue`).
     private static func namedJSONExamples(from content: OpenAPI.Content, components: OpenAPI.Components) -> [NamedJSONExample]? {
         guard let map = content.examples, !map.isEmpty else { return nil }
@@ -1027,6 +1035,67 @@ public enum KawarimiJutsu {
         )]
     }
 
+    private static func specRequestBodies(
+        requestBodyEither: Either<OpenAPI.Reference<OpenAPI.Request>, OpenAPI.Request>?,
+        components: OpenAPI.Components,
+        operationId: String
+    ) -> [SpecRequestBodyRow]? {
+        guard let requestBodyEither else { return nil }
+        guard let request = components[requestBodyEither] else { return nil }
+        guard let jsonContent = request.content[.json] else { return nil }
+
+        let required = request.required
+        let description = request.description
+        if let named = namedJSONExamples(from: jsonContent, components: components), !named.isEmpty {
+            return named.map { item in
+                let idLit = "\"\(escapeForSwiftStringLiteral(item.mapKey))\""
+                return SpecRequestBodyRow(
+                    required: required,
+                    mockExampleIdLiteral: idLit,
+                    contentType: "application/json",
+                    body: item.json,
+                    requestDescription: description
+                )
+            }
+        }
+        let body = mockJSONBodyFromJSONMediaType(
+            content: jsonContent,
+            components: components,
+            operationId: operationId,
+            diagnosticPath: "requestBody.content['application/json']"
+        )
+        return [SpecRequestBodyRow(
+            required: required,
+            mockExampleIdLiteral: "nil",
+            contentType: "application/json",
+            body: body,
+            requestDescription: description
+        )]
+    }
+
+    private static func endpointRequestBodiesLiteral(_ requestBodies: [SpecRequestBodyRow]?) -> String {
+        guard let requestBodies, !requestBodies.isEmpty else { return "requestBodies: nil,\n" }
+        let block = requestBodies.map { row in
+            let descVal = row.requestDescription.map { "\"\(escapeForSwiftStringLiteral($0))\"" } ?? "nil"
+            let bodyEsc = escapeForSwiftStringLiteral(row.body)
+            let ctEsc = escapeForSwiftStringLiteral(row.contentType)
+            return """
+                        SpecRequestBody(
+                            required: \(row.required),
+                            contentType: "\(ctEsc)",
+                            body: "\(bodyEsc)",
+                            exampleId: \(row.mockExampleIdLiteral),
+                            description: \(descVal)
+                        ),
+"""
+        }.joined()
+        return """
+                        requestBodies: [
+            \(block)
+                        ],
+"""
+    }
+
     public static func generateKawarimiSpecSource(document: OpenAPI.Document) -> String {
         let info = document.info
         let title = info.title
@@ -1046,6 +1115,7 @@ public enum KawarimiJutsu {
             var tags: [String]
             var security: [SpecSecurityRequirementEntry]?
             var parameters: [SpecParameter]?
+            var requestBodies: [SpecRequestBodyRow]?
             var responses: [SpecResponseRow]
         }
 
@@ -1085,6 +1155,11 @@ public enum KawarimiJutsu {
                     operation: operation.parameters,
                     components: components
                 )
+                let requestBodies = specRequestBodies(
+                    requestBodyEither: operation.requestBody,
+                    components: components,
+                    operationId: operationId
+                )
 
                 endpointEntries.append(EndpointEntry(
                     method: method,
@@ -1093,6 +1168,7 @@ public enum KawarimiJutsu {
                     tags: tags,
                     security: security,
                     parameters: parameters,
+                    requestBodies: requestBodies,
                     responses: responseRows
                 ))
             }
@@ -1126,13 +1202,14 @@ public enum KawarimiJutsu {
             }
             let securityLiteral = endpointSecurityLiteral(entry.security)
             let parametersLiteral = endpointParametersLiteral(entry.parameters)
+            let requestBodiesLiteral = endpointRequestBodiesLiteral(entry.requestBodies)
             return """
                     Endpoint(
                         path: "\(escapeForSwiftStringLiteral(entry.fullPath))",
                         method: HTTPRequest.Method("\(entry.method)")!,
                         operationId: "\(escapeForSwiftStringLiteral(entry.operationId))",
                         tags: \(tagsLiteral),
-            \(securityLiteral)\(parametersLiteral)                        responses: [
+            \(securityLiteral)\(parametersLiteral)\(requestBodiesLiteral)                        responses: [
             \(responsesBlock)
                         ]
                     ),
@@ -1196,6 +1273,7 @@ public enum KawarimiJutsu {
                     public var tags: [String]?
                     public var security: [SecurityRequirement]?
                     public var parameters: [SpecParameter]?
+                    public var requestBodies: [SpecRequestBody]?
                     public var responses: [MockResponse]
                 }
                 public struct MockResponse: Codable, Sendable {

@@ -48,6 +48,8 @@ public protocol SpecEndpointProviding: Identifiable, Sendable {
     var security: [any SpecSecurityRequirementProviding]? { get }
     /// Merged path-item and operation parameters (path, query, header); `nil` when none.
     var parameters: [SpecParameter]? { get }
+    /// OpenAPI `requestBody` rows for `application/json`; `nil` when absent or unsupported.
+    var requestBodies: [SpecRequestBody]? { get }
     var responseList: [any SpecMockResponseProviding] { get }
 }
 
@@ -67,4 +69,5 @@ extension SpecEndpointProviding {
     public var tags: [String]? { nil }
     public var security: [any SpecSecurityRequirementProviding]? { nil }
     public var parameters: [SpecParameter]? { nil }
+    public var requestBodies: [SpecRequestBody]? { nil }
 }

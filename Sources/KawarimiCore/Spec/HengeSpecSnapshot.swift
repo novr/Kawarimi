@@ -49,6 +49,7 @@ public struct HengeSpecSnapshot: Codable, Sendable, KawarimiFetchedSpec {
         public var tags: [String]?
         public var security: [SecurityRequirement]?
         public var parameters: [SpecParameter]?
+        public var requestBodies: [SpecRequestBody]?
         public var responses: [MockResponse]
 
         public var responseList: [any SpecMockResponseProviding] { responses }

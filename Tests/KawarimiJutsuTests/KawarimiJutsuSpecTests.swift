@@ -42,6 +42,7 @@ import Testing
     #expect(source.contains("tags: [\"Greetings\"]"))
     #expect(source.contains("public var tags: [String]?"))
     #expect(source.contains("public var parameters: [SpecParameter]?"))
+    #expect(source.contains("public var requestBodies: [SpecRequestBody]?"))
 
     let greetingBlock = try #require(endpointBlock(operationId: "getGreeting", in: source))
     #expect(greetingBlock.contains("name: \"name\""))
@@ -55,6 +56,14 @@ import Testing
 
     let createBlock = try #require(endpointBlock(operationId: "createItem", in: source))
     #expect(createBlock.contains("parameters: nil"))
+    #expect(createBlock.contains("requestBodies: ["))
+    #expect(createBlock.contains("required: true"))
+    #expect(createBlock.contains("contentType: \"application/json\""))
+    let createRequestBody = try #require(mockRequestBodyJSONString(operationId: "createItem", in: source))
+    try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "createItem-requestBody", actual: createRequestBody)
+
+    let listBlock = try #require(endpointBlock(operationId: "listItems", in: source))
+    #expect(listBlock.contains("requestBodies: nil"))
 }
 
 @Test func kawarimiJutsuSpecEmitsMergedParameters() throws {
@@ -117,6 +126,7 @@ import Testing
     #expect(source.contains("extension KawarimiSpec.MockResponse: SpecMockResponseProviding"))
     #expect(source.contains("extension KawarimiSpec.Endpoint: SpecEndpointProviding"))
     #expect(source.contains("responseList"))
+    #expect(source.contains("SpecRequestBody"))
     #expect(source.contains("public struct SpecResponse: Codable, Sendable"))
     #expect(source.contains("extension SpecResponse: KawarimiFetchedSpec"))
     #expect(source.contains("securitySchemeCatalog"))
@@ -225,4 +235,87 @@ import Testing
     let block = try #require(endpointBlock(operationId: "getReport", in: source))
     #expect(block.contains("contentType: \"application/xml\""))
     #expect(block.contains("body: \"\""))
+}
+
+@Test func kawarimiJutsuSpecEmitsNamedRequestBodyExamples() throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-request-body-examples", extension: "yaml") else {
+        Issue.record("openapi-request-body-examples.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "postItemExamples", in: source))
+    #expect(block.contains("exampleId: \"alpha\""))
+    #expect(block.contains("exampleId: \"beta\""))
+    let rAlpha = try #require(block.range(of: "exampleId: \"alpha\""))
+    let rBeta = try #require(block.range(of: "exampleId: \"beta\""))
+    #expect(rAlpha.lowerBound < rBeta.lowerBound)
+}
+
+@Test func kawarimiJutsuSpecOmitsUnsupportedRequestBodyMediaTypes() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-rb-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    paths:
+      /upload:
+        post:
+          operationId: uploadFile
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+          responses:
+            '204':
+              description: ok
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "uploadFile", in: source))
+    #expect(block.contains("requestBodies: nil"))
+}
+
+@Test func kawarimiJutsuSpecResolvesComponentRequestBodyRef() throws {
+    let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-rb-ref-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: tmp, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: tmp) }
+    let yaml = """
+    openapi: 3.0.3
+    info: { title: T, version: '1' }
+    components:
+      requestBodies:
+        ItemBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+    paths:
+      /items:
+        post:
+          operationId: createWithRef
+          requestBody:
+            $ref: '#/components/requestBodies/ItemBody'
+          responses:
+            '201':
+              description: created
+    """
+    let path = tmp.appendingPathComponent("openapi.yaml").path
+    try yaml.write(toFile: path, atomically: true, encoding: .utf8)
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: path)
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "createWithRef", in: source))
+    #expect(block.contains("requestBodies: ["))
+    #expect(block.contains("required: true"))
+    let requestJSON = try #require(mockRequestBodyJSONString(operationId: "createWithRef", in: source))
+    try KawarimiJutsuTestSupport.expectNormalizedJSONEqual(requestJSON, "{\"name\":\"\"}")
 }

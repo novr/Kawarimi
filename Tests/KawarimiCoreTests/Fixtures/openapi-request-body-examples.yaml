@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Request body examples fixture
+  version: 1.0.0
+paths:
+  /items:
+    post:
+      operationId: postItemExamples
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                kind:
+                  type: string
+            examples:
+              alpha:
+                value:
+                  kind: a
+              beta:
+                value:
+                  kind: b
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object

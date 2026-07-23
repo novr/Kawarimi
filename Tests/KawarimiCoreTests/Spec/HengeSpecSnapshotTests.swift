@@ -30,6 +30,44 @@ import Testing
     let noContent = try #require(deleteItem.responseList.first { $0.statusCode == 204 })
     #expect(noContent.body == "")
     #expect(noContent.contentType == "")
+    #expect(deleteItem.requestBodies == nil)
+}
+
+@Test func hengeSpecSnapshotDecodesRequestBodies() throws {
+    let json = """
+    {
+      "meta": {
+        "title": "T",
+        "version": "1",
+        "serverURL": "https://example.com/api",
+        "apiPathPrefix": "/api"
+      },
+      "endpoints": [
+        {
+          "path": "/api/items",
+          "method": "POST",
+          "operationId": "createItem",
+          "responses": [],
+          "requestBodies": [
+            {
+              "required": true,
+              "contentType": "application/json",
+              "body": "{\\"name\\":\\"\\"}",
+              "description": "Create payload"
+            }
+          ]
+        }
+      ]
+    }
+    """
+    let snapshot = try JSONDecoder().decode(HengeSpecSnapshot.self, from: Data(json.utf8))
+    let endpoint = try #require(snapshot.endpoints.first)
+    let body = try #require(endpoint.requestBodies?.first)
+    #expect(body.required)
+    #expect(body.contentType == "application/json")
+    #expect(body.body == "{\"name\":\"\"}")
+    #expect(body.description == "Create payload")
+    #expect(body.exampleId == nil)
 }
 
 private final class MockHengeSpecURLProtocol: URLProtocol {
