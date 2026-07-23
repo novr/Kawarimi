@@ -82,13 +82,13 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
                     try await Task.sleep(for: .milliseconds(ms))
                 }
                 var response = HTTPResponse(status: .init(code: resolved.statusCode))
-                response.headerFields[.contentType] = resolved.contentType
+                applyContentType(&response, resolved.contentType)
                 if let nextKawarimiId {
                     response.headerFields[HTTPField.Name(KawarimiScenarioHeaders.nextKawarimiId)!] = nextKawarimiId
                 }
                 applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionMock)
                 logProxy(action: KawarimiProxyHeaders.actionMock, path: requestPath, method: request.method)
-                return (response, HTTPBody(resolved.body))
+                return (response, mockBody(resolved))
             }
             if case .fallback(let reason) = resolution {
                 logScenarioFallback(reason: reason, requestPath: requestPath, method: request.method)
@@ -137,15 +137,27 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
             try await Task.sleep(for: .milliseconds(ms))
         }
         var response = HTTPResponse(status: .init(code: resolved.statusCode))
-        response.headerFields[.contentType] = resolved.contentType
+        applyContentType(&response, resolved.contentType)
         applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionMock)
         logProxy(action: KawarimiProxyHeaders.actionMock, path: requestPath, method: request.method)
-        return (response, HTTPBody(resolved.body))
+        return (response, mockBody(resolved))
     }
 
     private func applyProxyActionHeader(_ response: inout HTTPResponse, action: String) {
         guard forwarding != nil else { return }
         response.headerFields[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] = action
+    }
+
+    private func applyContentType(_ response: inout HTTPResponse, _ contentType: String) {
+        guard !contentType.isEmpty else { return }
+        response.headerFields[.contentType] = contentType
+    }
+
+    private func mockBody(_ resolved: KawarimiDynamicMockResponse) -> HTTPBody? {
+        if resolved.body.isEmpty, resolved.contentType.isEmpty {
+            return nil
+        }
+        return HTTPBody(resolved.body)
     }
 
     private func logProxy(action: String, path: String, method: HTTPRequest.Method) {

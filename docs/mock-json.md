@@ -4,6 +4,17 @@ For each `application/json` response, Kawarimi embeds a JSON string in `Kawarimi
 
 The generated `Kawarimi` `ClientTransport` mock uses the **200** response body from that process.
 
+## KawarimiSpec: 204 and non-JSON responses
+
+`KawarimiSpec` uses different rules when a response is not `application/json`:
+
+| Case | `contentType` | `body` |
+| --- | --- | --- |
+| HTTP **204** or a response with **no** `content` | `""` (empty) | `""` |
+| Non-JSON media type (e.g. `application/xml`) | The OpenAPI media type (first non-JSON `content` entry, lexicographic) | Inline `example` string when present; otherwise `""` |
+
+`KawarimiServerMiddleware` omits the `Content-Type` header when the resolved mock row has an empty `contentType`, and returns no response body when both `contentType` and `body` are empty.
+
 ## `KawarimiSpec` vs in-process `Kawarimi` transport
 
 These are **two separate code paths** in the generator:

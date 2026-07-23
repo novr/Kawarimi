@@ -936,6 +936,60 @@ public enum KawarimiJutsu {
 
     private static func specResponseRows(
         statusCode: Int,
+        response: OpenAPI.Response,
+        components: OpenAPI.Components,
+        operationId: String
+    ) -> [SpecResponseRow] {
+        if statusCode == 204 || response.content.isEmpty {
+            return [noContentSpecResponseRow(statusCode: statusCode, responseDescription: response.description)]
+        }
+        if let jsonContent = response.content[.json] {
+            return specResponseRows(
+                statusCode: statusCode,
+                jsonContent: jsonContent,
+                responseDescription: response.description,
+                components: components,
+                operationId: operationId
+            )
+        }
+        let nonJSON = response.content
+            .filter { $0.key != .json }
+            .sorted { $0.key.rawValue < $1.key.rawValue }
+        guard let entry = nonJSON.first else {
+            return [noContentSpecResponseRow(statusCode: statusCode, responseDescription: response.description)]
+        }
+        return [SpecResponseRow(
+            statusCode: statusCode,
+            responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
+            mockExampleIdLiteral: "nil",
+            contentType: entry.key.rawValue,
+            body: nonJSONBodyPlaceholder(content: entry.value),
+            responseDescription: response.description,
+            summaryLiteral: "nil"
+        )]
+    }
+
+    private static func noContentSpecResponseRow(statusCode: Int, responseDescription: String?) -> SpecResponseRow {
+        SpecResponseRow(
+            statusCode: statusCode,
+            responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
+            mockExampleIdLiteral: "nil",
+            contentType: "",
+            body: "",
+            responseDescription: responseDescription,
+            summaryLiteral: "nil"
+        )
+    }
+
+    private static func nonJSONBodyPlaceholder(content: OpenAPI.Content) -> String {
+        if let string = content.example?.value as? String {
+            return string
+        }
+        return ""
+    }
+
+    private static func specResponseRows(
+        statusCode: Int,
         jsonContent: OpenAPI.Content,
         responseDescription: String?,
         components: OpenAPI.Components,
@@ -1014,27 +1068,14 @@ public enum KawarimiJutsu {
                     guard case .status(code: let code) = statusKey.value else { continue }
                     guard let response = components[responseRef] else { continue }
 
-                    if let jsonContent = response.content[.json] {
-                        responseRows.append(
-                            contentsOf: specResponseRows(
-                                statusCode: code,
-                                jsonContent: jsonContent,
-                                responseDescription: response.description,
-                                components: components,
-                                operationId: operationId
-                            )
-                        )
-                    } else {
-                        responseRows.append(SpecResponseRow(
+                    responseRows.append(
+                        contentsOf: specResponseRows(
                             statusCode: code,
-                            responseMapKey: KawarimiExampleIds.defaultResponseMapKey,
-                            mockExampleIdLiteral: "nil",
-                            contentType: "application/json",
-                            body: "{}",
-                            responseDescription: response.description,
-                            summaryLiteral: "nil"
-                        ))
-                    }
+                            response: response,
+                            components: components,
+                            operationId: operationId
+                        )
+                    )
                 }
 
                 let tags = operation.tags ?? []

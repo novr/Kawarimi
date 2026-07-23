@@ -44,8 +44,8 @@
       "responses": [
         {
           "statusCode": 204,
-          "contentType": "application/json",
-          "body": "{}",
+          "contentType": "",
+          "body": "",
           "description": "Deleted"
         },
         {

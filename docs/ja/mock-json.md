@@ -4,6 +4,17 @@
 
 生成される `Kawarimi` 型の `ClientTransport` モックでは、**200** の本文が使われます。
 
+## KawarimiSpec: 204 と非 JSON レスポンス
+
+`application/json` 以外のレスポンスは次のルールです。
+
+| ケース | `contentType` | `body` |
+| --- | --- | --- |
+| HTTP **204**、または `content` が無いレスポンス | `""`（空） | `""` |
+| 非 JSON メディア型（例: `application/xml`） | OpenAPI のメディア型（非 JSON `content` の先頭、辞書順） | インライン `example` 文字列があればそれ、なければ `""` |
+
+`KawarimiServerMiddleware` は、解決したモック行の `contentType` が空のとき `Content-Type` ヘッダーを付けず、`contentType` と `body` がともに空のときはレスポンス本文も返しません。
+
 ## `KawarimiSpec` とインプロセス `Kawarimi` トランスポート
 
 ジェネレータ内で **別々の実装**になります。
