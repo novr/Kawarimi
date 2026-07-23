@@ -51,6 +51,39 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"mocked\":true}")
   }
 
+  @Test func omitsContentTypeForNoContentSpecRow() async throws {
+    let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+    let config = KawarimiConfig(overrides: [
+      MockOverride(
+        path: "/api/items/{id}",
+        method: .delete,
+        statusCode: 204
+      ),
+    ])
+    let data = try JSONEncoder().encode(config)
+    try data.write(to: configURL)
+    defer { try? FileManager.default.removeItem(at: configURL) }
+
+    let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
+    let responseMap: KawarimiMockResponseResolver.NestedResponseMap = [
+      "DELETE:/api/items/{id}": [
+        204: ["__default": (body: "", contentType: "")]
+      ]
+    ]
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: responseMap, upstreamSettings: disabledUpstreamSettings)
+    let request = HTTPRequest(method: .delete, scheme: "https", authority: "example.com", path: "/api/items/1")
+    let (response, body) = try await middleware.intercept(
+      request,
+      body: nil,
+      metadata: ServerRequestMetadata(),
+      operationID: "deleteItem",
+      next: { _, _, _ in (HTTPResponse(status: .ok), nil) }
+    )
+    #expect(response.status.code == 204)
+    #expect(response.headerFields[.contentType] == nil)
+    #expect(body == nil)
+  }
+
   @Test func reloadFromDisk_appliesHandEditedConfig() async throws {
     let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
     let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")

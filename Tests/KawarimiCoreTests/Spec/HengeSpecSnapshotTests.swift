@@ -28,8 +28,8 @@ import Testing
     #expect(pathParam.required)
 
     let noContent = try #require(deleteItem.responseList.first { $0.statusCode == 204 })
-    #expect(noContent.body == "{}")
-    #expect(noContent.contentType == "application/json")
+    #expect(noContent.body == "")
+    #expect(noContent.contentType == "")
 }
 
 private final class MockHengeSpecURLProtocol: URLProtocol {

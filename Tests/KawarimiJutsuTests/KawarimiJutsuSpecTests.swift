@@ -201,3 +201,28 @@ import Testing
     try KawarimiJutsuTestSupport.expectGoldenJSON(operationId: "getUnionOneOf", actual: unionBody)
 }
 
+@Test func kawarimiJutsuSpecEmitsNoContentFor204Response() throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi", extension: "yaml") else {
+        Issue.record("openapi.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "deleteItem", in: source))
+    #expect(block.contains("statusCode: 204"))
+    #expect(block.contains("contentType: \"\""))
+    #expect(block.contains("body: \"\""))
+    #expect(source.contains("204: [\"__default\": (body: \"\", contentType: \"\")]"))
+}
+
+@Test func kawarimiJutsuSpecEmitsNonJSONMediaType() throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-xml-success-response", extension: "yaml") else {
+        Issue.record("openapi-xml-success-response.yaml not found in test resources")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let source = KawarimiJutsu.generateKawarimiSpecSource(document: document)
+    let block = try #require(endpointBlock(operationId: "getReport", in: source))
+    #expect(block.contains("contentType: \"application/xml\""))
+    #expect(block.contains("body: \"\""))
+}

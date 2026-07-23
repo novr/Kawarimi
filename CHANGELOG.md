@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **KawarimiJutsu:** `KawarimiSpec` emits faithful **204 / no-content** rows (`body` and `contentType` empty) and non-JSON media types with the actual `contentType` instead of `{}` + `application/json` ([#224](https://github.com/novr/Kawarimi/issues/224)).
+- **KawarimiServer:** mock responses omit the `Content-Type` header when the resolved spec row has an empty `contentType`, and omit the body when both `contentType` and `body` are empty ([#224](https://github.com/novr/Kawarimi/issues/224)).
+
 ## [3.4.1] - 2026-07-22
 
 ### Added
