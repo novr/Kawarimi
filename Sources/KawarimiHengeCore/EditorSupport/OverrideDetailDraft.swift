@@ -40,6 +40,7 @@ package struct OverrideDetailDraft {
             mock.statusCode = exact.statusCode
             mock.exampleId = exact.exampleId
             mock.delayMs = exact.delayMs
+            mock.failureMode = exact.failureMode
             mock.name = exact.name ?? endpoint.operationId
             if exact.hasEffectiveCustomBody {
                 mock.body = exact.body
@@ -67,6 +68,7 @@ package struct OverrideDetailDraft {
             mock.statusCode = pinned.statusCode
             mock.exampleId = pinned.exampleId
             mock.delayMs = pinned.delayMs
+            mock.failureMode = pinned.failureMode
             mock.name = pinned.name ?? endpoint.operationId
             mergeResponseTemplate(
                 endpoint: endpoint,
@@ -86,6 +88,7 @@ package struct OverrideDetailDraft {
                 mock.statusCode = ov.statusCode
                 mock.exampleId = ov.exampleId
                 mock.delayMs = ov.delayMs
+                mock.failureMode = ov.failureMode
                 mock.name = ov.name ?? endpoint.operationId
                 mergeResponseTemplate(
                     endpoint: endpoint,
@@ -104,6 +107,7 @@ package struct OverrideDetailDraft {
         mock.body = nil
         mock.contentType = nil
         mock.delayMs = nil
+        mock.failureMode = nil
         mock.name = endpoint.operationId
     }
 

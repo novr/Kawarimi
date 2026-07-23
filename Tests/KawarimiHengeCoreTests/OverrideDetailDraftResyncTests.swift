@@ -40,7 +40,8 @@ private let pathPrefix = "/api"
         exampleId: nil,
         isEnabled: false,
         body: "{\"stored\":true}",
-        contentType: "application/json"
+        contentType: "application/json",
+        failureMode: .hang
     )
     var draft = OverrideDetailDraft(
         mock: MockOverride(
@@ -60,6 +61,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.isEnabled == false)
     #expect(draft.mock.statusCode == 200)
     #expect(draft.mock.body == "{\"stored\":true}")
+    #expect(draft.mock.failureMode == .hang)
 }
 
 @Test func resyncB3AdoptFirstEnabledWhenExactMissingAndDraftOn() {
@@ -119,7 +121,8 @@ private let pathPrefix = "/api"
             exampleId: "gone",
             isEnabled: false,
             body: "nope",
-            contentType: "application/json"
+            contentType: "application/json",
+            failureMode: .hang
         ),
         validationMessage: "x",
         isDirty: true
@@ -130,6 +133,7 @@ private let pathPrefix = "/api"
     #expect(draft.mock.exampleId == nil)
     #expect(draft.mock.body == nil)
     #expect(draft.mock.contentType == nil)
+    #expect(draft.mock.failureMode == nil)
 }
 
 @Test func resyncWhenDraftOnButNoOverridesResetsLikeB4() {

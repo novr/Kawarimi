@@ -176,6 +176,58 @@ struct KawarimiServerMiddlewareTests {
     #expect(collected == "{\"error\":true}")
   }
 
+  @Test func scenarioConnectionCloseThrowsBeforeMockResponse() async throws {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: dir) }
+
+    let configPath = dir.appendingPathComponent("kawarimi.json").path
+    let scenarioPath = dir.appendingPathComponent("kawarimi-scenarios.json").path
+    let rowId = MockOverrideRowID.generate()
+    let store = try KawarimiConfigStore(configPath: configPath, pathPrefix: "/api", scenariosPath: scenarioPath)
+    try await store.configure(
+      MockOverride(
+        rowId: rowId,
+        path: "/api/login",
+        method: .post,
+        statusCode: 401,
+        body: "{\"error\":true}",
+        contentType: "application/json",
+        failureMode: .connectionClose
+      )
+    )
+    let scenarios = KawarimiScenariosFile(scenarios: [
+      KawarimiScenario(
+        scenarioId: "login",
+        initial: "start",
+        cases: [
+          .init(
+            kawarimiId: "start",
+            next: "locked",
+            rowId: rowId,
+            endpoint: .init(method: "POST", path: "/api/login")
+          ),
+        ]
+      ),
+    ])
+    try JSONEncoder().encode(scenarios).write(to: URL(fileURLWithPath: scenarioPath), options: .atomic)
+    _ = await store.reloadFromDisk()
+
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
+    var request = HTTPRequest(method: .post, scheme: "https", authority: "example.com", path: "/api/login")
+    request.headerFields[HTTPField.Name(KawarimiScenarioHeaders.scenarioId)!] = "login"
+
+    await #expect(throws: KawarimiMockFailureError.connectionClose) {
+      _ = try await middleware.intercept(
+        request,
+        body: nil,
+        metadata: ServerRequestMetadata(),
+        operationID: "login",
+        next: { _, _, _ in (HTTPResponse(status: .ok), nil) }
+      )
+    }
+  }
+
   @Test func scenarioFallbackUsesExistingOverridePath() async throws {
     let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -359,5 +411,69 @@ struct KawarimiServerMiddlewareTests {
     #expect(response.headerFields[HTTPField.Name(KawarimiProxyHeaders.proxyAction)!] == KawarimiProxyHeaders.actionMock)
     let collected = try await String(collecting: body!, upTo: 1024)
     #expect(collected == "{\"message\":\"mocked\"}")
+  }
+
+  @Test func connectionCloseThrowsBeforeMockResponse() async throws {
+    let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+    let config = KawarimiConfig(overrides: [
+      MockOverride(
+        path: "/api/widgets",
+        method: .get,
+        statusCode: 200,
+        body: "{\"mocked\":true}",
+        contentType: "application/json",
+        failureMode: .connectionClose
+      ),
+    ])
+    try JSONEncoder().encode(config).write(to: configURL)
+    defer { try? FileManager.default.removeItem(at: configURL) }
+
+    let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
+    let request = HTTPRequest(method: .get, scheme: "https", authority: "example.com", path: "/api/widgets")
+    await #expect(throws: KawarimiMockFailureError.connectionClose) {
+      _ = try await middleware.intercept(
+        request,
+        body: nil,
+        metadata: ServerRequestMetadata(),
+        operationID: "listWidgets",
+        next: { _, _, _ in (HTTPResponse(status: .ok), nil) }
+      )
+    }
+  }
+
+  @Test func hangDoesNotCompleteBeforeCancellation() async throws {
+    let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+    let config = KawarimiConfig(overrides: [
+      MockOverride(
+        path: "/api/widgets",
+        method: .get,
+        statusCode: 200,
+        delayMs: 1,
+        failureMode: .hang
+      ),
+    ])
+    try JSONEncoder().encode(config).write(to: configURL)
+    defer { try? FileManager.default.removeItem(at: configURL) }
+
+    let store = try KawarimiConfigStore(configPath: configURL.path, pathPrefix: "/api")
+    let middleware = KawarimiServerMiddleware(store: store, responseMap: [:], upstreamSettings: disabledUpstreamSettings)
+    let request = HTTPRequest(method: .get, scheme: "https", authority: "example.com", path: "/api/widgets")
+    final class CompletedFlag: @unchecked Sendable { var value = false }
+    let completed = CompletedFlag()
+    let task = Task {
+      defer { completed.value = true }
+      _ = try await middleware.intercept(
+        request,
+        body: nil,
+        metadata: ServerRequestMetadata(),
+        operationID: "listWidgets",
+        next: { _, _, _ in (HTTPResponse(status: .ok), nil) }
+      )
+    }
+    try await Task.sleep(for: .milliseconds(50))
+    #expect(!completed.value)
+    task.cancel()
+    _ = try? await task.value
   }
 }

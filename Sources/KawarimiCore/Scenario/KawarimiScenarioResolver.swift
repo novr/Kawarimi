@@ -12,7 +12,12 @@ public enum KawarimiScenarioResolutionReason: String, Sendable {
 }
 
 public enum KawarimiScenarioResolution: Sendable, Equatable {
-    case matched(response: KawarimiDynamicMockResponse, nextKawarimiId: String?, delayMs: Int?)
+    case matched(
+        response: KawarimiDynamicMockResponse,
+        nextKawarimiId: String?,
+        delayMs: Int?,
+        failureMode: MockFailureMode?
+    )
     case fallback(reason: KawarimiScenarioResolutionReason)
 }
 
@@ -68,7 +73,8 @@ public enum KawarimiScenarioResolver {
         return .matched(
             response: resolved,
             nextKawarimiId: KawarimiScenarioTokens.normalize(matchedCase.next),
-            delayMs: override.delayMs
+            delayMs: override.delayMs,
+            failureMode: override.failureMode
         )
     }
 }

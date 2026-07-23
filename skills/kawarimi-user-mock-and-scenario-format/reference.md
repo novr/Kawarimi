@@ -22,6 +22,7 @@ Shape: `{ "overrides": [ … ] }`.
 | `body` | optional | Omit to use `KawarimiSpec.responseMap` at response time |
 | `contentType` | optional | Required when `body` is set |
 | `delayMs` | optional | Simulates latency in tests |
+| `failureMode` | optional | `hang` (no response; beats `delayMs`) or `connectionClose` (abort before mock body) |
 
 ### Rules
 

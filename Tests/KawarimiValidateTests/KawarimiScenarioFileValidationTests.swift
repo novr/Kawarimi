@@ -64,6 +64,33 @@ struct KawarimiScenarioFileValidationTests {
         #expect(messages.contains(where: { $0.contains("rowId") && $0.contains("not found") }))
     }
 
+    @Test func succeedsWhenConfigIncludesFailureMode() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-failure-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        try """
+        {
+          "overrides": [
+            {
+              "path": "/api/widgets",
+              "method": "GET",
+              "statusCode": 200,
+              "failureMode": "hang"
+            }
+          ]
+        }
+        """.write(to: configPath, atomically: true, encoding: .utf8)
+
+        let status = KawarimiScenarioFileValidation.validate(
+            configPath: configPath.path,
+            scenariosPath: dir.appendingPathComponent("missing-scenarios.json").path
+        )
+        #expect(status == .success)
+    }
+
     @Test func fatalOnMissingConfig() {
         let status = KawarimiScenarioFileValidation.validate(
             configPath: "/tmp/kawarimi-validate-missing-\(UUID().uuidString).json",

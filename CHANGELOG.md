@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KawarimiCore / KawarimiServer / KawarimiHenge:** `MockOverride.failureMode` supports **`hang`** and **`connectionClose`** failure profiles, applied by `KawarimiServerMiddleware` and editable in the Henge detail header ([#225](https://github.com/novr/Kawarimi/issues/225)).
 - **KawarimiCore / KawarimiJutsu:** `KawarimiSpec` endpoints expose optional **`requestBodies`** metadata for `application/json` request bodies, using the same named-example rules as responses ([#223](https://github.com/novr/Kawarimi/issues/223)).
 
 ### Changed

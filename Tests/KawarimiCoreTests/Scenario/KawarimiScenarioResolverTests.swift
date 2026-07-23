@@ -43,12 +43,59 @@ struct KawarimiScenarioResolverTests {
             kawarimiIdHeaderRaw: nil
         )
 
-        guard case .matched(let response, let next, _) = resolved else {
+        guard case .matched(let response, let next, _, _) = resolved else {
             Issue.record("Expected matched response")
             return
         }
         #expect(response.statusCode == 401)
         #expect(next == "locked")
+    }
+
+    @Test func resolvesFailureModeFromOverride() {
+        let rowId = MockOverrideRowID.generate()
+        let scenarios = [
+            KawarimiScenario(
+                scenarioId: "login",
+                initial: "start",
+                cases: [
+                    KawarimiScenarioCase(
+                        kawarimiId: "start",
+                        next: nil,
+                        rowId: rowId,
+                        endpoint: .init(method: "POST", path: "/api/login")
+                    ),
+                ]
+            ),
+        ]
+        let overrides = [
+            MockOverride(
+                rowId: rowId,
+                path: "/api/login",
+                method: .post,
+                statusCode: 503,
+                body: nil,
+                contentType: nil,
+                delayMs: 100,
+                failureMode: .connectionClose
+            ),
+        ]
+
+        let resolved = KawarimiScenarioResolver.resolve(
+            scenarios: scenarios,
+            overrides: overrides,
+            responseMap: [:],
+            requestPath: "/api/login",
+            method: .post,
+            scenarioIdHeaderRaw: "login",
+            kawarimiIdHeaderRaw: "start"
+        )
+
+        guard case .matched(_, _, let delayMs, let failureMode) = resolved else {
+            Issue.record("Expected matched response")
+            return
+        }
+        #expect(delayMs == 100)
+        #expect(failureMode == .connectionClose)
     }
 
     @Test func fallsBackOnDuplicateCaseKey() {

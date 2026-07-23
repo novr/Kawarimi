@@ -445,6 +445,15 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 各オーバーライドに任意の **`delayMs`**（ミリ秒、1–60000）を指定できます。省略・`null`・`0`・負数は遅延なしです。参照ミドルウェアはモック応答の直前にスリープします。
 
+任意の **`failureMode`** でクライアント向けの障害を再現できます。
+
+| 値 | 挙動 |
+| --- | --- |
+| `hang` | モック応答を返さない（`delayMs` より優先）。開発用途。並行リクエストでワーカーを占有しうる。 |
+| `connectionClose` | モック応答前に接続を打ち切る。実際の wire 挙動はホストの HTTP スタック（Vapor/Hummingbird と URLSession で差がありうる）に依存。 |
+
+`failureMode` を省略するか `null` にすると通常のモック応答です。HTTP **5xx** の無 body は引き続き `statusCode` と空/`null` body で表現し、v1 に `httpError` enum はありません。
+
 **初期 `kawarimi.json`・サンプル `kawarimi-generator-config.yaml`・`swift run DemoServer` のカレントディレクトリ**については [Example/README_JA.md](../../Example/README_JA.md) を参照してください。
 
 オーバーライドの `body` / `contentType` が空文字のときは保存時に「未設定」に正規化され、レスポンス時は空 body は Spec にフォールバックします。

@@ -312,6 +312,33 @@ struct DetailColumnHeaderView: View {
                 #endif
                 .frame(maxWidth: 120)
         }
+
+        VStack(alignment: .leading, spacing: model.tightVertical ? 6 : 8) {
+            Text("FAILURE PROFILE")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+                .tracking(0.6)
+            Text("Optional failure simulation. Hang never returns a response and overrides delay. Connection close aborts before a mock response.")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(model.tightVertical ? 3 : nil)
+            Picker("Failure profile", selection: failureModeSelection) {
+                Text("None").tag("")
+                Text("Hang").tag(MockFailureMode.hang.rawValue)
+                Text("Connection close").tag(MockFailureMode.connectionClose.rawValue)
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 240, alignment: .leading)
+        }
+    }
+
+    private var failureModeSelection: Binding<String> {
+        Binding(
+            get: { bindings.mock.wrappedValue.failureMode?.rawValue ?? "" },
+            set: { raw in
+                bindings.mock.wrappedValue.failureMode = raw.isEmpty ? nil : MockFailureMode(rawValue: raw)
+            }
+        )
     }
 
     @ViewBuilder

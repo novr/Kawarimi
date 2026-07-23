@@ -184,6 +184,7 @@ package enum ResponseChips {
             mock.body = nil
             mock.contentType = nil
             mock.delayMs = nil
+            mock.failureMode = nil
         } else if let stored = OverrideListQueries.storedOverride(
             for: endpointItem.rowKey,
             operationId: endpoint.operationId,
@@ -196,6 +197,7 @@ package enum ResponseChips {
             mock.statusCode = stored.statusCode
             mock.exampleId = stored.exampleId
             mock.delayMs = stored.delayMs
+            mock.failureMode = stored.failureMode
             mock.name = stored.name ?? endpoint.operationId
             if stored.hasEffectiveCustomBody {
                 mock.body = stored.body
@@ -214,6 +216,7 @@ package enum ResponseChips {
             mock.statusCode = option.statusCode
             mock.exampleId = option.exampleId
             mock.delayMs = nil
+            mock.failureMode = nil
             mergeResponseTemplate(
                 endpoint: endpoint,
                 overrides: overrides,

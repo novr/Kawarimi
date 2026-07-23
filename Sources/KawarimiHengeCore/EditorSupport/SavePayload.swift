@@ -62,7 +62,8 @@ package enum SavePayload {
             isEnabled: false,
             body: nil,
             contentType: nil,
-            delayMs: nil
+            delayMs: nil,
+            failureMode: nil
         )
     }
 
@@ -82,7 +83,8 @@ package enum SavePayload {
             isEnabled: true,
             body: body,
             contentType: contentType,
-            delayMs: mock.delayMs
+            delayMs: mock.delayMs,
+            failureMode: mock.failureMode
         )
     }
 
@@ -103,7 +105,8 @@ package enum SavePayload {
             isEnabled: false,
             body: body,
             contentType: contentType,
-            delayMs: mock.delayMs
+            delayMs: mock.delayMs,
+            failureMode: mock.failureMode
         )
     }
 }

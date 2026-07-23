@@ -126,7 +126,8 @@ public struct KawarimiAPIClient: Sendable {
         isEnabled: Bool = true,
         body: String? = nil,
         contentType: String? = nil,
-        delayMs: Int? = nil
+        delayMs: Int? = nil,
+        failureMode: MockFailureMode? = nil
     ) async throws -> [MockOverride] {
         guard let override = MockOverride(
             path: path,
@@ -136,7 +137,8 @@ public struct KawarimiAPIClient: Sendable {
             isEnabled: isEnabled,
             body: body,
             contentType: contentType,
-            delayMs: delayMs
+            delayMs: delayMs,
+            failureMode: failureMode
         ) else {
             throw MockOverride.InvalidMethodStringError(rawMethod: method)
         }
