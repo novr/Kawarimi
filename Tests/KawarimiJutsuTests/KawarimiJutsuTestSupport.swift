@@ -198,13 +198,22 @@ func assertJSONDecoderAcceptsMockBody(_ json: String) throws {
     _ = try JSONDecoder().decode(AnyJSON.self, from: data)
 }
 
-/// Extracts `body: "..."` from the first `MockResponse` after the matching `operationId` in generated source.
+/// Extracts `body: "..."` from the first `MockResponse` in the matching endpoint's `responses` array.
 func mockResponseBodyJSONString(operationId: String, in source: String) -> String? {
-    let needle = "operationId: \"\(operationId)\""
-    guard let opRange = source.range(of: needle) else { return nil }
-    let after = source[opRange.upperBound...]
-    guard let bodyLabel = after.range(of: "body: \"") else { return nil }
-    return extractSwiftStringLiteral(startingAt: bodyLabel.upperBound, in: after)
+    guard let block = endpointBlock(operationId: operationId, in: source) else { return nil }
+    guard let responsesRange = block.range(of: "responses: [") else { return nil }
+    let responsesSection = block[responsesRange.lowerBound...]
+    guard let bodyLabel = responsesSection.range(of: "body: \"") else { return nil }
+    return extractSwiftStringLiteral(startingAt: bodyLabel.upperBound, in: responsesSection)
+}
+
+/// Extracts `body: "..."` from the first `SpecRequestBody` in the matching endpoint's `requestBodies` array.
+func mockRequestBodyJSONString(operationId: String, in source: String) -> String? {
+    guard let block = endpointBlock(operationId: operationId, in: source) else { return nil }
+    guard let requestBodiesRange = block.range(of: "requestBodies: [") else { return nil }
+    let section = block[requestBodiesRange.lowerBound...]
+    guard let bodyLabel = section.range(of: "body: \"") else { return nil }
+    return extractSwiftStringLiteral(startingAt: bodyLabel.upperBound, in: section)
 }
 
 func transportCaseBlock(operationId: String, in source: String) -> String? {
