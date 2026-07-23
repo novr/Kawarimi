@@ -763,6 +763,28 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(built.body == "{\"x\":1}")
 }
 
+@Test func savePayloadPreservesFailureMode() {
+    let endpoint = FakeSpecEndpoint(
+        path: "/p",
+        method: .get,
+        operationId: "op",
+        responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
+    )
+    let mock = MockOverride(
+        name: "op",
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: "{\"x\":1}",
+        contentType: "application/json",
+        failureMode: .hang
+    )
+    let built = SavePayload.build(mock: mock, endpoint: endpoint)
+    #expect(built.failureMode == .hang)
+}
+
 @Test func applyChipSpecClearsMock() {
     let endpoint = FakeSpecEndpoint(
         path: "/p",
@@ -771,7 +793,17 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{}", exampleId: nil, summary: nil, description: nil)]
     )
     let item = SpecEndpointItem(endpoint)
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 404, exampleId: "x", isEnabled: true, body: "{}", contentType: "application/json", delayMs: 500)
+    var mock = MockOverride(
+        path: "/p",
+        method: .get,
+        statusCode: 404,
+        exampleId: "x",
+        isEnabled: true,
+        body: "{}",
+        contentType: "application/json",
+        delayMs: 500,
+        failureMode: .hang
+    )
     let specOpt = ResponseChip(
         id: ResponseChip.specRowId,
         statusCode: -1,
@@ -792,6 +824,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.exampleId == nil)
     #expect(mock.body == nil)
     #expect(mock.delayMs == nil) // Spec selection must clear a stale delay
+    #expect(mock.failureMode == nil)
 }
 
 @Test func applyChipWithStoredRowCopiesStored() {
@@ -811,9 +844,20 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         isEnabled: false,
         body: "{\"k\":1}",
         contentType: "application/json",
-        delayMs: 500
+        delayMs: 500,
+        failureMode: .connectionClose
     )
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: true, body: nil, contentType: nil, delayMs: 999)
+    var mock = MockOverride(
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: true,
+        body: nil,
+        contentType: nil,
+        delayMs: 999,
+        failureMode: .hang
+    )
     let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: true)
     ResponseChips.applyChipSelection(
         option: rowOpt,
@@ -826,6 +870,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.isEnabled == false)
     #expect(mock.body == "{\"k\":1}")
     #expect(mock.delayMs == 500) // must adopt the stored row's delay, not keep the stale 999
+    #expect(mock.failureMode == .connectionClose)
 }
 
 @Test func applyChipWithoutStoredEnablesAndSeedsFromSpec() {
@@ -836,7 +881,17 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
         responseList: [FakeSpecResponse(statusCode: 200, contentType: "application/json", body: "{\"s\":true}", exampleId: nil, summary: nil, description: nil)]
     )
     let item = SpecEndpointItem(endpoint)
-    var mock = MockOverride(path: "/p", method: .get, statusCode: 200, exampleId: nil, isEnabled: false, body: nil, contentType: nil, delayMs: 500)
+    var mock = MockOverride(
+        path: "/p",
+        method: .get,
+        statusCode: 200,
+        exampleId: nil,
+        isEnabled: false,
+        body: nil,
+        contentType: nil,
+        delayMs: 500,
+        failureMode: .hang
+    )
     let rowOpt = ResponseChip(id: "200#__default", statusCode: 200, exampleId: nil, label: "200 OK", isInactive: false)
     ResponseChips.applyChipSelection(
         option: rowOpt,
@@ -850,6 +905,7 @@ private struct FakeSpecEndpoint: SpecEndpointProviding {
     #expect(mock.statusCode == 200)
     #expect(mock.body == "{\"s\":true}")
     #expect(mock.delayMs == nil) // New-custom branch must clear a stale delay
+    #expect(mock.failureMode == nil)
 }
 
 @Test func chipOptionsIncludeSpecAndSpecRows() {

@@ -446,6 +446,15 @@ Scenario definitions are loaded by the same store (read-only; not written by `co
 
 Each override may include optional **`delayMs`** (integer milliseconds, 1–60000). Omitted, `null`, `0`, or negative values mean no delay. The reference interceptor sleeps before returning the mock response.
 
+Optional **`failureMode`** simulates client-visible failures:
+
+| Value | Behavior |
+| --- | --- |
+| `hang` | Never returns a mock response (takes precedence over `delayMs`). Dev-only: can hold server workers while clients wait. |
+| `connectionClose` | Aborts the mock path before a response is sent. Exact wire behavior depends on the host HTTP stack (Vapor/Hummingbird vs URLSession). |
+
+Omit `failureMode` or set `null` for normal mock responses. HTTP **5xx** without a body still use `statusCode` with an empty/`null` body — there is no `httpError` enum in v1.
+
 Starter **`kawarimi.json`**, sample **`kawarimi-generator-config.yaml`**, and **`swift run DemoServer` working-directory notes** for this repository: [Example/README.md](../Example/README.md).
 
 Empty-string `body` / `contentType` on an override is normalized to “not set” when saved; at response time, an empty body falls back to the spec response.

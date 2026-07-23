@@ -54,6 +54,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
     public var contentType: String?
     /// Optional response delay in milliseconds before the mock body is returned.
     public var delayMs: Int?
+    /// Optional failure simulation; takes precedence over ``delayMs`` when set.
+    public var failureMode: MockFailureMode?
 
     public var hasEffectiveCustomBody: Bool { body.map { !$0.isEmpty } ?? false }
 
@@ -70,7 +72,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
         isEnabled: Bool = true,
         body: String? = nil,
         contentType: String? = nil,
-        delayMs: Int? = nil
+        delayMs: Int? = nil,
+        failureMode: MockFailureMode? = nil
     ) {
         self.name = name
         self.rowId = rowId
@@ -82,6 +85,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.body = body
         self.contentType = contentType
         self.delayMs = delayMs
+        self.failureMode = failureMode
     }
 
     /// Returns `nil` when `methodString` is not a valid HTTP method for ``HTTPRequest/Method``.
@@ -95,7 +99,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
         isEnabled: Bool = true,
         body: String? = nil,
         contentType: String? = nil,
-        delayMs: Int? = nil
+        delayMs: Int? = nil,
+        failureMode: MockFailureMode? = nil
     ) {
         let normalized = methodString.uppercased()
         guard let m = HTTPRequest.Method(normalized) else { return nil }
@@ -109,7 +114,8 @@ public struct MockOverride: Codable, Sendable, Equatable {
             isEnabled: isEnabled,
             body: body,
             contentType: contentType,
-            delayMs: delayMs
+            delayMs: delayMs,
+            failureMode: failureMode
         )
     }
 
@@ -124,6 +130,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         case body
         case contentType
         case delayMs
+        case failureMode
     }
 
     public init(from decoder: any Decoder) throws {
@@ -143,6 +150,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         self.body = try container.decodeIfPresent(String.self, forKey: .body)
         self.contentType = try container.decodeIfPresent(String.self, forKey: .contentType)
         self.delayMs = try container.decodeIfPresent(Int.self, forKey: .delayMs)
+        self.failureMode = try container.decodeIfPresent(MockFailureMode.self, forKey: .failureMode)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -157,6 +165,7 @@ public struct MockOverride: Codable, Sendable, Equatable {
         try container.encodeIfPresent(body, forKey: .body)
         try container.encodeIfPresent(contentType, forKey: .contentType)
         try container.encodeIfPresent(delayMs, forKey: .delayMs)
+        try container.encodeIfPresent(failureMode, forKey: .failureMode)
     }
 }
 

@@ -77,10 +77,8 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
                 scenarioIdHeaderRaw: request.headerFields[scenarioIdField],
                 kawarimiIdHeaderRaw: request.headerFields[kawarimiIdField]
             )
-            if case .matched(let resolved, let nextKawarimiId, let delayMs) = resolution {
-                if let ms = delayMs, ms > 0 {
-                    try await Task.sleep(for: .milliseconds(ms))
-                }
+            if case .matched(let resolved, let nextKawarimiId, let delayMs, let failureMode) = resolution {
+                try await applyMockTiming(failureMode: failureMode, delayMs: delayMs)
                 var response = HTTPResponse(status: .init(code: resolved.statusCode))
                 applyContentType(&response, resolved.contentType)
                 if let nextKawarimiId {
@@ -133,9 +131,7 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
             responseMap: responseMap,
             methodUppercased: request.method.rawValue.uppercased()
         )
-        if let ms = override.delayMs, ms > 0 {
-            try await Task.sleep(for: .milliseconds(ms))
-        }
+        try await applyMockTiming(failureMode: override.failureMode, delayMs: override.delayMs)
         var response = HTTPResponse(status: .init(code: resolved.statusCode))
         applyContentType(&response, resolved.contentType)
         applyProxyActionHeader(&response, action: KawarimiProxyHeaders.actionMock)
@@ -158,6 +154,13 @@ public struct KawarimiServerMiddleware: ServerMiddleware {
             return nil
         }
         return HTTPBody(resolved.body)
+    }
+
+    private func applyMockTiming(failureMode: MockFailureMode?, delayMs: Int?) async throws {
+        try await MockFailureBehavior.applyIfNeeded(failureMode)
+        if let ms = delayMs, ms > 0 {
+            try await Task.sleep(for: .milliseconds(ms))
+        }
     }
 
     private func logProxy(action: String, path: String, method: HTTPRequest.Method) {
