@@ -19,6 +19,7 @@
 | ケース | 合格条件 |
 |--------|----------|
 | メタデータ少なめ | ヘッダー + ツールバーが同時に見える。PARAMETERS（query）が表示される（`getGreeting` 相当） |
+| Request body あり | PARAMETERS の後に REQUEST BODY が表示され、ツールバーも見える（`createItem` 相当の POST） |
 | Security 多め | PARAMETERS（path / query / header）と長い SECURITY があってもツールバーが見える |
 | JSON 長文 | ツールバーが見え、JSON はエディタ内でスクロールする |
 

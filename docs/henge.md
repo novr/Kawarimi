@@ -63,6 +63,8 @@ KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (bo
 
 Each **`Endpoint.security`** is the **effective** OpenAPI security for that operation (global `security` inherited when the operation omits it; `security: []` means none). The `security` array is a list of **OR** alternatives; each `SecurityRequirement.schemes` entry is an **AND** group. For apiKey schemes, use `SecurityScheme.apiKeyName` for the HTTP header/query/cookie name; for `http` use `httpScheme` / `bearerFormat`; for openIdConnect use `openIdConnectURL`. OAuth2 flow URLs and scopes are not emitted. `ScopedSecurityScheme.name` is the components key.
 
+Each **`Endpoint.requestBodies`** (when present) lists supported **`application/json`** request body rows from OpenAPI: `required`, `contentType`, example `body` text, optional `exampleId` (named `examples`), and optional `description`. `nil` when the operation has no supported request body (multipart, unresolved `$ref`, and non-JSON media types are omitted at generation time).
+
 The generated **`SpecResponse`** type conforms to **`KawarimiFetchedSpec`** and also carries **`securitySchemes`** for the Henge wire JSON (`GET …/__kawarimi/spec`). Host code that still links a generated API module can decode the same wire JSON with **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`**.
 
 **Henge UI** uses **`KawarimiConfigView(client:)`** only: spec and endpoints come from **`GET …/__kawarimi/spec`** via Core **`HengeSpecSnapshot`** / **`fetchHengeSpec()`** — no generated **`SpecResponse`** in the Henge-only app target.
@@ -393,6 +395,7 @@ Pick an endpoint, then a **response row** (chips), edit JSON if needed, and tap 
 | Detail editor | One `MockOverride` in `OverrideDetailDraft` | Snapshot for the selected logical row, not the whole overrides array. |
 | Server / config row | `MockOverride` in `kawarimi.json` | Identity is **`rowId` first** (UUID). Legacy fallback: **`path` + `method` + `statusCode` + normalized `exampleId`** only when incoming `rowId` is nil. |
 | Persisted row ID (detail header) | `RowIdPresentation.displayRowId` | Shown when the selected chip matches a stored row with **`rowId`**; **Copy** places the UUID on the pasteboard (for `kawarimi-scenarios.json`). Spec-only or unsaved drafts omit the block. |
+| OpenAPI request body (detail header) | `RequestBodiesPresentation.displayLines` | Read-only **REQUEST BODY** band after **PARAMETERS** when `requestBodies` is non-empty (`application/json` rows from spec / admin wire). JSON text is not shown here — only `contentType`, required/optional, optional `exampleId`, and `description`. |
 | Default / unnamed example | `exampleId` nil (after trim) | Lookup uses reserved **`__default`**; UI “no example id”. |
 
 **Response chips:** OpenAPI **numbered** rows (status + named example) are always listed from the spec. **Supplemental** chips appear only for **stored** overrides that are not already represented (e.g. custom status codes). Disabled no-body “spec-follow” ghost rows are hidden from supplemental chips (**`OverrideListQueries.isSpecFollowGhostRow`**). **`ResponseChips.chipIsSelected`** (mock off) treats **`draftRepresentsSpecOnlyRowForSave`** like **Save** (empty or template-matching body) for highlighting **Spec**, unless **`OverrideDetailDraft.pinnedNumberedResponseChip`** is set (cleared on resync, successful **Save**, reset, and whenever the store changes the draft body or mock fields — `applyMockEdit`, **Format**).
@@ -419,6 +422,8 @@ Use **two** generated `Client` instances if you want both in-process mocks and a
 See **`KawarimiSpec` vs in-process `Kawarimi` transport** in [mock-json.md](mock-json.md).
 
 This repository includes **DemoServer** and **DemoApp** under **`Example/`** — see [Example/README.md](../Example/README.md).
+
+**DemoApp Try-it** (`OpenAPIExecuteView`) seeds the JSON body editor from **`requestBodies`** (`SpecRequestBodySelection.defaultJSONBodyText`) when the method shows a body editor — not from a success **response** example. Operations without `requestBodies` keep `"{}"`.
 
 If you need **one** client that switches real vs mock at runtime, implement a small `ClientTransport` wrapper in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
 

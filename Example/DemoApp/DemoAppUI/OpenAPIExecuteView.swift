@@ -610,8 +610,7 @@ struct OpenAPIExecuteView: View {
         pathParams = next
 
         if HTTPRequestBodyPolicy.shouldShowJSONBodyEditor(method: ep.method) {
-            let sample = ep.responses.filter { $0.statusCode < 400 }.first?.body
-            bodyText = (sample?.isEmpty == false) ? (sample ?? "{}") : "{}"
+            bodyText = SpecRequestBodySelection.defaultJSONBodyText(for: ep)
         } else {
             bodyText = ""
         }

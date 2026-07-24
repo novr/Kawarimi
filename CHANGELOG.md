@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KawarimiHenge / DemoApp:** Henge detail column shows read-only **REQUEST BODY** metadata from `requestBodies`; DemoApp Try-it seeds JSON body text from `requestBodies` instead of success response examples ([#226](https://github.com/novr/Kawarimi/issues/226)).
+- **KawarimiCore:** `SpecRequestBodySelection` picks the default `application/json` request body row for Try-it and related UIs ([#226](https://github.com/novr/Kawarimi/issues/226)).
 - **KawarimiCore / KawarimiServer / KawarimiHenge:** `MockOverride.failureMode` supports **`hang`** and **`connectionClose`** failure profiles, applied by `KawarimiServerMiddleware` and editable in the Henge detail header ([#225](https://github.com/novr/Kawarimi/issues/225)).
 - **KawarimiCore / KawarimiJutsu:** `KawarimiSpec` endpoints expose optional **`requestBodies`** metadata for `application/json` request bodies, using the same named-example rules as responses ([#223](https://github.com/novr/Kawarimi/issues/223)).
 

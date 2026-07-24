@@ -22,6 +22,7 @@ struct DetailColumnHeaderView: View {
             rowIdSection
             tagsDocumentationSection
             parametersDocumentationSection
+            requestBodiesDocumentationSection
             securityDocumentationSection
             detailTopChrome
             if model.showResponseBodyHeading {
@@ -138,6 +139,37 @@ struct DetailColumnHeaderView: View {
         if let lines = ParametersPresentation.displayLines(for: endpoint) {
             VStack(alignment: .leading, spacing: model.tightVertical ? 8 : 10) {
                 Text("PARAMETERS")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .tracking(0.6)
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+                        Text(line)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                    }
+                }
+            }
+            .padding(model.tightVertical ? 10 : 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(ExplorerPalette.surfaceElevated)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(ExplorerPalette.groupedFieldStroke, lineWidth: 1)
+                    .allowsHitTesting(false)
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var requestBodiesDocumentationSection: some View {
+        if let lines = RequestBodiesPresentation.displayLines(for: endpoint) {
+            VStack(alignment: .leading, spacing: model.tightVertical ? 8 : 10) {
+                Text("REQUEST BODY")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
                     .tracking(0.6)

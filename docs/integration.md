@@ -46,7 +46,7 @@ Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
 1. Bump pin to **`from: "2.5.0"`**.
 2. Regenerate **`KawarimiSpec.swift`** when using **`SpecEndpointProviding`** or **`SpecResponse`** — endpoints may expose optional **`parameters`** (path, query, header) ([#74](https://github.com/novr/Kawarimi/issues/74), [#123](https://github.com/novr/Kawarimi/pull/123)).
-3. **Henge** shows read-only **PARAMETERS** in the endpoint detail column.
+3. **Henge** shows read-only **PARAMETERS** and **REQUEST BODY** (`requestBodies`) in the endpoint detail column.
 4. Client-only or in-process **`Kawarimi()`** users need no change unless they use the spec endpoint or generated **`KawarimiSpec`** shape. See **[CHANGELOG.md](../CHANGELOG.md)** under **2.5.0**.
 
 **2.0.5 → 2.1.0** (additive):

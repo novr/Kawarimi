@@ -19,6 +19,7 @@ Open `Example/DemoApp/DemoAppUI/DetailColumnPreviews.swift` (DemoApp scheme).
 | | Pass when |
 |---|-----------|
 | Sparse metadata | Header + toolbar visible together; PARAMETERS with query (`getGreeting`-like) |
+| Request body documented | REQUEST BODY band after PARAMETERS; toolbar still visible (`createItem`-like POST) |
 | Security heavy | PARAMETERS (path / query / header), long SECURITY; toolbar still visible |
 | Long JSON | Toolbar visible; JSON scrolls inside the editor |
 
