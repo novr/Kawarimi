@@ -308,6 +308,16 @@ final class DemoServerE2ETests {
         #expect(hengeDelete.method == specDelete.method)
         #expect(hengeDelete.path == specDelete.path)
 
+        let specCreate = try #require(spec.endpoints.first { $0.operationId == "createItem" })
+        let hengeCreate = try #require(hengeSpec.endpoints.first { $0.operationId == "createItem" })
+        let specBodies = try #require(specCreate.requestBodies)
+        let hengeBodies = try #require(hengeCreate.requestBodies)
+        #expect(!specBodies.isEmpty)
+        #expect(hengeBodies.count == specBodies.count)
+        #expect(hengeBodies.first?.contentType == specBodies.first?.contentType)
+        #expect(hengeBodies.first?.body == specBodies.first?.body)
+        #expect(hengeBodies.first?.required == specBodies.first?.required)
+
     }
 
     @Test func configureWithNamedExampleIdReturnsSpecBody() async throws {

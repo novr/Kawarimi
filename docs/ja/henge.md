@@ -63,6 +63,8 @@ KawarimiSpec.responseMap      // "METHOD:/path" → [statusCode: [exampleId: (bo
 
 各 **`Endpoint.security`** はその operation の **effective** OpenAPI security です（operation で省略時はグローバル `security` を継承、`security: []` は認証なし）。`security` 配列の要素間は **OR**、各 `SecurityRequirement.schemes` 内は **AND** です。apiKey は `apiKeyName` / `apiKeyIn`、`http` は `httpScheme` / `bearerFormat`、openIdConnect は `openIdConnectURL`。OAuth2 の flow URL や scopes は載せません。`ScopedSecurityScheme.name` は components のキーです。
 
+各 **`Endpoint.requestBodies`**（あるとき）は OpenAPI 由来の対応 **`application/json`** 行の配列です（`required`、`contentType`、例の `body` 文字列、任意の `exampleId`（named `examples`）、任意の `description`）。対応する request body が無い operation では `nil`（multipart・未解決 `$ref`・非 JSON は生成時に省略）。
+
 生成される型 **`SpecResponse`** は **`KawarimiFetchedSpec`** に準拠し、Henge の wire JSON（`GET …/__kawarimi/spec`）用に **`securitySchemes`** も載せます。生成 API モジュールをリンクするホストコードは **`KawarimiAPIClient.fetchSpec(as: SpecResponse.self)`** で同じ wire JSON をデコードできます。
 
 **Henge UI** は **`KawarimiConfigView(client:)`** のみ: spec / endpoints は Core の **`HengeSpecSnapshot`** / **`fetchHengeSpec()`** 経由で **`GET …/__kawarimi/spec`** から取得し、Henge 専用ターゲットに生成 **`SpecResponse`** は不要です。
@@ -392,6 +394,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 | 詳細の編集対象 | `OverrideDetailDraft` 内の `MockOverride` 1 件 | 選択中の論理行のスナップショット。 |
 | サーバー / 設定の 1 行 | `kawarimi.json` の `MockOverride` | 同一視は **`rowId` 優先**（UUID）。legacy fallback は **入力 `rowId` が nil のときのみ** `path + method + statusCode + 正規化後 exampleId`。 |
 | 保存済み row ID（詳細ヘッダ） | `RowIdPresentation.displayRowId` | 選択チップが **`rowId` 付きの保存行**と一致するとき表示。**Copy** で UUID をクリップボードへ（`kawarimi-scenarios.json` 編集用）。Spec のみ・未保存ドラフトでは非表示。 |
+| OpenAPI request body（詳細ヘッダ） | `RequestBodiesPresentation.displayLines` | `requestBodies` があるとき **PARAMETERS** の直後に read-only の **REQUEST BODY** 帯を表示（spec / admin wire の `application/json` 行）。JSON 本文は出さず、`contentType`・required/optional・任意の `exampleId`・`description` のみ。 |
 | デフォルト / 無名の例 | `exampleId` が nil（空白正規化後も） | ルックアップは **`__default`**。 |
 
 **レスポンスチップ:** OpenAPI の**番号行**（ステータス＋名前付き例）は spec から常に表示。**追加チップ**は spec に無い**保存行**向け（カスタムステータス等）。本文なし無効の spec-follow ghost 行は追加チップから非表示（**`OverrideListQueries.isSpecFollowGhostRow`**）。**モックオフ**時の **`ResponseChips.chipIsSelected`** は **Save** と同じ **`draftRepresentsSpecOnlyRowForSave`**（本文空またはテンプレ一致）で **Spec** を光らせる。**`OverrideDetailDraft.pinnedNumberedResponseChip`** が立っていれば番号チップ優先（**再同期・Save 成功・Reset**、ストアが本文やモックを変えたとき — **`applyMockEdit`**、**整形（Format）** でクリア）。
@@ -418,6 +421,8 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 詳しくは [mock-json.md](mock-json.md) の **「`KawarimiSpec` とインプロセス `Kawarimi` トランスポート」**を参照してください。
 
 参照の **DemoServer** と **DemoApp** は **`Example/`** にあります: [Example/README_JA.md](../../Example/README_JA.md)。
+
+**DemoApp Try-it**（`OpenAPIExecuteView`）は、body エディタを出すメソッドで JSON 初期値を **`requestBodies`**（`SpecRequestBodySelection.defaultJSONBodyText`）から入れます。成功 **response** 例は使いません。`requestBodies` が無い operation は `"{}"` のままです。
 
 **1つの**クライアントで実／モックを実行時に切り替えたい場合は、アプリ側で `ClientTransport` に準拠する薄いラッパーを自作し、`URLSessionTransport` に委譲しつつ `baseURL` やヘッダーを選ぶ形にしてください。
 

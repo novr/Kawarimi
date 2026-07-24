@@ -13,6 +13,7 @@ enum DetailColumnPreviewFixtures {
         case sparseMetadata
         case securityHeavy
         case longJSON
+        case requestBodyDocumented
     }
 
     private struct PreviewFakeResponse: SpecMockResponseProviding {
@@ -51,6 +52,7 @@ enum DetailColumnPreviewFixtures {
         var tags: [String]?
         var security: [any SpecSecurityRequirementProviding]?
         var parameters: [SpecParameter]?
+        var requestBodies: [SpecRequestBody]? = nil
         var responseList: [any SpecMockResponseProviding]
     }
 
@@ -97,6 +99,10 @@ enum DetailColumnPreviewFixtures {
 
     static var longJSONChrome: DetailColumnChromeFixture {
         chromeFixture(for: .longJSON)
+    }
+
+    static var requestBodyChrome: DetailColumnChromeFixture {
+        chromeFixture(for: .requestBodyDocumented)
     }
 
     static var sparseHeader: DetailColumnChromeFixture {
@@ -172,6 +178,33 @@ enum DetailColumnPreviewFixtures {
             )
         case .longJSON:
             return endpoint(for: .sparseMetadata)
+        case .requestBodyDocumented:
+            return PreviewFakeEndpoint(
+                path: "/items",
+                method: .post,
+                operationId: "createItem",
+                tags: ["Items"],
+                security: [],
+                parameters: [],
+                requestBodies: [
+                    SpecRequestBody(
+                        required: true,
+                        contentType: "application/json",
+                        body: #"{"name":""}"#,
+                        description: "Create payload"
+                    ),
+                ],
+                responseList: [
+                    PreviewFakeResponse(
+                        statusCode: 201,
+                        contentType: "application/json",
+                        body: #"{"id":"1","name":"Widget"}"#,
+                        exampleId: nil,
+                        summary: "Created",
+                        description: nil
+                    ),
+                ]
+            )
         }
     }
 
@@ -208,6 +241,17 @@ enum DetailColumnPreviewFixtures {
                 exampleId: "success",
                 isEnabled: true,
                 body: longJsonBody,
+                contentType: "application/json"
+            )
+        case .requestBodyDocumented:
+            return MockOverride(
+                name: "createItem",
+                path: endpoint.path,
+                method: endpoint.method,
+                statusCode: 201,
+                exampleId: nil,
+                isEnabled: true,
+                body: #"{"id":"1","name":"Widget"}"#,
                 contentType: "application/json"
             )
         }

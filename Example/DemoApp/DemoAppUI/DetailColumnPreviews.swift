@@ -29,6 +29,15 @@ import SwiftUI
     )
 }
 
+#Preview("Detail column — request body") {
+    let fixture = DetailColumnPreviewFixtures.requestBodyChrome
+    DetailColumnPreviewCanvas.chrome(
+        endpoint: fixture.endpoint,
+        initialMock: fixture.initialMock,
+        securityCatalog: fixture.securityCatalog
+    )
+}
+
 #Preview("Detail column header — sparse") {
     let fixture = DetailColumnPreviewFixtures.sparseHeader
     DetailColumnPreviewCanvas.header(
