@@ -307,8 +307,8 @@ struct KawarimiClientOrchestrationMiddlewareTests {
 
         await waitForBoth
         await gate.release(task: 2)
-        await gate.release(task: 1)
         _ = try await second
+        await gate.release(task: 1)
         _ = try await first
 
         _ = try await middleware.intercept(
