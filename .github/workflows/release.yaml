@@ -276,7 +276,7 @@ jobs:
     name: Dispatch formula update
     needs: [publish, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
-    uses: novr/homebrew-taps/.github/workflows/dispatch-formula.yml@main
+    uses: novr/homebrew-taps/.github/workflows/dispatch-formula.yml@e3891938391b6cdaa8b7669d7e4ef444d988865c
     with:
       formula: kawarimi-validate
       version: ${{ needs.build-macos.outputs.version }}
