@@ -276,17 +276,11 @@ jobs:
     name: Dispatch formula update
     needs: [publish, build-macos]
     if: startsWith(github.ref, 'refs/tags/')
-    uses: novr/homebrew-taps/.github/workflows/dispatch-formula.yml@e3891938391b6cdaa8b7669d7e4ef444d988865c
+    uses: novr/homebrew-taps/.github/workflows/dispatch-formula.yml@3c774dfd3408b2bf7ecd66ea045d9f85ac3e6ac4
     with:
       formula: kawarimi-validate
       version: ${{ needs.build-macos.outputs.version }}
-      url: https://github.com/novr/Kawarimi/releases/download/${{ needs.build-macos.outputs.tag }}/${{ needs.build-macos.outputs.asset }}
       sha256: ${{ needs.build-macos.outputs.sha256 }}
-      desc: "Fail on structural mock/scenario JSON issues that runtime only warns about."
-      binary: kawarimi-validate
-      test_match: kawarimi-validate
-      source_repo: novr/Kawarimi
-      license: MIT
     secrets:
       NOVRD_BOT_CLIENT_ID: ${{ secrets.NOVRD_BOT_CLIENT_ID }}
       NOVRD_BOT_KEY: ${{ secrets.NOVRD_BOT_KEY }}
