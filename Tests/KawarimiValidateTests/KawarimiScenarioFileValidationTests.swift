@@ -57,11 +57,12 @@ struct KawarimiScenarioFileValidationTests {
             configPath: configPath.path,
             scenariosPath: scenariosPath.path
         )
-        guard case .warnings(let messages) = status else {
-            Issue.record("Expected warnings, got \(status)")
+        guard case .issues(let errors, let warnings) = status else {
+            Issue.record("Expected issues, got \(status)")
             return
         }
-        #expect(messages.contains(where: { $0.contains("rowId") && $0.contains("not found") }))
+        #expect(errors.isEmpty)
+        #expect(warnings.contains(where: { $0.contains("rowId") && $0.contains("not found") }))
     }
 
     @Test func succeedsWhenConfigIncludesFailureMode() throws {
@@ -139,5 +140,71 @@ struct KawarimiScenarioFileValidationTests {
             return
         }
         #expect(message.contains("Scenarios file not found"))
+    }
+
+    @Test func promotesOrphanRowIdToErrorWithSpecSnapshot() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-spec-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        let scenariosPath = dir.appendingPathComponent("kawarimi-scenarios.json")
+        let specPath = dir.appendingPathComponent("spec.json")
+
+        try #"{"overrides": []}"#.write(to: configPath, atomically: true, encoding: .utf8)
+        try """
+        {
+          "scenarios": [
+            {
+              "scenarioId": "login",
+              "initial": "start",
+              "cases": [
+                {
+                  "kawarimiId": "start",
+                  "rowId": "00000000-0000-0000-0000-000000000099",
+                  "endpoint": { "method": "POST", "path": "/api/login" }
+                }
+              ]
+            }
+          ]
+        }
+        """.write(to: scenariosPath, atomically: true, encoding: .utf8)
+        try """
+        {
+          "meta": {
+            "title": "Test",
+            "version": "1",
+            "serverURL": "https://localhost/api",
+            "apiPathPrefix": "/api"
+          },
+          "endpoints": [
+            {
+              "path": "/api/login",
+              "method": "POST",
+              "operationId": "login",
+              "responses": [
+                {
+                  "statusCode": 200,
+                  "contentType": "application/json",
+                  "body": "{}"
+                }
+              ]
+            }
+          ]
+        }
+        """.write(to: specPath, atomically: true, encoding: .utf8)
+
+        let status = KawarimiScenarioFileValidation.validate(
+            configPath: configPath.path,
+            scenariosPath: scenariosPath.path,
+            specSnapshotPath: specPath.path
+        )
+        guard case .issues(let errors, let warnings) = status else {
+            Issue.record("Expected issues, got \(status)")
+            return
+        }
+        #expect(errors.contains(where: { $0.contains("rowId") && $0.contains("not found in overrides") }))
+        #expect(warnings.isEmpty)
     }
 }

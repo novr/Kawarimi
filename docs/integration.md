@@ -88,6 +88,16 @@ brew install novr/taps/kawarimi-validate
 kawarimi-validate --config path/to/kawarimi.json --scenarios path/to/kawarimi-scenarios.json
 ```
 
+Optional generated-spec cross-check (pass `HengeSpecSnapshot`-compatible JSON — e.g. encode your host `SpecResponse` or `GET …/__kawarimi/spec` bytes):
+
+```bash
+kawarimi-validate --config path/to/kawarimi.json \
+  --scenarios path/to/kawarimi-scenarios.json \
+  --spec-snapshot path/to/spec.json
+```
+
+Example CI pipeline: `swift build` → export wire JSON → validate with `--spec-snapshot` (see `Example/DemoPackage` `DemoSpecWireExport`).
+
 Release assets: `kawarimi-validate_{version}_darwin.tar.gz` on [GitHub Releases](https://github.com/novr/Kawarimi/releases).
 
 **Linux CI:** keep using `swift run KawarimiValidate` from a package that lists Kawarimi under `dependencies` (see [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)).

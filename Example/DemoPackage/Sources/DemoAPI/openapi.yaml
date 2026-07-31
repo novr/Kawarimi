@@ -98,6 +98,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                validation_error:
+                  value:
+                    code: "VALIDATION_ERROR"
+                    message: "Invalid item"
   /items/{id}:
     get:
       tags: ["Items"]

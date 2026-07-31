@@ -26,6 +26,11 @@ var targets: [Target] = [
         ]
     ),
     .executableTarget(
+        name: "DemoSpecWireExport",
+        dependencies: ["DemoAPI"],
+        swiftSettings: [.unsafeFlags(["-parse-as-library"])]
+    ),
+    .executableTarget(
         name: "DemoServer",
         dependencies: [
             "DemoAPI",

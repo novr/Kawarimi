@@ -88,6 +88,16 @@ brew install novr/taps/kawarimi-validate
 kawarimi-validate --config path/to/kawarimi.json --scenarios path/to/kawarimi-scenarios.json
 ```
 
+生成 Spec との突合（任意）— `HengeSpecSnapshot` 互換 JSON（ホストの `SpecResponse` の encode 結果や `GET …/__kawarimi/spec` の bytes）を渡す:
+
+```bash
+kawarimi-validate --config path/to/kawarimi.json \
+  --scenarios path/to/kawarimi-scenarios.json \
+  --spec-snapshot path/to/spec.json
+```
+
+Example CI: `swift build` → wire JSON 出力 → `--spec-snapshot` で validate（`Example/DemoPackage` の `DemoSpecWireExport`）。
+
 Release 成果物: [GitHub Releases](https://github.com/novr/Kawarimi/releases) の `kawarimi-validate_{version}_darwin.tar.gz`。
 
 **Linux CI:** 従来どおり `dependencies` に Kawarimi を載せたうえで `swift run KawarimiValidate`（[skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)）。

@@ -3,14 +3,14 @@ import Foundation
 public enum KawarimiScenarioFileValidation {
     public enum Status: Sendable, Equatable {
         case success
-        case warnings([String])
+        case issues(errors: [String], warnings: [String])
         case fatal(String)
 
         public var exitCode: Int32 {
             switch self {
             case .success:
                 0
-            case .warnings:
+            case .issues:
                 1
             case .fatal:
                 2
@@ -21,7 +21,8 @@ public enum KawarimiScenarioFileValidation {
     public static func validate(
         configPath: String,
         scenariosPath: String,
-        requireScenariosFile: Bool = false
+        requireScenariosFile: Bool = false,
+        specSnapshotPath: String? = nil
     ) -> Status {
         guard FileManager.default.fileExists(atPath: configPath) else {
             return .fatal("Config file not found: \(configPath)")
@@ -56,13 +57,52 @@ public enum KawarimiScenarioFileValidation {
             scenarios = []
         }
 
-        let warnings = KawarimiScenarioValidation.warnings(
+        var warnings = KawarimiScenarioValidation.warnings(
             scenarios: scenarios,
             overrides: config.overrides
         )
-        if warnings.isEmpty {
+        var errors: [String] = []
+
+        if let specSnapshotPath {
+            let trimmed = specSnapshotPath.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                return .fatal("Spec snapshot path is empty")
+            }
+            guard FileManager.default.fileExists(atPath: trimmed) else {
+                return .fatal("Spec snapshot file not found: \(trimmed)")
+            }
+
+            let specData: Data
+            do {
+                specData = try Data(contentsOf: URL(fileURLWithPath: trimmed))
+            } catch {
+                return .fatal("Failed to read spec snapshot at \(trimmed): \(error.localizedDescription)")
+            }
+
+            let spec: HengeSpecSnapshot
+            do {
+                spec = try JSONDecoder().decode(HengeSpecSnapshot.self, from: specData)
+            } catch {
+                return .fatal("Invalid spec snapshot at \(trimmed): \(error.localizedDescription)")
+            }
+
+            let crossCheck = KawarimiSpecCrossCheck.validate(
+                overrides: config.overrides,
+                scenarios: scenarios,
+                spec: spec
+            )
+            errors = crossCheck.errors
+            warnings = warnings.filter { !isRowIdOrphanMessage($0) }
+            warnings.append(contentsOf: crossCheck.warnings)
+        }
+
+        if errors.isEmpty && warnings.isEmpty {
             return .success
         }
-        return .warnings(warnings)
+        return .issues(errors: errors, warnings: warnings)
+    }
+
+    private static func isRowIdOrphanMessage(_ message: String) -> Bool {
+        message.contains("rowId") && message.contains("not found in overrides")
     }
 }

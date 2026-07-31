@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KawarimiValidate:** optional `--spec-snapshot` cross-checks overrides and scenarios against `HengeSpecSnapshot`-compatible JSON ([#227](https://github.com/novr/Kawarimi/issues/227)).
+- **KawarimiCore:** `KawarimiSpecCrossCheck` validates override endpoints, `exampleId` keys, and scenario `rowId` / endpoint presence against a fetched spec ([#227](https://github.com/novr/Kawarimi/issues/227)).
+- **Example:** `DemoSpecWireExport` prints generated spec wire JSON for CI validate pipelines ([#227](https://github.com/novr/Kawarimi/issues/227)).
 - **KawarimiHenge / DemoApp:** Henge detail column shows read-only **REQUEST BODY** metadata from `requestBodies`; DemoApp Try-it seeds JSON body text from `requestBodies` instead of success response examples ([#226](https://github.com/novr/Kawarimi/issues/226)).
 - **KawarimiCore:** `SpecRequestBodySelection` picks the default `application/json` request body row for Try-it and related UIs ([#226](https://github.com/novr/Kawarimi/issues/226)).
 - **KawarimiCore / KawarimiServer / KawarimiHenge:** `MockOverride.failureMode` supports **`hang`** and **`connectionClose`** failure profiles, applied by `KawarimiServerMiddleware` and editable in the Henge detail header ([#225](https://github.com/novr/Kawarimi/issues/225)).
@@ -17,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Example:** `createItem` OpenAPI `400` adds named `validation_error` example so Example overrides align with generated spec under `--spec-snapshot` ([#227](https://github.com/novr/Kawarimi/issues/227)).
 - **KawarimiJutsu:** `KawarimiSpec` emits faithful **204 / no-content** rows (`body` and `contentType` empty) and non-JSON media types with the actual `contentType` instead of `{}` + `application/json` ([#224](https://github.com/novr/Kawarimi/issues/224)).
 - **KawarimiServer:** mock responses omit the `Content-Type` header when the resolved spec row has an empty `contentType`, and omit the body when both `contentType` and `body` are empty ([#224](https://github.com/novr/Kawarimi/issues/224)).
 

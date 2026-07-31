@@ -71,9 +71,16 @@ jobs:
 
       - name: Validate Example scenario fixtures
         run: |
+          set -euo pipefail
+          cd Example/DemoPackage
+          swift build
+          SPEC_SNAPSHOT="$(mktemp)"
+          swift run DemoSpecWireExport > "$SPEC_SNAPSHOT"
+          cd "$GITHUB_WORKSPACE"
           swift run KawarimiValidate \
             --config Example/DemoPackage/kawarimi.json.example \
-            --scenarios Example/DemoPackage/kawarimi-scenarios.json
+            --scenarios Example/DemoPackage/kawarimi-scenarios.json \
+            --spec-snapshot "$SPEC_SNAPSHOT"
 
   demo-package:
     name: Swift Test (Example/DemoPackage)
