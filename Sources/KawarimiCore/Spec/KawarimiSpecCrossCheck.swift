@@ -36,6 +36,8 @@ public enum KawarimiSpecCrossCheck {
                 )
                 continue
             }
+            // Custom body skips responseMap at runtime — do not require exampleId there.
+            if override.hasEffectiveCustomBody { continue }
             let want = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: override.exampleId)
             if !exampleKeys.contains(want) {
                 let exampleLabel = override.exampleId ?? "(default)"

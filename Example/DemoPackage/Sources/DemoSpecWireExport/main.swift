@@ -1,6 +1,7 @@
 #if os(macOS) || os(Linux)
 import DemoAPI
 import Foundation
+import KawarimiCore
 
 @main
 enum DemoSpecWireExport {
@@ -11,6 +12,7 @@ enum DemoSpecWireExport {
             securitySchemes: KawarimiSpec.securitySchemes
         )
         let data = try JSONEncoder().encode(response)
+        try KawarimiAdminSpecWire.validate(data)
         try FileHandle.standardOutput.write(contentsOf: data)
     }
 }

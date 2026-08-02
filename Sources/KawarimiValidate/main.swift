@@ -26,7 +26,17 @@ struct KawarimiValidateCommand: ParsableCommand {
             configAbsolutePath: configPath
         )
         let requireScenariosFile = KawarimiScenarioDefaults.pathIsExplicit(cliExplicit: scenarios)
-        let specSnapshotPath = Self.resolvedOptionalPath(explicit: specSnapshot)
+        let specSnapshotPath: String?
+        if let raw = specSnapshot {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                StandardError.write("Spec snapshot path is empty")
+                throw ExitCode(2)
+            }
+            specSnapshotPath = Self.resolveAbsolutePath(trimmed)
+        } else {
+            specSnapshotPath = nil
+        }
 
         let status = KawarimiScenarioFileValidation.validate(
             configPath: configPath,
@@ -59,13 +69,6 @@ struct KawarimiValidateCommand: ParsableCommand {
         }
         let cwd = FileManager.default.currentDirectoryPath
         return (cwd as NSString).appendingPathComponent(expanded)
-    }
-
-    static func resolvedOptionalPath(explicit: String?) -> String? {
-        guard let explicit else { return nil }
-        let trimmed = explicit.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return resolveAbsolutePath(trimmed)
     }
 
     static func resolvedConfigPath(explicit: String?) -> String {

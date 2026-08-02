@@ -22,7 +22,8 @@ Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI unle
 | Check | Severity |
 | --- | --- |
 | Override `path` + `method` exists in spec endpoints | error |
-| Override `exampleId` exists for `statusCode` on that endpoint | error |
+| Override `statusCode` exists on that endpoint | error |
+| Override `exampleId` exists for that status (skipped when override has a non-empty custom `body`, same as runtime) | error |
 | Scenario `rowId` exists in overrides | error |
 | Scenario case `path` + `method` exists in spec endpoints | warning |
 
@@ -31,8 +32,9 @@ Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI unle
 | Default scenarios path missing (no `--scenarios`, no `KAWARIMI_SCENARIOS_CONFIG`) | Overrides-only edits should still pass |
 | `--scenarios` or `KAWARIMI_SCENARIOS_CONFIG` points at missing file | Typo must not masquerade as empty scenarios → exit `2` |
 | Config missing / bad JSON | Nothing to cross-check reliably → exit `2` |
-| `--spec-snapshot` missing or invalid JSON | Exit `2` |
+| `--spec-snapshot` empty, missing, or invalid JSON | Exit `2` |
 | Unused overrides | Allowed — presets need not appear in scenarios |
+| Disabled overrides (`isEnabled: false`) | Still cross-checked — stale presets should not drift from the contract |
 
 ## Not checked
 

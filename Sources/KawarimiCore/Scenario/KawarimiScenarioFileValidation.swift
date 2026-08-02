@@ -3,6 +3,10 @@ import Foundation
 public enum KawarimiScenarioFileValidation {
     public enum Status: Sendable, Equatable {
         case success
+        /// Structural or cross-check findings. Prefer this over the removed `.warnings` case.
+        /// - Parameters:
+        ///   - errors: Fatal-for-CI messages (printed to stderr when using KawarimiValidate).
+        ///   - warnings: Soft findings (printed to stdout). Either non-empty → exit code `1`.
         case issues(errors: [String], warnings: [String])
         case fatal(String)
 
@@ -57,9 +61,11 @@ public enum KawarimiScenarioFileValidation {
             scenarios = []
         }
 
+        let usingSpecSnapshot = specSnapshotPath != nil
         var warnings = KawarimiScenarioValidation.warnings(
             scenarios: scenarios,
-            overrides: config.overrides
+            overrides: config.overrides,
+            includeRowIdChecks: !usingSpecSnapshot
         )
         var errors: [String] = []
 
@@ -92,7 +98,6 @@ public enum KawarimiScenarioFileValidation {
                 spec: spec
             )
             errors = crossCheck.errors
-            warnings = warnings.filter { !isRowIdOrphanMessage($0) }
             warnings.append(contentsOf: crossCheck.warnings)
         }
 
@@ -100,9 +105,5 @@ public enum KawarimiScenarioFileValidation {
             return .success
         }
         return .issues(errors: errors, warnings: warnings)
-    }
-
-    private static func isRowIdOrphanMessage(_ message: String) -> Bool {
-        message.contains("rowId") && message.contains("not found in overrides")
     }
 }

@@ -70,11 +70,13 @@ jobs:
         run: swift test
 
       - name: Validate Example scenario fixtures
+        shell: bash
         run: |
           set -euo pipefail
           cd Example/DemoPackage
-          swift build
+          swift build --product DemoSpecWireExport
           SPEC_SNAPSHOT="$(mktemp)"
+          trap 'rm -f "$SPEC_SNAPSHOT"' EXIT
           swift run DemoSpecWireExport > "$SPEC_SNAPSHOT"
           cd "$GITHUB_WORKSPACE"
           swift run KawarimiValidate \

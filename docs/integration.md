@@ -96,7 +96,9 @@ kawarimi-validate --config path/to/kawarimi.json \
   --spec-snapshot path/to/spec.json
 ```
 
-Example CI pipeline: `swift build` → export wire JSON → validate with `--spec-snapshot` (see `Example/DemoPackage` `DemoSpecWireExport`).
+Cross-check requires override `path`/`method`/`statusCode` (and `exampleId` unless the override has a non-empty custom `body`) to exist on the snapshot. Empty `--spec-snapshot` exits `2`.
+
+Example CI pipeline: `swift build --product DemoSpecWireExport` → export wire JSON → validate with `--spec-snapshot` (see `Example/DemoPackage` `DemoSpecWireExport`).
 
 Release assets: `kawarimi-validate_{version}_darwin.tar.gz` on [GitHub Releases](https://github.com/novr/Kawarimi/releases).
 

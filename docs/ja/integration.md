@@ -96,7 +96,9 @@ kawarimi-validate --config path/to/kawarimi.json \
   --spec-snapshot path/to/spec.json
 ```
 
-Example CI: `swift build` → wire JSON 出力 → `--spec-snapshot` で validate（`Example/DemoPackage` の `DemoSpecWireExport`）。
+突合では override の `path` / `method` / `statusCode`（および非空のカスタム `body` が無い場合の `exampleId`）が snapshot に存在する必要がある。空の `--spec-snapshot` は exit `2`。
+
+Example CI: `swift build --product DemoSpecWireExport` → wire JSON 出力 → `--spec-snapshot` で validate（`Example/DemoPackage` の `DemoSpecWireExport`）。
 
 Release 成果物: [GitHub Releases](https://github.com/novr/Kawarimi/releases) の `kawarimi-validate_{version}_darwin.tar.gz`。
 
