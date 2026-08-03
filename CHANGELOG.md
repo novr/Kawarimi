@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **KawarimiJutsu:** handler stubs emit a Swift `String` literal for OpenAPI `format: date` fields (swift-openapi-generator maps these to `String`, not `Date`); `format: date-time` still uses `Date(timeIntervalSince1970:)` ([#237](https://github.com/novr/Kawarimi/issues/237)).
+
 ## [4.0.0] - 2026-08-03
 
 ### Added

@@ -139,7 +139,7 @@ enum OpenAPIDateMockSupport {
                     reason: "no example string"
                 )
             )
-            return "Date(timeIntervalSince1970: 0)"
+            return dateOnlyFallbackLiteral(dateOnly: dateOnly)
         }
         guard let date = parseOpenAPIDateExample(s, dateOnly: dateOnly) else {
             handlerStubWarnings.append(
@@ -149,10 +149,20 @@ enum OpenAPIDateMockSupport {
                     reason: "parse failed for example"
                 )
             )
-            return "Date(timeIntervalSince1970: 0)"
+            return dateOnlyFallbackLiteral(dateOnly: dateOnly)
         }
-        let interval = date.timeIntervalSince1970
-        return "Date(timeIntervalSince1970: \(interval))"
+        // format: date maps to Swift.String in swift-openapi-generator; format: date-time maps to Date.
+        if dateOnly {
+            return jsonEncodedStringFragment(s)
+        }
+        return "Date(timeIntervalSince1970: \(date.timeIntervalSince1970))"
+    }
+
+    private static func dateOnlyFallbackLiteral(dateOnly: Bool) -> String {
+        if dateOnly {
+            return jsonEncodedStringFragment("1970-01-01")
+        }
+        return "Date(timeIntervalSince1970: 0)"
     }
 
     static func jsonFragmentForDateSchema(

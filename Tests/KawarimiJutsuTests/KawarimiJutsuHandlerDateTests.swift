@@ -6,28 +6,38 @@ struct InlineDateExampleCase: Sendable {
     let fixtureName: String
     let witnessName: String
     let forbiddenSubstrings: [String]
+    let requiredSubstrings: [String]
+    let expectsDateLiteral: Bool
 }
 
 private let inlineDateExampleCases: [InlineDateExampleCase] = [
     InlineDateExampleCase(
         fixtureName: "openapi-datetime-response",
         witnessName: "onGetSnapshot",
-        forbiddenSubstrings: ["updatedAt: \"2025"]
+        forbiddenSubstrings: ["updatedAt: \"2025"],
+        requiredSubstrings: [],
+        expectsDateLiteral: true
     ),
     InlineDateExampleCase(
         fixtureName: "openapi-datetime-edge-zulu",
         witnessName: "onGetDateTimeZulu",
-        forbiddenSubstrings: ["t: \"2025"]
+        forbiddenSubstrings: ["t: \"2025"],
+        requiredSubstrings: [],
+        expectsDateLiteral: true
     ),
     InlineDateExampleCase(
         fixtureName: "openapi-datetime-edge-fractional",
         witnessName: "onGetDateTimeFractional",
-        forbiddenSubstrings: ["t: \"2025"]
+        forbiddenSubstrings: ["t: \"2025"],
+        requiredSubstrings: [],
+        expectsDateLiteral: true
     ),
     InlineDateExampleCase(
         fixtureName: "openapi-datetime-edge-date-only",
         witnessName: "onGetDateOnlyField",
-        forbiddenSubstrings: ["day: \"2025"]
+        forbiddenSubstrings: ["Date(timeIntervalSince1970:"],
+        requiredSubstrings: ["day: \"2025-11-30\""],
+        expectsDateLiteral: false
     ),
 ]
 
@@ -36,6 +46,7 @@ struct InlineDateWarningCase: Sendable {
     let witnessName: String
     let operationId: String
     let warningSubstring: String
+    let expectedFallbackSubstring: String
 }
 
 private let inlineDateWarningCases: [InlineDateWarningCase] = [
@@ -43,13 +54,22 @@ private let inlineDateWarningCases: [InlineDateWarningCase] = [
         fixtureName: "openapi-datetime-no-example",
         witnessName: "onGetSnapshotNoExample",
         operationId: "getSnapshotNoExample",
-        warningSubstring: "epoch 0"
+        warningSubstring: "epoch 0",
+        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)"
     ),
     InlineDateWarningCase(
         fixtureName: "openapi-datetime-edge-unparseable",
         witnessName: "onGetDateTimeUnparseable",
         operationId: "getDateTimeUnparseable",
-        warningSubstring: "parse failed"
+        warningSubstring: "parse failed",
+        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)"
+    ),
+    InlineDateWarningCase(
+        fixtureName: "openapi-datetime-edge-date-only-no-example",
+        witnessName: "onGetDateOnlyNoExample",
+        operationId: "getDateOnlyNoExample",
+        warningSubstring: "epoch 0",
+        expectedFallbackSubstring: "day: \"1970-01-01\""
     ),
 ]
 
@@ -93,7 +113,9 @@ func kawarimiHandlerInlineDateLiteralWithExample(case sample: InlineDateExampleC
     KawarimiJutsuTestSupport.assertHandlerInlineDateStub(
         source: source,
         witnessName: sample.witnessName,
-        forbiddenSubstrings: sample.forbiddenSubstrings
+        forbiddenSubstrings: sample.forbiddenSubstrings,
+        requiredSubstrings: sample.requiredSubstrings,
+        expectsDateLiteral: sample.expectsDateLiteral
     )
 }
 
@@ -108,8 +130,12 @@ func kawarimiHandlerInlineDateWarningsAndEpochZero(case sample: InlineDateWarnin
     #expect(!warnings.isEmpty)
     #expect(warnings.joined().contains(sample.warningSubstring))
     #expect(warnings.joined().contains(sample.operationId))
-    KawarimiJutsuTestSupport.assertHandlerInlineDateStub(source: source, witnessName: sample.witnessName)
-    #expect(source.contains("Date(timeIntervalSince1970: 0)"))
+    KawarimiJutsuTestSupport.assertHandlerInlineDateStub(
+        source: source,
+        witnessName: sample.witnessName,
+        expectsDateLiteral: sample.expectedFallbackSubstring.contains("Date(timeIntervalSince1970:")
+    )
+    #expect(source.contains(sample.expectedFallbackSubstring))
 }
 
 @Test(arguments: inlineDateStructureCases)
@@ -129,4 +155,15 @@ func kawarimiHandlerInlineDateStructuredBodies(case sample: InlineDateStructureC
     for check in sample.extraChecks {
         #expect(source.contains(check))
     }
+}
+
+@Test func kawarimiHandlerFormatDateStubTypechecksAsString() throws {
+    try KawarimiJutsuTestSupport.assertSwiftSnippetTypechecks(
+        """
+        struct StubBody {
+            init(releasedOn: String) {}
+        }
+        let _ = StubBody(releasedOn: "2025-02-14")
+        """
+    )
 }
