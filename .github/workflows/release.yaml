@@ -221,9 +221,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          SPEC_SNAPSHOT="$(mktemp)"
+          trap 'rm -f "$SPEC_SNAPSHOT"' EXIT
+          (
+            cd Example/DemoPackage
+            swift build --product DemoSpecWireExport
+            swift run DemoSpecWireExport > "$SPEC_SNAPSHOT"
+          )
           ./dist/kawarimi-validate \
             --config Example/DemoPackage/kawarimi.json.example \
-            --scenarios Example/DemoPackage/kawarimi-scenarios.json
+            --scenarios Example/DemoPackage/kawarimi-scenarios.json \
+            --spec-snapshot "$SPEC_SNAPSHOT"
 
       - name: Package release asset
         id: package

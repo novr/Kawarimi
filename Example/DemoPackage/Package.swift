@@ -7,6 +7,7 @@ let linuxCI = Context.environment["KAWARIMI_LINUX_CI"] == "1"
 var products: [Product] = [
     .library(name: "DemoAPI", targets: ["DemoAPI"]),
     .library(name: "DemoSupport", targets: ["DemoSupport"]),
+    .executable(name: "DemoSpecWireExport", targets: ["DemoSpecWireExport"]),
 ]
 
 var targets: [Target] = [
@@ -24,6 +25,14 @@ var targets: [Target] = [
             .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator"),
             .plugin(name: "KawarimiPlugin", package: "Kawarimi"),
         ]
+    ),
+    .executableTarget(
+        name: "DemoSpecWireExport",
+        dependencies: [
+            "DemoAPI",
+            .product(name: "KawarimiCore", package: "Kawarimi"),
+        ],
+        swiftSettings: [.unsafeFlags(["-parse-as-library"])]
     ),
     .executableTarget(
         name: "DemoServer",

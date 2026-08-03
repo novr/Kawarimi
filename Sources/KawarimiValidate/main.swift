@@ -16,6 +16,9 @@ struct KawarimiValidateCommand: ParsableCommand {
     @Option(help: "Path to kawarimi-scenarios.json (default: KAWARIMI_SCENARIOS_CONFIG or beside config).")
     var scenarios: String?
 
+    @Option(help: "Path to HengeSpecSnapshot-compatible JSON for generated-spec cross-check.")
+    var specSnapshot: String?
+
     func run() throws {
         let configPath = Self.resolvedConfigPath(explicit: config)
         let scenariosPath = Self.resolvedScenariosPath(
@@ -23,18 +26,33 @@ struct KawarimiValidateCommand: ParsableCommand {
             configAbsolutePath: configPath
         )
         let requireScenariosFile = KawarimiScenarioDefaults.pathIsExplicit(cliExplicit: scenarios)
+        let specSnapshotPath: String?
+        if let raw = specSnapshot {
+            let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                StandardError.write("Spec snapshot path is empty")
+                throw ExitCode(2)
+            }
+            specSnapshotPath = Self.resolveAbsolutePath(trimmed)
+        } else {
+            specSnapshotPath = nil
+        }
 
         let status = KawarimiScenarioFileValidation.validate(
             configPath: configPath,
             scenariosPath: scenariosPath,
-            requireScenariosFile: requireScenariosFile
+            requireScenariosFile: requireScenariosFile,
+            specSnapshotPath: specSnapshotPath
         )
 
         switch status {
         case .success:
             break
-        case .warnings(let messages):
-            for message in messages {
+        case .issues(let errors, let warnings):
+            for message in errors {
+                StandardError.write(message)
+            }
+            for message in warnings {
                 print(message)
             }
             throw ExitCode(status.exitCode)

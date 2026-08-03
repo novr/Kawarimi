@@ -20,7 +20,8 @@ private func logScenarioValidationWarning(_ message: String) {
 public enum KawarimiScenarioValidation {
     public static func warnings(
         scenarios: [KawarimiScenario],
-        overrides: [MockOverride]
+        overrides: [MockOverride],
+        includeRowIdChecks: Bool = true
     ) -> [String] {
         var messages: [String] = []
         var scenarioIdsSeen: Set<String> = []
@@ -63,9 +64,11 @@ public enum KawarimiScenarioValidation {
                 }
 
                 guard overrides.contains(where: { $0.rowId == scase.rowId }) else {
-                    messages.append(
-                        "Scenario '\(scenarioId)' case '\(kawarimiId)': rowId \(scase.rowId.rawValue) not found in overrides"
-                    )
+                    if includeRowIdChecks {
+                        messages.append(
+                            "Scenario '\(scenarioId)' case '\(kawarimiId)': rowId \(scase.rowId.rawValue) not found in overrides"
+                        )
+                    }
                     continue
                 }
 

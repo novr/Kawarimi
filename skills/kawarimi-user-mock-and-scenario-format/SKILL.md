@@ -26,6 +26,8 @@ Requires `openapi.yaml` in context — otherwise override rows cannot match real
      --scenarios path/to/kawarimi-scenarios.json
    ```
 
+   Optional generated-spec cross-check — add `--spec-snapshot path/to/spec.json` (`HengeSpecSnapshot`-compatible JSON). See [validation.md](validation.md).
+
    If `swift run` cannot find the product, run from a Kawarimi clone instead (absolute paths to your JSON):
 
    ```bash
@@ -38,8 +40,8 @@ Requires `openapi.yaml` in context — otherwise override rows cannot match real
    Omit `--scenarios` only when no scenario file exists yet (default path beside config may be missing → exit `0` with overrides only). Pass `--scenarios` or set `KAWARIMI_SCENARIOS_CONFIG` when the file must exist — a typo then exits `2`.
 
    - `0` — scenario steps will resolve as written
-   - `1` — steps may fall back; fix stdout warnings
-   - `2` — config unreadable, or explicit scenarios path missing; fix JSON or paths first
+   - `1` — structural issues; fix stderr errors and stdout warnings
+   - `2` — config unreadable, or explicit scenarios / spec snapshot path missing; fix JSON or paths first
 3. **Re-run until `0`.**
 
 Patterns: [examples.md](examples.md). Validator limits: [validation.md](validation.md).

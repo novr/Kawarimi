@@ -84,6 +84,175 @@ struct KawarimiValidateCLITests {
         #expect(result.stdout.contains("rowId"))
     }
 
+    @Test func cliExitsZeroWithSpecSnapshotForValidFixtures() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-cli-spec-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        let scenariosPath = dir.appendingPathComponent("kawarimi-scenarios.json")
+        let specPath = dir.appendingPathComponent("spec.json")
+        let rowId = "00000000-0000-0000-0000-000000000001"
+        try """
+        {
+          "overrides": [
+            {
+              "rowId": "\(rowId)",
+              "path": "/api/greet",
+              "method": "GET",
+              "statusCode": 200,
+              "exampleId": "success",
+              "isEnabled": true
+            }
+          ]
+        }
+        """.write(to: configPath, atomically: true, encoding: .utf8)
+        try """
+        {
+          "scenarios": [
+            {
+              "scenarioId": "greet",
+              "initial": "ok",
+              "cases": [
+                {
+                  "kawarimiId": "ok",
+                  "rowId": "\(rowId)",
+                  "endpoint": { "method": "GET", "path": "/api/greet" }
+                }
+              ]
+            }
+          ]
+        }
+        """.write(to: scenariosPath, atomically: true, encoding: .utf8)
+        try """
+        {
+          "meta": {
+            "title": "Test",
+            "version": "1",
+            "serverURL": "https://localhost/api",
+            "apiPathPrefix": "/api"
+          },
+          "endpoints": [
+            {
+              "path": "/api/greet",
+              "method": "GET",
+              "operationId": "getGreeting",
+              "responses": [
+                {
+                  "statusCode": 200,
+                  "contentType": "application/json",
+                  "body": "{}",
+                  "exampleId": "success"
+                }
+              ]
+            }
+          ]
+        }
+        """.write(to: specPath, atomically: true, encoding: .utf8)
+
+        let result = try runCLI(
+            executable: executable,
+            arguments: [
+                "--config", configPath.path,
+                "--scenarios", scenariosPath.path,
+                "--spec-snapshot", specPath.path
+            ],
+            packageRoot: packageRoot
+        )
+        #expect(result.exitCode == 0, "stderr: \(result.stderr) stdout: \(result.stdout)")
+    }
+
+    @Test func cliWritesSpecCrossCheckErrorsToStderr() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-cli-spec-err-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        let specPath = dir.appendingPathComponent("spec.json")
+        try """
+        {
+          "overrides": [
+            {
+              "rowId": "00000000-0000-0000-0000-000000000001",
+              "path": "/api/missing",
+              "method": "GET",
+              "statusCode": 200
+            }
+          ]
+        }
+        """.write(to: configPath, atomically: true, encoding: .utf8)
+        try """
+        {
+          "meta": {
+            "title": "Test",
+            "version": "1",
+            "serverURL": "https://localhost/api",
+            "apiPathPrefix": "/api"
+          },
+          "endpoints": [
+            {
+              "path": "/api/greet",
+              "method": "GET",
+              "operationId": "getGreeting",
+              "responses": [
+                { "statusCode": 200, "contentType": "application/json", "body": "{}" }
+              ]
+            }
+          ]
+        }
+        """.write(to: specPath, atomically: true, encoding: .utf8)
+
+        let result = try runCLI(
+            executable: executable,
+            arguments: [
+                "--config", configPath.path,
+                "--spec-snapshot", specPath.path
+            ],
+            packageRoot: packageRoot
+        )
+        #expect(result.exitCode == 1)
+        #expect(result.stderr.contains("not found in spec"))
+        #expect(result.stderr.contains("/api/missing"))
+    }
+
+    @Test func cliExitsTwoOnEmptySpecSnapshotPath() throws {
+        let packageRoot = resolvePackageRoot()
+        guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
+            Issue.record("KawarimiValidate executable not found. Run swift build, then swift test.")
+            return
+        }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kawarimi-validate-cli-empty-spec-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let configPath = dir.appendingPathComponent("kawarimi.json")
+        try #"{"overrides": []}"#.write(to: configPath, atomically: true, encoding: .utf8)
+
+        let result = try runCLI(
+            executable: executable,
+            arguments: ["--config", configPath.path, "--spec-snapshot", "   "],
+            packageRoot: packageRoot
+        )
+        #expect(result.exitCode == 2)
+        #expect(result.stderr.contains("Spec snapshot path is empty"))
+    }
+
     @Test func cliExitsTwoOnInvalidConfigJSON() throws {
         let packageRoot = resolvePackageRoot()
         guard let executable = findKawarimiValidateExecutable(packageRoot: packageRoot) else {
