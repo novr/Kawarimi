@@ -20,6 +20,13 @@ How to add Kawarimi to a Swift package alongside [swift-openapi-generator](https
 
 Upgrading? See **[CHANGELOG.md](../CHANGELOG.md)**.
 
+**3.x → 4.0.0** (breaking — Validate Status API):
+
+1. Bump pin to **`from: "4.0.0"`**.
+2. **`KawarimiScenarioFileValidation.Status`**: replace `.warnings([String])` with `.issues(errors:warnings:)` (`case .warnings(let messages)` → `case .issues(_, let warnings)`, or inspect both arrays).
+3. Optional: pass `--spec-snapshot` to `kawarimi-validate` for generated-spec cross-check — see [skills/kawarimi-user-mock-and-scenario-format/validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
+4. See **[CHANGELOG.md](../CHANGELOG.md)** under **4.0.0**.
+
 **2.7.0 → 3.0.0** (breaking — admin mutations):
 
 1. Bump pin to **`from: "3.0.0"`**.
@@ -111,7 +118,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "3.0.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "4.0.0"),
 ],
 targets: [
     .target(
