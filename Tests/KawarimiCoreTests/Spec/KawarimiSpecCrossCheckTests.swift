@@ -164,6 +164,31 @@ struct KawarimiSpecCrossCheckTests {
         let result = KawarimiSpecCrossCheck.validate(overrides: overrides, scenarios: [], spec: spec)
         #expect(result == KawarimiSpecCrossCheck.Result())
     }
+
+    @Test func skipsStatusAndExampleChecksWhenOverrideHasCustomBody() throws {
+        let spec = try decodeSpec(endpoints: """
+        [
+          {
+            "path": "/api/greet",
+            "method": "GET",
+            "operationId": "getGreeting",
+            "responses": [{ "statusCode": 200, "contentType": "application/json", "body": "{}" }]
+          }
+        ]
+        """)
+        let overrides = [
+            MockOverride(
+                rowId: MockOverrideRowID(rawValue: "00000000-0000-0000-0000-000000000001")!,
+                path: "/api/greet",
+                method: .get,
+                statusCode: 418,
+                exampleId: "not_in_spec",
+                body: "{\"message\":\"teapot\"}"
+            )
+        ]
+        let result = KawarimiSpecCrossCheck.validate(overrides: overrides, scenarios: [], spec: spec)
+        #expect(result == KawarimiSpecCrossCheck.Result())
+    }
 }
 
 private func decodeSpec(endpoints jsonFragment: String) throws -> HengeSpecSnapshot {

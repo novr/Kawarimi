@@ -20,10 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **KawarimiCore:** `KawarimiScenarioFileValidation.Status.warnings` is replaced by `.issues(errors:warnings:)` — migrate `case .warnings(let messages)` to `case .issues(_, let warnings)` (or inspect both arrays) ([#227](https://github.com/novr/Kawarimi/issues/227)).
 - **Example:** `createItem` OpenAPI `400` adds named `validation_error` example so Example overrides align with generated spec under `--spec-snapshot` ([#227](https://github.com/novr/Kawarimi/issues/227)).
 - **KawarimiJutsu:** `KawarimiSpec` emits faithful **204 / no-content** rows (`body` and `contentType` empty) and non-JSON media types with the actual `contentType` instead of `{}` + `application/json` ([#224](https://github.com/novr/Kawarimi/issues/224)).
 - **KawarimiServer:** mock responses omit the `Content-Type` header when the resolved spec row has an empty `contentType`, and omit the body when both `contentType` and `body` are empty ([#224](https://github.com/novr/Kawarimi/issues/224)).
+
+### Removed
+
+- **BREAKING:** `KawarimiScenarioFileValidation.Status.warnings` — use `.issues(errors:warnings:)` instead (`case .warnings(let messages)` → `case .issues(_, let warnings)`, or inspect both arrays). Same exit code `1` when either list is non-empty ([#227](https://github.com/novr/Kawarimi/issues/227)).
 
 ## [3.4.1] - 2026-07-22
 

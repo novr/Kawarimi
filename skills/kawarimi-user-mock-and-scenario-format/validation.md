@@ -22,7 +22,7 @@ Server resolves steps by `rowId` + endpoint only — not by loading OpenAPI unle
 | Check | Severity |
 | --- | --- |
 | Override `path` + `method` exists in spec endpoints | error |
-| Override `statusCode` exists on that endpoint | error |
+| Override `statusCode` exists on that endpoint (skipped when override has a non-empty custom `body`, same as runtime) | error |
 | Override `exampleId` exists for that status (skipped when override has a non-empty custom `body`, same as runtime) | error |
 | Scenario `rowId` exists in overrides | error |
 | Scenario case `path` + `method` exists in spec endpoints | warning |

@@ -108,3 +108,16 @@ swift run KawarimiValidate \
   --config path/to/kawarimi.json \
   --scenarios path/to/kawarimi-scenarios.json
 ```
+
+Optional generated-spec cross-check (Example: export wire JSON first):
+
+```bash
+cd Example/DemoPackage
+swift build --product DemoSpecWireExport
+swift run DemoSpecWireExport > /tmp/spec.json
+cd ../..
+swift run KawarimiValidate \
+  --config Example/DemoPackage/kawarimi.json.example \
+  --scenarios Example/DemoPackage/kawarimi-scenarios.json \
+  --spec-snapshot /tmp/spec.json
+```

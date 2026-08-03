@@ -96,7 +96,7 @@ kawarimi-validate --config path/to/kawarimi.json \
   --spec-snapshot path/to/spec.json
 ```
 
-Cross-check requires override `path`/`method`/`statusCode` (and `exampleId` unless the override has a non-empty custom `body`) to exist on the snapshot. Empty `--spec-snapshot` exits `2`.
+Cross-check requires override `path`/`method` to exist on the snapshot. Without a non-empty custom `body`, `statusCode` and `exampleId` must also match a spec response row (runtime `responseMap` lookup). Empty `--spec-snapshot` exits `2`.
 
 Example CI pipeline: `swift build --product DemoSpecWireExport` → export wire JSON → validate with `--spec-snapshot` (see `Example/DemoPackage` `DemoSpecWireExport`).
 

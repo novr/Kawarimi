@@ -28,6 +28,8 @@ public enum KawarimiSpecCrossCheck {
                 errors.append(overrideLabel(override) + " endpoint \(method.rawValue) \(path) not found in spec")
                 continue
             }
+            // Custom body skips responseMap at runtime — do not require status/example keys.
+            if override.hasEffectiveCustomBody { continue }
             let exampleKeys = index.exampleKeys(for: endpoint, statusCode: override.statusCode)
             if exampleKeys.isEmpty {
                 errors.append(
@@ -36,8 +38,6 @@ public enum KawarimiSpecCrossCheck {
                 )
                 continue
             }
-            // Custom body skips responseMap at runtime — do not require exampleId there.
-            if override.hasEffectiveCustomBody { continue }
             let want = KawarimiExampleIds.responseMapLookupKey(forOverrideExampleId: override.exampleId)
             if !exampleKeys.contains(want) {
                 let exampleLabel = override.exampleId ?? "(default)"
