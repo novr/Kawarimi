@@ -20,6 +20,13 @@
 
 更新時は **[CHANGELOG.md](../../CHANGELOG.md)** を参照。
 
+**3.x → 4.0.0**（破壊的 — Validate Status API）:
+
+1. pin を **`from: "4.0.0"`** に上げる。
+2. **`KawarimiScenarioFileValidation.Status`**: `.warnings([String])` を `.issues(errors:warnings:)` に置き換える（`case .warnings(let messages)` → `case .issues(_, let warnings)`、または両配列を参照）。
+3. 任意: `kawarimi-validate` に `--spec-snapshot` を渡して生成 Spec 突合 — [skills/kawarimi-user-mock-and-scenario-format/validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
+4. **[CHANGELOG.md](../../CHANGELOG.md)** の **4.0.0** を参照。
+
 **2.7.0 → 3.0.0**（破壊的 — admin ミューテーション）:
 
 1. pin を **`from: "3.0.0"`** に上げる。
@@ -111,7 +118,7 @@ dependencies: [
     .package(url: "https://github.com/apple/swift-openapi-runtime", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-openapi-generator", from: "1.0.0"),
     .package(url: "https://github.com/apple/swift-http-types.git", from: "1.0.0"),
-    .package(url: "https://github.com/novr/Kawarimi.git", from: "3.0.0"),
+    .package(url: "https://github.com/novr/Kawarimi.git", from: "4.0.0"),
 ],
 targets: [
     .target(

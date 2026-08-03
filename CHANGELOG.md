@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-08-03
+
 ### Added
 
 - **KawarimiValidate:** optional `--spec-snapshot` cross-checks overrides and scenarios against `HengeSpecSnapshot`-compatible JSON ([#227](https://github.com/novr/Kawarimi/issues/227)).
@@ -542,6 +544,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.0.0]: https://github.com/novr/Kawarimi/releases/tag/v4.0.0
 [3.4.1]: https://github.com/novr/Kawarimi/releases/tag/v3.4.1
 [3.4.0]: https://github.com/novr/Kawarimi/releases/tag/v3.4.0
 [3.3.5]: https://github.com/novr/Kawarimi/releases/tag/v3.3.5
