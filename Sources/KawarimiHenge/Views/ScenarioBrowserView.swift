@@ -3,9 +3,10 @@ import KawarimiHengeCore
 import SwiftUI
 
 /// Read-only scenario browser. Lists `kawarimi-scenarios.json` entries fetched from `GET …/__kawarimi/scenarios`.
-/// Tapping a case row triggers `onNavigateToOverride` so the parent can select the linked override row.
+/// Tapping a resolvable case row triggers `onNavigateToOverride` so the parent can select the linked override row.
 struct ScenarioBrowserView: View {
     let scenarios: [KawarimiScenario]
+    let canNavigateToOverride: (MockOverrideRowID) -> Bool
     let onNavigateToOverride: (MockOverrideRowID) -> Void
 
     private var items: [ScenarioBrowserItem] {
@@ -44,6 +45,7 @@ struct ScenarioBrowserView: View {
                     ForEach(item.caseItems) { caseItem in
                         ScenarioCaseRowView(
                             caseItem: caseItem,
+                            canNavigate: canNavigateToOverride(caseItem.scenarioCase.rowId),
                             onNavigateToOverride: onNavigateToOverride
                         )
                         .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -81,6 +83,7 @@ private struct ScenarioSectionHeader: View {
 
 private struct ScenarioCaseRowView: View {
     let caseItem: ScenarioCaseItem
+    let canNavigate: Bool
     let onNavigateToOverride: (MockOverrideRowID) -> Void
 
     private var scenarioCase: KawarimiScenarioCase { caseItem.scenarioCase }
@@ -92,6 +95,8 @@ private struct ScenarioCaseRowView: View {
             caseRowContent
         }
         .buttonStyle(.plain)
+        .disabled(!canNavigate)
+        .help(canNavigate ? "Open override row \(scenarioCase.rowId.rawValue)" : "No matching override for this rowId")
     }
 
     private var caseRowContent: some View {
@@ -100,7 +105,7 @@ private struct ScenarioCaseRowView: View {
                 HStack(spacing: 6) {
                     Text(scenarioCase.kawarimiId)
                         .font(.system(.caption, design: .monospaced).weight(.semibold))
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(canNavigate ? .primary : .tertiary)
                     if let next = scenarioCase.next {
                         Image(systemName: "arrow.right")
                             .font(.caption2)
@@ -123,6 +128,7 @@ private struct ScenarioCaseRowView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 4, style: .continuous)
                                 .fill(HTTPMethodBadgeColor.fill(for: .init(scenarioCase.endpoint.method.uppercased()) ?? .get))
+                                .opacity(canNavigate ? 1 : 0.45)
                         )
                     Text(scenarioCase.endpoint.path)
                         .font(.system(.caption2, design: .monospaced))
@@ -137,13 +143,20 @@ private struct ScenarioCaseRowView: View {
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.tertiary)
                     .help("rowId: \(scenarioCase.rowId.rawValue)")
-                Image(systemName: "arrow.up.right.square")
-                    .font(.caption2)
-                    .foregroundStyle(ExplorerPalette.linkAccent)
+                if canNavigate {
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.caption2)
+                        .foregroundStyle(ExplorerPalette.linkAccent)
+                } else {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                }
             }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
+        .opacity(canNavigate ? 1 : 0.7)
     }
 }

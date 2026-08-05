@@ -105,13 +105,16 @@ public struct KawarimiConfigView: View {
         do {
             let spec = try await specProvider()
             let overrides = try await fetchOverrides()
-            let scenarios = (try? await fetchScenariosFromServer()) ?? []
             meta = spec.meta
             serverURL = spec.meta.serverURL
             endpoints = spec.endpoints
             securitySchemeCatalog = spec.securitySchemeCatalog
             overridesSnapshot = overrides
-            scenariosSnapshot = scenarios
+            do {
+                scenariosSnapshot = try await fetchScenariosFromServer()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
             specLoadID += 1
         } catch {
             errorMessage = error.localizedDescription
@@ -134,7 +137,11 @@ public struct KawarimiConfigView: View {
             let response = try await reloadFromDisk()
             reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
             _ = applyOverridesSnapshot(response.overrides)
-            scenariosSnapshot = (try? await fetchScenariosFromServer()) ?? []
+            do {
+                scenariosSnapshot = try await fetchScenariosFromServer()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

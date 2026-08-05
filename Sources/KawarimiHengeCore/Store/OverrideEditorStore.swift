@@ -120,22 +120,25 @@ package final class OverrideEditorStore {
         selectEndpoint(rowKey: newKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides)
     }
 
+    /// Selects the stored override for `rowId`. Returns `false` when the row is missing or has no matching endpoint.
+    @discardableResult
     package func selectOverride(
         rowId: MockOverrideRowID,
         pathPrefix: String,
         endpoints: [any SpecEndpointProviding],
         overrides: [MockOverride]
-    ) {
+    ) -> Bool {
         guard let built = OverrideExplorerDraftBootstrap.makeFreshDetail(
             rowId: rowId,
             pathPrefix: pathPrefix,
             endpoints: endpoints,
             overrides: overrides
         ) else {
-            return
+            return false
         }
         stashCurrentDetailIfDirty()
         commitDetail(built)
+        return true
     }
 
     package func resyncDetailAfterSpecReload(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {

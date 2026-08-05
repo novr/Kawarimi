@@ -240,6 +240,66 @@ private final class MockKawarimiMutationInvalidBodyURLProtocol: URLProtocol {
         _ = try await client.configure(override: override)
         #expect(Bool(false), "expected decode failure")
     } catch {
-        #expect(true)
+        #expect(Bool(true))
+    }
+}
+
+/// Returns `200` with a JSON `[KawarimiScenario]` body for `GET …/scenarios`.
+private final class MockKawarimiScenariosURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let body = """
+            [{"scenarioId":"login","initial":"step1","cases":[{"kawarimiId":"step1","rowId":"00000000-0000-0000-0000-000000000001","endpoint":{"method":"POST","path":"/api/login"}}]}]
+            """.data(using: .utf8)!
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: KawarimiAdminRoute.scenarios.successStatusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": KawarimiAdminHeaders.jsonContentType]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Test func kawarimiAPIClientFetchScenariosDecodesScenarioArray() async throws {
+    URLProtocol.registerClass(MockKawarimiScenariosURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiScenariosURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiScenariosURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/api")!, session: session)
+    let scenarios = try await client.fetchScenarios()
+    #expect(scenarios.count == 1)
+    #expect(scenarios[0].scenarioId == "login")
+    #expect(scenarios[0].cases.count == 1)
+    #expect(scenarios[0].cases[0].kawarimiId == "step1")
+    #expect(scenarios[0].cases[0].rowId.rawValue == "00000000-0000-0000-0000-000000000001")
+}
+
+@Test func kawarimiAPIClientFetchScenariosThrowsKawarimiAPIErrorOn5xx() async throws {
+    URLProtocol.registerClass(MockKawarimiURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://500/")!, session: session)
+
+    do {
+        _ = try await client.fetchScenarios()
+        #expect(Bool(false), "expected KawarimiAPIError")
+    } catch let e as KawarimiAPIError {
+        #expect(e.statusCode == 500)
     }
 }

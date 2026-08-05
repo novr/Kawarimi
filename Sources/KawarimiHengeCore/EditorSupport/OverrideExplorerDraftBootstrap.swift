@@ -3,7 +3,8 @@ import KawarimiCore
 
 /// Fresh ``OverrideDetailDraft`` when opening a list row with no stashed draft: placeholder → optional primary overlay → ``OverrideDetailDraft/resyncMockFromServer`` (see henge docs).
 package enum OverrideExplorerDraftBootstrap {
-    /// Opens the stored override row identified by `rowId` (scenario browser jump target).
+    /// Opens the stored override identified by `rowId` (scenario browser jump target).
+    /// Seeds the draft from that stored row — never falls back to the endpoint primary.
     package static func makeFreshDetail(
         rowId: MockOverrideRowID,
         pathPrefix: String,
@@ -18,38 +19,13 @@ package enum OverrideExplorerDraftBootstrap {
               ) else {
             return nil
         }
-        let endpointItem = SpecEndpointItem(endpoint)
-        var mock = MockDraftDefaults.specPlaceholder(for: endpoint)
-        let chips = ResponseChips.buildChipOptions(
-            mock: mock,
-            endpointItem: endpointItem,
-            endpoint: endpoint,
-            overrides: overrides,
-            pathPrefix: pathPrefix
-        )
-        if let chip = chips.first(where: {
-            !$0.isSpec
-                && $0.statusCode == stored.statusCode
-                && MockExamplePresentation.exampleIdsEqual($0.exampleId, stored.exampleId)
-        }) {
-            ResponseChips.applyChipSelection(
-                option: chip,
-                mock: &mock,
-                endpointItem: endpointItem,
-                endpoint: endpoint,
-                overrides: overrides,
-                pathPrefix: pathPrefix
-            )
-            var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
-            draft.pinnedNumberedResponseChip = true
-            return draft
-        }
-        return makeFreshDetail(
-            rowKey: EndpointRowKey(endpoint),
-            pathPrefix: pathPrefix,
-            endpoints: endpoints,
-            overrides: overrides
-        )
+        var mock = stored
+        mock.path = endpoint.path
+        mock.method = endpoint.method
+        mock.name = stored.name ?? endpoint.operationId
+        var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
+        draft.pinnedNumberedResponseChip = true
+        return draft
     }
 
     /// Resolves the endpoint, builds the initial mock, runs one resync, and returns a clean draft; `nil` if the row key does not match any loaded endpoint.

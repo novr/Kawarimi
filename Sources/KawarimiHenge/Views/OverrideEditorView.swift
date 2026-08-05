@@ -258,17 +258,16 @@ struct OverrideEditorView: View {
                 } else if activeTab == .scenarios {
                     ScenarioBrowserView(
                         scenarios: scenarios,
-                        onNavigateToOverride: { rowId in
-                            activeTab = .endpoints
-                            store.selectOverride(
+                        canNavigateToOverride: { rowId in
+                            ScenarioBrowserPresentation.canNavigate(
                                 rowId: rowId,
                                 pathPrefix: specPathPrefix,
                                 endpoints: endpoints,
                                 overrides: overrides
                             )
-                            if let rowKey = store.selectedRowKey {
-                                compactPath = [rowKey]
-                            }
+                        },
+                        onNavigateToOverride: { rowId in
+                            navigateToOverride(rowId: rowId, updateCompactPath: true)
                         }
                     )
                 } else {
@@ -343,14 +342,16 @@ struct OverrideEditorView: View {
                 } else if activeTab == .scenarios {
                     ScenarioBrowserView(
                         scenarios: scenarios,
-                        onNavigateToOverride: { rowId in
-                            activeTab = .endpoints
-                            store.selectOverride(
+                        canNavigateToOverride: { rowId in
+                            ScenarioBrowserPresentation.canNavigate(
                                 rowId: rowId,
                                 pathPrefix: specPathPrefix,
                                 endpoints: endpoints,
                                 overrides: overrides
                             )
+                        },
+                        onNavigateToOverride: { rowId in
+                            navigateToOverride(rowId: rowId, updateCompactPath: false)
                         }
                     )
                 } else {
@@ -418,6 +419,23 @@ struct OverrideEditorView: View {
     }
 
     // MARK: - Shared chrome
+
+    private func navigateToOverride(rowId: MockOverrideRowID, updateCompactPath: Bool) {
+        guard store.selectOverride(
+            rowId: rowId,
+            pathPrefix: specPathPrefix,
+            endpoints: endpoints,
+            overrides: overrides
+        ) else {
+            errorMessage.wrappedValue = "No matching override for rowId \(rowId.rawValue)"
+            return
+        }
+        errorMessage.wrappedValue = nil
+        activeTab = .endpoints
+        if updateCompactPath, let rowKey = store.selectedRowKey {
+            compactPath = [rowKey]
+        }
+    }
 
     private var tabPicker: some View {
         Picker("", selection: $activeTab) {
