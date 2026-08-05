@@ -47,6 +47,7 @@ struct InlineDateWarningCase: Sendable {
     let operationId: String
     let warningSubstring: String
     let expectedFallbackSubstring: String
+    let expectsDateLiteral: Bool
 }
 
 private let inlineDateWarningCases: [InlineDateWarningCase] = [
@@ -55,21 +56,32 @@ private let inlineDateWarningCases: [InlineDateWarningCase] = [
         witnessName: "onGetSnapshotNoExample",
         operationId: "getSnapshotNoExample",
         warningSubstring: "epoch 0",
-        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)"
+        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)",
+        expectsDateLiteral: true
     ),
     InlineDateWarningCase(
         fixtureName: "openapi-datetime-edge-unparseable",
         witnessName: "onGetDateTimeUnparseable",
         operationId: "getDateTimeUnparseable",
         warningSubstring: "parse failed",
-        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)"
+        expectedFallbackSubstring: "Date(timeIntervalSince1970: 0)",
+        expectsDateLiteral: true
     ),
     InlineDateWarningCase(
         fixtureName: "openapi-datetime-edge-date-only-no-example",
         witnessName: "onGetDateOnlyNoExample",
         operationId: "getDateOnlyNoExample",
-        warningSubstring: "epoch 0",
-        expectedFallbackSubstring: "day: \"1970-01-01\""
+        warningSubstring: "fallback \"1970-01-01\"",
+        expectedFallbackSubstring: "day: \"1970-01-01\"",
+        expectsDateLiteral: false
+    ),
+    InlineDateWarningCase(
+        fixtureName: "openapi-datetime-edge-date-only-unparseable",
+        witnessName: "onGetDateOnlyUnparseable",
+        operationId: "getDateOnlyUnparseable",
+        warningSubstring: "fallback \"1970-01-01\"",
+        expectedFallbackSubstring: "day: \"1970-01-01\"",
+        expectsDateLiteral: false
     ),
 ]
 
@@ -133,7 +145,7 @@ func kawarimiHandlerInlineDateWarningsAndEpochZero(case sample: InlineDateWarnin
     KawarimiJutsuTestSupport.assertHandlerInlineDateStub(
         source: source,
         witnessName: sample.witnessName,
-        expectsDateLiteral: sample.expectedFallbackSubstring.contains("Date(timeIntervalSince1970:")
+        expectsDateLiteral: sample.expectsDateLiteral
     )
     #expect(source.contains(sample.expectedFallbackSubstring))
 }
@@ -157,13 +169,23 @@ func kawarimiHandlerInlineDateStructuredBodies(case sample: InlineDateStructureC
     }
 }
 
-@Test func kawarimiHandlerFormatDateStubTypechecksAsString() throws {
+@Test func kawarimiHandlerFormatDateStubTypechecksGeneratedStringLiteral() throws {
+    guard let url = KawarimiJutsuTestSupport.fixtureURL(name: "openapi-datetime-edge-date-only", extension: "yaml") else {
+        Issue.record("openapi-datetime-edge-date-only.yaml not found")
+        return
+    }
+    let document = try KawarimiJutsu.loadOpenAPISpec(path: url.path())
+    let (source, warnings) = try KawarimiJutsu.generateKawarimiHandlerSource(document: document, namingStrategy: .defensive)
+    #expect(warnings.isEmpty)
+    let witness = try #require(handlerWitnessBlock(witnessName: "onGetDateOnlyField", in: source))
+    #expect(witness.contains("day: \"2025-11-30\""))
+    #expect(!witness.contains("Date(timeIntervalSince1970:"))
     try KawarimiJutsuTestSupport.assertSwiftSnippetTypechecks(
         """
         struct StubBody {
-            init(releasedOn: String) {}
+            init(day: String) {}
         }
-        let _ = StubBody(releasedOn: "2025-02-14")
+        let _ = StubBody(day: "2025-11-30")
         """
     )
 }

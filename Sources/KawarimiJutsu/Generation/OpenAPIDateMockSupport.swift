@@ -74,12 +74,15 @@ enum OpenAPIDateMockSupport {
     static func stderrWarningForDateTimeStubFallback(
         operationId: String,
         diagnosticPath: String,
-        reason: String
+        reason: String,
+        dateOnly: Bool = false
     ) -> String {
         let op = sanitizeForSourceCommentLine(operationId)
         let path = sanitizeForSourceCommentLine(diagnosticPath)
         let r = sanitizeForSourceCommentLine(reason)
-        return "Kawarimi warning: KawarimiHandler stub: date-time (or date) field uses epoch 0 (\(r)); operationId \(op); \(path)"
+        // date-time stubs use Date(timeIntervalSince1970: 0); format: date stubs use "1970-01-01".
+        let fallbackDescription = dateOnly ? "fallback \"1970-01-01\"" : "epoch 0"
+        return "Kawarimi warning: KawarimiHandler stub: date-time (or date) field uses \(fallbackDescription) (\(r)); operationId \(op); \(path)"
     }
 
     static func parseOpenAPIDateExample(_ string: String, dateOnly: Bool) -> Date? {
@@ -136,29 +139,31 @@ enum OpenAPIDateMockSupport {
                 stderrWarningForDateTimeStubFallback(
                     operationId: operationId,
                     diagnosticPath: diagnosticPath,
-                    reason: "no example string"
+                    reason: "no example string",
+                    dateOnly: dateOnly
                 )
             )
-            return dateOnlyFallbackLiteral(dateOnly: dateOnly)
+            return dateSchemaFallbackLiteral(dateOnly: dateOnly)
         }
         guard let date = parseOpenAPIDateExample(s, dateOnly: dateOnly) else {
             handlerStubWarnings.append(
                 stderrWarningForDateTimeStubFallback(
                     operationId: operationId,
                     diagnosticPath: diagnosticPath,
-                    reason: "parse failed for example"
+                    reason: "parse failed for example",
+                    dateOnly: dateOnly
                 )
             )
-            return dateOnlyFallbackLiteral(dateOnly: dateOnly)
+            return dateSchemaFallbackLiteral(dateOnly: dateOnly)
         }
-        // format: date maps to Swift.String in swift-openapi-generator; format: date-time maps to Date.
+        // format: date → String in swift-openapi-generator; format: date-time → Date.
         if dateOnly {
             return jsonEncodedStringFragment(s)
         }
         return "Date(timeIntervalSince1970: \(date.timeIntervalSince1970))"
     }
 
-    private static func dateOnlyFallbackLiteral(dateOnly: Bool) -> String {
+    private static func dateSchemaFallbackLiteral(dateOnly: Bool) -> String {
         if dateOnly {
             return jsonEncodedStringFragment("1970-01-01")
         }
@@ -181,7 +186,8 @@ enum OpenAPIDateMockSupport {
                 stderrWarningForDateTimeStubFallback(
                     operationId: synthesisContext.operationId,
                     diagnosticPath: path,
-                    reason: "parse failed for example in mock JSON"
+                    reason: "parse failed for example in mock JSON",
+                    dateOnly: dateOnly
                 )
             )
         } else {
@@ -189,7 +195,8 @@ enum OpenAPIDateMockSupport {
                 stderrWarningForDateTimeStubFallback(
                     operationId: synthesisContext.operationId,
                     diagnosticPath: path,
-                    reason: "no example string in mock JSON"
+                    reason: "no example string in mock JSON",
+                    dateOnly: dateOnly
                 )
             )
         }

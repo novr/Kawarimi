@@ -49,7 +49,7 @@
 | **Handler リテラル**（initializer 経路） | — | codegen 時に `example` をパースした `Date(timeIntervalSince1970:…)` |
 | **Handler decode**（`allOf` / enum など） | モック JSON と同じ合成文字列 | `Self._kawarimiStubJSONDecoder()`（`.iso8601` + date-only 等のフォールバック） |
 
-**モック JSON** では `format: date-time` / `date` を、汎用のスキーマ `example` エンコードより**先に**処理するため、パース不能な date の `example` がそのままワイヤに出ることはない。フォールバック時（example なし、または example 文字列のパース失敗）は、handler リテラル経路と同じ **`Kawarimi warning: … epoch 0 …`** を **stderr** に出す（`operationId` と OpenAPI パス付き）。
+**モック JSON** では `format: date-time` / `date` を、汎用のスキーマ `example` エンコードより**先に**処理するため、パース不能な date の `example` がそのままワイヤに出ることはない。フォールバック時（example なし、または example 文字列のパース失敗）は、handler リテラル経路と同じく **`Kawarimi warning:`** を **stderr** に出す（`operationId` と OpenAPI パス付き）。文言は `format: date-time` が **`epoch 0`**、`format: date` が **`fallback "1970-01-01"`**。
 
 ## KawarimiHandler のデフォルトスタブ
 
