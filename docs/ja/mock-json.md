@@ -46,7 +46,7 @@
 | 経路 | ワイヤ JSON | Swift スタブ |
 | --- | --- | --- |
 | **モック JSON**（`KawarimiSpec`、トランスポート、decode 用文字列） | JSON **文字列**（`example` があればそれを使用；なければ **`1970-01-01T00:00:00Z`** または `date` のみ **`1970-01-01`** — `""` は出さない） | — |
-| **Handler リテラル**（initializer 経路） | — | codegen 時に `example` をパースした `Date(timeIntervalSince1970:…)` |
+| **Handler リテラル**（initializer 経路） | — | **`date-time`:** `Date(timeIntervalSince1970:…)`（**`Foundation.Date`**）；**`date`:** Swift **`String`** リテラル `"yyyy-MM-dd"` — **swift-openapi-generator** に合わせる |
 | **Handler decode**（`allOf` / enum など） | モック JSON と同じ合成文字列 | `Self._kawarimiStubJSONDecoder()`（`.iso8601` + date-only 等のフォールバック） |
 
 **モック JSON** では `format: date-time` / `date` を、汎用のスキーマ `example` エンコードより**先に**処理するため、パース不能な date の `example` がそのままワイヤに出ることはない。フォールバック時（example なし、または example 文字列のパース失敗）は、handler リテラル経路と同じく **`Kawarimi warning:`** を **stderr** に出す（`operationId` と OpenAPI パス付き）。文言は `format: date-time` が **`epoch 0`**、`format: date` が **`fallback "1970-01-01"`**。
@@ -58,7 +58,7 @@
 
 **リテラル式が書ける場合はそちらを優先**し、実行時デコードは使いません。
 
-**`type: string`** かつ **`format: date-time`** / **`format: date`** のフィールドは、リテラル経路で **`Date(timeIntervalSince1970:…)`**（codegen 時にスキーマの **`example`** をパース）を出し、**swift-openapi-generator** の **`Foundation.Date`** プロパティと整合させます。
+**`type: string`** かつ **`format: date-time`** のフィールドは、リテラル経路で **`Date(timeIntervalSince1970:…)`**（codegen 時にスキーマの **`example`** をパース）を出し **`Foundation.Date`** と整合させます。**`format: date`** は **swift-openapi-generator** が **`String`** のまま残すため、Swift **`String`** リテラル（`"yyyy-MM-dd"`、フォールバック **`"1970-01-01"`**）を出します。
 
 ドキュメント上の成功レスポンスが **stub 可能な HTTP 200 / 201**（`application/json` または本文なし）または **204** でない場合は、`handlerStubPolicy: throw` で生成が失敗するか、`handlerStubPolicy: fatalError` ではスタブ本体が `fatalError` になります（[integration.md](integration.md)）。
 別の挙動が必要なときや、スキーマ名と生成型が一致しない稀なケースでは **`on…` を手で上書き**してください。

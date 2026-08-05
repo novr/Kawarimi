@@ -137,6 +137,18 @@ enum KawarimiJutsuTestSupport {
     }
 
     static func assertSwiftSnippetTypechecks(_ source: String) throws {
+        let (status, stderr) = try runSwiftcTypecheck(source)
+        if status != 0 {
+            Issue.record("swiftc -typecheck failed: \(stderr)")
+        }
+    }
+
+    static func assertSwiftSnippetTypechecksExpectingFailure(_ source: String) throws {
+        let (status, _) = try runSwiftcTypecheck(source)
+        #expect(status != 0, "expected swiftc -typecheck to fail for mismatched date stub types")
+    }
+
+    private static func runSwiftcTypecheck(_ source: String) throws -> (Int32, String) {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-swiftc-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -150,11 +162,8 @@ enum KawarimiJutsuTestSupport {
         process.standardError = stderrPipe
         try process.run()
         process.waitUntilExit()
-        if process.terminationStatus != 0 {
-            let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            Issue.record("swiftc -typecheck failed: \(stderr)")
-            return
-        }
+        let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        return (process.terminationStatus, stderr)
     }
 
     static func yamlSchemaPropertyKey(_ name: String) -> String {
@@ -184,6 +193,105 @@ enum KawarimiJutsuTestSupport {
                             type: string
                             example: example-value
         """
+    }
+
+    /// Minimal OpenAPI for absolute-date string format → handler stub matrix cells.
+    static func absoluteDateFormatOpenAPIYAML(
+        format: String,
+        example: String?
+    ) -> String {
+        let exampleLine: String
+        if let example {
+            let escaped = example
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            exampleLine = "\n                    example: \"\(escaped)\""
+        } else {
+            exampleLine = ""
+        }
+        return """
+        openapi: 3.1.0
+        info: { title: Repro, version: '1.0.0' }
+        paths:
+          /item:
+            get:
+              operationId: getItem
+              responses:
+                '200':
+                  description: OK
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        required: [value]
+                        properties:
+                          value:
+                            type: string
+                            format: \(format)\(exampleLine)
+        """
+    }
+
+    /// Typechecks a labeled stub argument against the swift-openapi-generator Swift type for the format.
+    static func assertAbsoluteDateFormatStubTypechecks(
+        sogSwiftType: String,
+        argumentExpression: String
+    ) throws {
+        let source = """
+        import Foundation
+        struct StubBody {
+            init(value: \(sogSwiftType)) {}
+        }
+        let _ = StubBody(value: \(argumentExpression))
+        """
+        try assertSwiftSnippetTypechecks(source)
+    }
+
+    /// Extracts `label: <expr>` from a generated `.init(...)` witness (string literal or `Date(...)`).
+    static func extractLabeledArgumentExpression(label: String, from source: String) -> String? {
+        let needle = "\(label): "
+        guard let start = source.range(of: needle) else { return nil }
+        let restStart = start.upperBound
+        guard restStart < source.endIndex else { return nil }
+
+        if source[restStart] == "\"" {
+            var i = source.index(after: restStart)
+            var escaped = false
+            while i < source.endIndex {
+                let c = source[i]
+                if escaped {
+                    escaped = false
+                    i = source.index(after: i)
+                    continue
+                }
+                if c == "\\" {
+                    escaped = true
+                    i = source.index(after: i)
+                    continue
+                }
+                if c == "\"" {
+                    return String(source[restStart...i])
+                }
+                i = source.index(after: i)
+            }
+            return nil
+        }
+
+        guard source[restStart...].hasPrefix("Date(") else { return nil }
+        var depth = 0
+        var i = restStart
+        while i < source.endIndex {
+            let c = source[i]
+            if c == "(" {
+                depth += 1
+            } else if c == ")" {
+                depth -= 1
+                if depth == 0 {
+                    return String(source[restStart...i])
+                }
+            }
+            i = source.index(after: i)
+        }
+        return nil
     }
 }
 
