@@ -3,9 +3,10 @@ import KawarimiHengeCore
 import SwiftUI
 
 /// Read-only scenario browser. Lists `kawarimi-scenarios.json` entries fetched from `GET …/__kawarimi/scenarios`.
-/// Tapping a resolvable case row triggers `onNavigateToOverride` so the parent can select the linked override row.
+/// Tapping a resolvable case updates the detail column by `rowId` without leaving the Scenarios tab.
 struct ScenarioBrowserView: View {
     let scenarios: [KawarimiScenario]
+    let selectedRowId: MockOverrideRowID?
     let canNavigateToOverride: (MockOverrideRowID) -> Bool
     let onNavigateToOverride: (MockOverrideRowID) -> Void
 
@@ -45,6 +46,7 @@ struct ScenarioBrowserView: View {
                     ForEach(item.caseItems) { caseItem in
                         ScenarioCaseRowView(
                             caseItem: caseItem,
+                            isSelected: selectedRowId == caseItem.scenarioCase.rowId,
                             canNavigate: canNavigateToOverride(caseItem.scenarioCase.rowId),
                             onNavigateToOverride: onNavigateToOverride
                         )
@@ -83,6 +85,7 @@ private struct ScenarioSectionHeader: View {
 
 private struct ScenarioCaseRowView: View {
     let caseItem: ScenarioCaseItem
+    let isSelected: Bool
     let canNavigate: Bool
     let onNavigateToOverride: (MockOverrideRowID) -> Void
 
@@ -96,7 +99,11 @@ private struct ScenarioCaseRowView: View {
         }
         .buttonStyle(.plain)
         .disabled(!canNavigate)
-        .help(canNavigate ? "Open override row \(scenarioCase.rowId.rawValue)" : "No matching override for this rowId")
+        .help(
+            canNavigate
+                ? "Show override \(scenarioCase.rowId.rawValue) in the detail column"
+                : "No matching override for this rowId"
+        )
     }
 
     private var caseRowContent: some View {
@@ -143,14 +150,18 @@ private struct ScenarioCaseRowView: View {
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.tertiary)
                     .help("rowId: \(scenarioCase.rowId.rawValue)")
-                if canNavigate {
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.caption2)
-                        .foregroundStyle(ExplorerPalette.linkAccent)
-                } else {
+                if !canNavigate {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.caption2)
                         .foregroundStyle(.orange)
+                } else if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(ExplorerPalette.linkAccent)
+                } else {
+                    Image(systemName: "sidebar.right")
+                        .font(.caption2)
+                        .foregroundStyle(ExplorerPalette.linkAccent)
                 }
             }
         }
@@ -158,5 +169,9 @@ private struct ScenarioCaseRowView: View {
         .padding(.horizontal, 8)
         .contentShape(Rectangle())
         .opacity(canNavigate ? 1 : 0.7)
+        .background(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(isSelected ? ExplorerPalette.linkAccent.opacity(0.12) : .clear)
+        )
     }
 }

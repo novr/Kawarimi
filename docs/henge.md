@@ -255,7 +255,7 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 
 **`KawarimiConfigView`** includes a **Scenarios tab** (read-only) alongside the Endpoints tab. It lists all loaded scenarios with their cases: `kawarimiId`, `next`, `rowId` (abbreviated), and `method + path`.
 
-- Tap a scenario case row to jump to the Endpoints tab with that override row selected by `rowId`.
+- Tap a scenario case row to select that override by `rowId` in the detail column **without leaving the Scenarios tab** (compact layout pushes the detail screen; back returns to the scenario list).
 - Cases whose `rowId` is missing from loaded overrides (or has no matching OpenAPI endpoint) are disabled and show a warning affordance.
 - The tab label shows "Scenarios" and is always visible — if no scenarios file is loaded, the tab shows a placeholder message.
 

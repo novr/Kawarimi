@@ -258,6 +258,7 @@ struct OverrideEditorView: View {
                 } else if activeTab == .scenarios {
                     ScenarioBrowserView(
                         scenarios: scenarios,
+                        selectedRowId: store.detail?.mock.rowId,
                         canNavigateToOverride: { rowId in
                             ScenarioBrowserPresentation.canNavigate(
                                 rowId: rowId,
@@ -342,6 +343,7 @@ struct OverrideEditorView: View {
                 } else if activeTab == .scenarios {
                     ScenarioBrowserView(
                         scenarios: scenarios,
+                        selectedRowId: store.detail?.mock.rowId,
                         canNavigateToOverride: { rowId in
                             ScenarioBrowserPresentation.canNavigate(
                                 rowId: rowId,
@@ -431,7 +433,7 @@ struct OverrideEditorView: View {
             return
         }
         errorMessage.wrappedValue = nil
-        activeTab = .endpoints
+        // Keep Scenarios tab; refresh detail (split) or push detail (compact).
         if updateCompactPath, let rowKey = store.selectedRowKey {
             compactPath = [rowKey]
         }

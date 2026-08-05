@@ -254,7 +254,7 @@ API 対応:
 
 **`KawarimiConfigView`** はエンドポイントタブと並んで **Scenarios タブ**（読み取り専用）を表示します。読み込み済みシナリオの各 case — `kawarimiId`・`next`・`rowId`（先頭 8 文字）・`method + path` — を一覧します。
 
-- case 行をタップすると **Endpoints タブ**へ切り替わり、`rowId` で対象 override 行が選択されます。
+- case 行をタップすると **Scenarios タブを維持したまま**、`rowId` で詳細列の override を選択します（コンパクト時は詳細画面へ push。戻るとシナリオ一覧）。
 - overrides に無い `rowId`、または対応する OpenAPI エンドポイントが無い case は無効表示（警告アイコン）になります。
 - シナリオファイル未読み込み時はプレースホルダーを表示します。
 
