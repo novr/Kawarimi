@@ -137,6 +137,26 @@ enum KawarimiJutsuTestSupport {
     }
 
     static func assertSwiftSnippetTypechecks(_ source: String) throws {
+        let (status, stderr) = try runSwiftcTypecheck(source)
+        if status != 0 {
+            Issue.record("swiftc -typecheck failed: \(stderr)")
+        }
+    }
+
+    static func assertSwiftSnippetTypechecksExpectingFailure(_ source: String) throws {
+        let (status, stderr) = try runSwiftcTypecheck(source)
+        guard status != 0 else {
+            Issue.record("expected swiftc -typecheck to fail for mismatched date stub types, but it succeeded")
+            return
+        }
+        // Reject non-type failures (syntax / I/O) that would make the negative check a false pass.
+        #expect(
+            stderr.contains("error:"),
+            "expected a swiftc type error, got exit \(status) with stderr: \(stderr)"
+        )
+    }
+
+    private static func runSwiftcTypecheck(_ source: String) throws -> (Int32, String) {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kawarimi-swiftc-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
@@ -146,15 +166,13 @@ enum KawarimiJutsuTestSupport {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = ["swiftc", "-typecheck", fileURL.path]
+        process.standardOutput = FileHandle.nullDevice
         let stderrPipe = Pipe()
         process.standardError = stderrPipe
         try process.run()
         process.waitUntilExit()
-        if process.terminationStatus != 0 {
-            let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-            Issue.record("swiftc -typecheck failed: \(stderr)")
-            return
-        }
+        let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        return (process.terminationStatus, stderr)
     }
 
     static func yamlSchemaPropertyKey(_ name: String) -> String {
@@ -184,6 +202,112 @@ enum KawarimiJutsuTestSupport {
                             type: string
                             example: example-value
         """
+    }
+
+    /// Minimal OpenAPI for absolute-date string format → handler stub matrix cells.
+    static func absoluteDateFormatOpenAPIYAML(
+        format: String,
+        example: String?
+    ) -> String {
+        let exampleLine: String
+        if let example {
+            let escaped = example
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            exampleLine = "\n                    example: \"\(escaped)\""
+        } else {
+            exampleLine = ""
+        }
+        return """
+        openapi: 3.1.0
+        info: { title: Repro, version: '1.0.0' }
+        paths:
+          /item:
+            get:
+              operationId: getItem
+              responses:
+                '200':
+                  description: OK
+                  content:
+                    application/json:
+                      schema:
+                        type: object
+                        required: [value]
+                        properties:
+                          value:
+                            type: string
+                            format: \(format)\(exampleLine)
+        """
+    }
+
+    /// Typechecks a labeled stub argument against the swift-openapi-generator Swift type for the format.
+    static func assertAbsoluteDateFormatStubTypechecks(
+        sogSwiftType: String,
+        argumentExpression: String
+    ) throws {
+        let source = """
+        import Foundation
+        struct StubBody {
+            init(value: \(sogSwiftType)) {}
+        }
+        let _ = StubBody(value: \(argumentExpression))
+        """
+        try assertSwiftSnippetTypechecks(source)
+    }
+
+    /// Extracts `label: <expr>` from a generated `.init(...)` witness (string literal or `Date(...)`).
+    /// Prefers the last `.init(` region so nested labels in signatures are ignored.
+    static func extractLabeledArgumentExpression(label: String, from source: String) -> String? {
+        let searchRoot: String
+        if let initRange = source.range(of: ".init(", options: .backwards) {
+            searchRoot = String(source[initRange.lowerBound...])
+        } else {
+            searchRoot = source
+        }
+        let needle = "\(label): "
+        guard let start = searchRoot.range(of: needle) else { return nil }
+        let restStart = start.upperBound
+        guard restStart < searchRoot.endIndex else { return nil }
+
+        if searchRoot[restStart] == "\"" {
+            var i = searchRoot.index(after: restStart)
+            var escaped = false
+            while i < searchRoot.endIndex {
+                let c = searchRoot[i]
+                if escaped {
+                    escaped = false
+                    i = searchRoot.index(after: i)
+                    continue
+                }
+                if c == "\\" {
+                    escaped = true
+                    i = searchRoot.index(after: i)
+                    continue
+                }
+                if c == "\"" {
+                    return String(searchRoot[restStart...i])
+                }
+                i = searchRoot.index(after: i)
+            }
+            return nil
+        }
+
+        guard searchRoot[restStart...].hasPrefix("Date(") else { return nil }
+        var depth = 0
+        var i = restStart
+        while i < searchRoot.endIndex {
+            let c = searchRoot[i]
+            if c == "(" {
+                depth += 1
+            } else if c == ")" {
+                depth -= 1
+                if depth == 0 {
+                    return String(searchRoot[restStart...i])
+                }
+            }
+            i = searchRoot.index(after: i)
+        }
+        return nil
     }
 }
 

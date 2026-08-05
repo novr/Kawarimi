@@ -8,9 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiJutsu:** regression matrix covering OpenAPI `format: date-time` / `date` → swift-openapi-generator Swift types → handler stub literal kinds (parseable / missing / unparseable examples; `swiftc -typecheck` on the **generated** argument, plus mismatched-type failure).
+
 ### Fixed
 
 - **KawarimiJutsu:** handler stubs emit a Swift `String` literal for OpenAPI `format: date` fields (swift-openapi-generator maps these to `String`, not `Date`); `format: date-time` still uses `Date(timeIntervalSince1970:)`. Fallback warnings distinguish `epoch 0` (`date-time`) from `fallback "1970-01-01"` (`date`) ([#237](https://github.com/novr/Kawarimi/issues/237)).
+- **Docs:** `mock-json` (EN/JA) now documents `date` → `String` vs `date-time` → `Date` for handler literals (aligned with #237).
 
 ## [4.0.0] - 2026-08-03
 
