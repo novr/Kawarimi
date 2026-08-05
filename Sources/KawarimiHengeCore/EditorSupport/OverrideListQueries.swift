@@ -119,6 +119,28 @@ package enum OverrideListQueries {
         endpoints.first { EndpointRowKey($0) == rowKey }
     }
 
+    package static func storedOverride(
+        forRowId rowId: MockOverrideRowID,
+        in overrides: [MockOverride]
+    ) -> MockOverride? {
+        overrides.first { $0.rowId == rowId }
+    }
+
+    package static func endpoint(
+        forStoredOverride stored: MockOverride,
+        pathPrefix: String,
+        in endpoints: [any SpecEndpointProviding]
+    ) -> (any SpecEndpointProviding)? {
+        endpoints.first { ep in
+            overrideMatchesRow(
+                stored,
+                rowKey: EndpointRowKey(ep),
+                pathPrefix: pathPrefix,
+                operationId: ep.operationId
+            )
+        }
+    }
+
     package static func defaultResponseStatusCode(for rowKey: EndpointRowKey, in endpoints: [any SpecEndpointProviding]) -> Int {
         endpoint(for: rowKey, in: endpoints)?.responseList.first?.statusCode ?? 200
     }

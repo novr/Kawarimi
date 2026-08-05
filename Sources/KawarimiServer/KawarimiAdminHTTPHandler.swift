@@ -53,6 +53,10 @@ public struct KawarimiAdminHTTPHandler: Sendable {
         case .spec:
             let data = try await specWireData()
             return jsonResponse(statusCode: route.successStatusCode, body: data)
+        case .scenarios:
+            let scenarios = await store.scenarios()
+            let data = try JSONEncoder().encode(scenarios)
+            return jsonResponse(statusCode: route.successStatusCode, body: data)
         }
     }
 

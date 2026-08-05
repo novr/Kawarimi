@@ -3,6 +3,31 @@ import KawarimiCore
 
 /// Fresh ``OverrideDetailDraft`` when opening a list row with no stashed draft: placeholder → optional primary overlay → ``OverrideDetailDraft/resyncMockFromServer`` (see henge docs).
 package enum OverrideExplorerDraftBootstrap {
+    /// Opens the stored override identified by `rowId` (scenario browser jump target).
+    /// Seeds the draft from that stored row — never falls back to the endpoint primary.
+    package static func makeFreshDetail(
+        rowId: MockOverrideRowID,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride]
+    ) -> OverrideDetailDraft? {
+        guard let stored = OverrideListQueries.storedOverride(forRowId: rowId, in: overrides),
+              let endpoint = OverrideListQueries.endpoint(
+                  forStoredOverride: stored,
+                  pathPrefix: pathPrefix,
+                  in: endpoints
+              ) else {
+            return nil
+        }
+        var mock = stored
+        mock.path = endpoint.path
+        mock.method = endpoint.method
+        mock.name = stored.name ?? endpoint.operationId
+        var draft = OverrideDetailDraft(mock: mock, validationMessage: nil, isDirty: false)
+        draft.pinnedNumberedResponseChip = true
+        return draft
+    }
+
     /// Resolves the endpoint, builds the initial mock, runs one resync, and returns a clean draft; `nil` if the row key does not match any loaded endpoint.
     package static func makeFreshDetail(
         rowKey: EndpointRowKey,

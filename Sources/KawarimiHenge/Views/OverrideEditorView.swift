@@ -2,6 +2,11 @@ import KawarimiCore
 import KawarimiHengeCore
 import SwiftUI
 
+private enum HengeTab: Hashable {
+    case endpoints
+    case scenarios
+}
+
 /// Endpoint explorer and detail editor; list/spec inputs from the parent, draft state in ``OverrideEditorStore``.
 struct OverrideEditorView: View {
     private let serverURL: String
@@ -14,6 +19,7 @@ struct OverrideEditorView: View {
     private let endpoints: [any SpecEndpointProviding]
     private let securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     private let overrides: [MockOverride]
+    private let scenarios: [KawarimiScenario]
     private let isLoading: Bool
     private let specLoadID: Int
     private let overridesRevision: Int
@@ -25,6 +31,7 @@ struct OverrideEditorView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     @State private var store = OverrideEditorStore()
+    @State private var activeTab: HengeTab = .endpoints
     @State private var confirmResetAll = false
     @State private var searchText = ""
     @State private var compactPath: [EndpointRowKey] = []
@@ -43,6 +50,7 @@ struct OverrideEditorView: View {
         endpoints: [any SpecEndpointProviding],
         securitySchemeCatalog: [any SpecSecuritySchemeProviding]?,
         overrides: [MockOverride],
+        scenarios: [KawarimiScenario] = [],
         isLoading: Bool,
         specLoadID: Int,
         overridesRevision: Int,
@@ -60,6 +68,7 @@ struct OverrideEditorView: View {
         self.endpoints = endpoints
         self.securitySchemeCatalog = securitySchemeCatalog
         self.overrides = overrides
+        self.scenarios = scenarios
         self.isLoading = isLoading
         self.specLoadID = specLoadID
         self.overridesRevision = overridesRevision
@@ -238,10 +247,30 @@ struct OverrideEditorView: View {
     private var compactExplorerRoot: some View {
         VStack(alignment: .leading, spacing: 0) {
             explorerChromeHeader
+            tabPicker
+                .padding(.horizontal, Self.explorerHorizontalMargin)
+                .padding(.vertical, 6)
+            Divider()
             Group {
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if activeTab == .scenarios {
+                    ScenarioBrowserView(
+                        scenarios: scenarios,
+                        selectedRowId: store.detail?.mock.rowId,
+                        canNavigateToOverride: { rowId in
+                            ScenarioBrowserPresentation.canNavigate(
+                                rowId: rowId,
+                                pathPrefix: specPathPrefix,
+                                endpoints: endpoints,
+                                overrides: overrides
+                            )
+                        },
+                        onNavigateToOverride: { rowId in
+                            navigateToOverride(rowId: rowId, updateCompactPath: true)
+                        }
+                    )
                 } else {
                     compactEndpointList
                 }
@@ -303,10 +332,30 @@ struct OverrideEditorView: View {
     private var splitSidebarContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             explorerChromeHeader
+            tabPicker
+                .padding(.horizontal, Self.explorerHorizontalMargin)
+                .padding(.vertical, 6)
+            Divider()
             Group {
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if activeTab == .scenarios {
+                    ScenarioBrowserView(
+                        scenarios: scenarios,
+                        selectedRowId: store.detail?.mock.rowId,
+                        canNavigateToOverride: { rowId in
+                            ScenarioBrowserPresentation.canNavigate(
+                                rowId: rowId,
+                                pathPrefix: specPathPrefix,
+                                endpoints: endpoints,
+                                overrides: overrides
+                            )
+                        },
+                        onNavigateToOverride: { rowId in
+                            navigateToOverride(rowId: rowId, updateCompactPath: false)
+                        }
+                    )
                 } else {
                     splitEndpointList
                 }
@@ -372,6 +421,32 @@ struct OverrideEditorView: View {
     }
 
     // MARK: - Shared chrome
+
+    private func navigateToOverride(rowId: MockOverrideRowID, updateCompactPath: Bool) {
+        guard store.selectOverride(
+            rowId: rowId,
+            pathPrefix: specPathPrefix,
+            endpoints: endpoints,
+            overrides: overrides
+        ) else {
+            errorMessage.wrappedValue = "No matching override for rowId \(rowId.rawValue)"
+            return
+        }
+        errorMessage.wrappedValue = nil
+        // Keep Scenarios tab; refresh detail (split) or push detail (compact).
+        if updateCompactPath, let rowKey = store.selectedRowKey {
+            compactPath = [rowKey]
+        }
+    }
+
+    private var tabPicker: some View {
+        Picker("", selection: $activeTab) {
+            Text("Endpoints").tag(HengeTab.endpoints)
+            Text("Scenarios").tag(HengeTab.scenarios)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
 
     private var explorerChromeHeader: some View {
         ExplorerTopInset(
