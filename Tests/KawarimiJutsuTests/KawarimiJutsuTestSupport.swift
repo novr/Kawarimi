@@ -87,16 +87,25 @@ enum KawarimiJutsuTestSupport {
     static func assertHandlerInlineDateStub(
         source: String,
         witnessName: String,
-        forbiddenSubstrings: [String] = []
+        forbiddenSubstrings: [String] = [],
+        requiredSubstrings: [String] = [],
+        expectsDateLiteral: Bool = true
     ) {
         guard let witnessBlock = handlerWitnessBlock(witnessName: witnessName, in: source) else {
             Issue.record("handler witness block not found: \(witnessName)")
             return
         }
-        #expect(witnessBlock.contains("Date(timeIntervalSince1970:"))
+        if expectsDateLiteral {
+            #expect(witnessBlock.contains("Date(timeIntervalSince1970:"))
+        } else {
+            #expect(!witnessBlock.contains("Date(timeIntervalSince1970:"))
+        }
         #expect(!witnessBlock.contains("_kawarimiStubData = Data(\""))
         for forbidden in forbiddenSubstrings {
             #expect(!witnessBlock.contains(forbidden))
+        }
+        for required in requiredSubstrings {
+            #expect(witnessBlock.contains(required))
         }
     }
 

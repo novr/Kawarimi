@@ -49,7 +49,7 @@ The string is chosen in this order:
 | **Handler literal** (initializer path) | — | `Date(timeIntervalSince1970:…)` from parsed `example` at codegen |
 | **Handler decode** (`allOf` / enum / etc.) | Same synthesized JSON string as mock JSON | `Self._kawarimiStubJSONDecoder()` (`.iso8601` + date-only / pattern fallback) |
 
-For **mock JSON**, `format: date-time` / `date` is resolved **before** generic schema `example` encoding so unparseable date examples do not leak into the wire JSON. When the mock JSON path falls back (missing example, or example string that does not parse), Kawarimi emits the same **`Kawarimi warning: … epoch 0 …`** line to **stderr** as the handler literal path (with `operationId` and OpenAPI path context).
+For **mock JSON**, `format: date-time` / `date` is resolved **before** generic schema `example` encoding so unparseable date examples do not leak into the wire JSON. When the mock JSON path falls back (missing example, or example string that does not parse), Kawarimi emits a **`Kawarimi warning:`** line to **stderr** as the handler literal path (with `operationId` and OpenAPI path context): `epoch 0` for `format: date-time`, or `fallback "1970-01-01"` for `format: date`.
 
 ## KawarimiHandler default stubs
 
