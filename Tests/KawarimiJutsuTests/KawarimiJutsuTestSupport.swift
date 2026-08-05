@@ -144,8 +144,16 @@ enum KawarimiJutsuTestSupport {
     }
 
     static func assertSwiftSnippetTypechecksExpectingFailure(_ source: String) throws {
-        let (status, _) = try runSwiftcTypecheck(source)
-        #expect(status != 0, "expected swiftc -typecheck to fail for mismatched date stub types")
+        let (status, stderr) = try runSwiftcTypecheck(source)
+        guard status != 0 else {
+            Issue.record("expected swiftc -typecheck to fail for mismatched date stub types, but it succeeded")
+            return
+        }
+        // Reject non-type failures (syntax / I/O) that would make the negative check a false pass.
+        #expect(
+            stderr.contains("error:"),
+            "expected a swiftc type error, got exit \(status) with stderr: \(stderr)"
+        )
     }
 
     private static func runSwiftcTypecheck(_ source: String) throws -> (Int32, String) {
@@ -158,6 +166,7 @@ enum KawarimiJutsuTestSupport {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = ["swiftc", "-typecheck", fileURL.path]
+        process.standardOutput = FileHandle.nullDevice
         let stderrPipe = Pipe()
         process.standardError = stderrPipe
         try process.run()
@@ -247,49 +256,56 @@ enum KawarimiJutsuTestSupport {
     }
 
     /// Extracts `label: <expr>` from a generated `.init(...)` witness (string literal or `Date(...)`).
+    /// Prefers the last `.init(` region so nested labels in signatures are ignored.
     static func extractLabeledArgumentExpression(label: String, from source: String) -> String? {
+        let searchRoot: String
+        if let initRange = source.range(of: ".init(", options: .backwards) {
+            searchRoot = String(source[initRange.lowerBound...])
+        } else {
+            searchRoot = source
+        }
         let needle = "\(label): "
-        guard let start = source.range(of: needle) else { return nil }
+        guard let start = searchRoot.range(of: needle) else { return nil }
         let restStart = start.upperBound
-        guard restStart < source.endIndex else { return nil }
+        guard restStart < searchRoot.endIndex else { return nil }
 
-        if source[restStart] == "\"" {
-            var i = source.index(after: restStart)
+        if searchRoot[restStart] == "\"" {
+            var i = searchRoot.index(after: restStart)
             var escaped = false
-            while i < source.endIndex {
-                let c = source[i]
+            while i < searchRoot.endIndex {
+                let c = searchRoot[i]
                 if escaped {
                     escaped = false
-                    i = source.index(after: i)
+                    i = searchRoot.index(after: i)
                     continue
                 }
                 if c == "\\" {
                     escaped = true
-                    i = source.index(after: i)
+                    i = searchRoot.index(after: i)
                     continue
                 }
                 if c == "\"" {
-                    return String(source[restStart...i])
+                    return String(searchRoot[restStart...i])
                 }
-                i = source.index(after: i)
+                i = searchRoot.index(after: i)
             }
             return nil
         }
 
-        guard source[restStart...].hasPrefix("Date(") else { return nil }
+        guard searchRoot[restStart...].hasPrefix("Date(") else { return nil }
         var depth = 0
         var i = restStart
-        while i < source.endIndex {
-            let c = source[i]
+        while i < searchRoot.endIndex {
+            let c = searchRoot[i]
             if c == "(" {
                 depth += 1
             } else if c == ")" {
                 depth -= 1
                 if depth == 0 {
-                    return String(source[restStart...i])
+                    return String(searchRoot[restStart...i])
                 }
             }
-            i = source.index(after: i)
+            i = searchRoot.index(after: i)
         }
         return nil
     }
