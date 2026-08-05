@@ -114,7 +114,7 @@ OpenAPI API と**同じパスプレフィックス体系**の下にマウント�
 
 **KawarimiCore** が共通 HTTP 契約を公開し、クライアントとサーバーでパス文字列の重複を避けます。
 
-- **`KawarimiAdminRoute`** — `spec` / `status` / `configure` / `remove` / `reset` / `reload`。各 case に **`httpMethod`**・**`relativePath`**・**`successStatusCode`**（いずれも `200`）。
+- **`KawarimiAdminRoute`** — `spec` / `status` / `scenarios` / `configure` / `remove` / `reset` / `reload`。各 case に **`httpMethod`**・**`relativePath`**・**`successStatusCode`**（いずれも `200`）。
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — `{baseURL}/__kawarimi/{segment}` を組み立て（**`KawarimiAPIClient`** と同じ規則）。
 - **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — サーバ側も **`adminURL`** / **`KawarimiAPIClient`** と同じパス規則。
 - **`KawarimiAdminSpecWire.validate(_:)`** — encode した spec wire JSON が **`HengeSpecSnapshot`** として decode できるか起動時に fail-fast 検証（`GET …/spec` 契約）。ホストの **`SpecResponse`**（相当型）を **`JSONEncoder`** した直後に呼ぶ。**`KawarimiAdminHeaders.jsonContentType`** は JSON **`Content-Type`** 文字列。
@@ -223,7 +223,7 @@ API 対応:
 | 対象 | 挙動 |
 | --- | --- |
 | **オーバーライド（`kawarimi.json`）** | Henge / `KawarimiAPIClient` の `POST …/configure`、**`POST …/reload`**、または **`KawarimiConfigStore/startFileWatchIfEnabled()`** 有効時（**DemoServer** は既定で有効）のディスク保存で更新。**`KAWARIMI_CONFIG_WATCH=0`** で監視 OFF。reload / 監視は起動時と同じ読み込み規則（無効 JSON → 空）。ディスク読み込み時は `configure` の全正規化は行わないが、`rowId` は読み込み時に正規化（trim + UUID 検証 + lowercase）する。単一プロセス内では最後に完了した `configure` / `reload` / `reset` / ディスク reload が勝つ。 |
-| **シナリオ（`kawarimi-scenarios.json`）** | ランタイムは読み取り専用（Henge 管理 API なし）。起動時・**`POST …/reload`**・ファイル監視有効時に overrides と同時に読み込み。パス: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json のディレクトリ}/kawarimi-scenarios.json`。無効 JSON → 空の scenarios。構造上の問題は **`KawarimiScenarioValidation`** が **warning** ログ。macOS では**既存ファイル**への atomic 上書きが vnode 監視で拾えないことがある — 反映されないときは **`POST …/reload`** を使う。 |
+| **シナリオ（`kawarimi-scenarios.json`）** | ランタイムは読み取り専用。`GET …/__kawarimi/scenarios` が読み込み済みシナリオ一覧を返す（JSON 配列）。**`KawarimiAPIClient.fetchScenarios()`** または **`KawarimiConfigView`** の **Scenarios タブ**から参照。起動時・**`POST …/reload`**・ファイル監視有効時に overrides と同時に読み込み。パス: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json のディレクトリ}/kawarimi-scenarios.json`。無効 JSON → 空の scenarios。構造上の問題は **`KawarimiScenarioValidation`** が **warning** ログ。macOS では**既存ファイル**への atomic 上書きが vnode 監視で拾えないことがある — 反映されないときは **`POST …/reload`** を使う。 |
 | **`KawarimiSpec` / `responseMap`** | OpenAPI からの**ビルド時生成**（`kawarimi.json` とは別）。**`KawarimiServerMiddleware` 初期化時に固定**。OpenAPI 再生成後は **ビルド + 再起動**（または middleware 再登録）。**`POST …/reload` は spec 本文を更新しない**。 |
 
 ### 任意: Vapor グローバル middleware
@@ -249,6 +249,15 @@ API 対応:
 `POST …/__kawarimi/reload` とファイル監視の reload は **`kawarimi.json` と `kawarimi-scenarios.json` の両方**を再読み込みします。**DemoServer** のファイル監視は（パスが異なるとき）**両ファイル**を監視します。
 
 **オーバーライドとシナリオ JSON の作成**（書式・`rowId` の結合 — ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。コミット前の **`KawarimiValidate`** も同 Skill を参照。
+
+#### Henge のシナリオブラウザ
+
+**`KawarimiConfigView`** はエンドポイントタブと並んで **Scenarios タブ**（読み取り専用）を表示します。読み込み済みシナリオの各 case — `kawarimiId`・`next`・`rowId`（先頭 8 文字）・`method + path` — を一覧します。
+
+- case 行をタップすると **Endpoints タブ**へ切り替わり、`rowId` で対象 override 行が選択されます。
+- シナリオファイル未読み込み時はプレースホルダーを表示します。
+
+**`KawarimiAPIClient.fetchScenarios()`** で `GET …/__kawarimi/scenarios` を呼び `[KawarimiScenario]` をデコードします。サーバ側は `KawarimiAdminHTTPHandler`（ルート `KawarimiAdminRoute.scenarios`）。Scenarios タブの内容は Endpoints タブのクロームから「Refresh」を押すと再読み込みされます。
 
 #### HTTP ヘッダー（`KawarimiScenarioHeaders`）
 

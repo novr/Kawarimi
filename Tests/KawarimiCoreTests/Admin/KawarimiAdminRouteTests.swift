@@ -12,6 +12,10 @@ import Testing
     #expect(KawarimiAdminRoute.status.relativePath == "status")
     #expect(KawarimiAdminRoute.status.successStatusCode == 200)
 
+    #expect(KawarimiAdminRoute.scenarios.httpMethod == .get)
+    #expect(KawarimiAdminRoute.scenarios.relativePath == "scenarios")
+    #expect(KawarimiAdminRoute.scenarios.successStatusCode == 200)
+
     #expect(KawarimiAdminRoute.configure.httpMethod == .post)
     #expect(KawarimiAdminRoute.configure.relativePath == "configure")
     #expect(KawarimiAdminRoute.configure.successStatusCode == 200)
@@ -95,5 +99,19 @@ import Testing
             method: .get,
             pathPrefix: ""
         ) == .spec
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/scenarios",
+            method: .get,
+            pathPrefix: prefix
+        ) == .scenarios
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/scenarios",
+            method: .post,
+            pathPrefix: prefix
+        ) == nil
     )
 }

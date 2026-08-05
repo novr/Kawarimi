@@ -114,7 +114,7 @@ You may mount `__kawarimi` at the root in your own app; keep it aligned with `Ka
 
 **KawarimiCore** exposes the shared HTTP contract so clients and servers stay aligned without duplicating path strings:
 
-- **`KawarimiAdminRoute`** — `spec`, `status`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`).
+- **`KawarimiAdminRoute`** — `spec`, `status`, `scenarios`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`).
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — builds `{baseURL}/__kawarimi/{segment}` (same rules as **`KawarimiAPIClient`**).
 - **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — same path rules as **`adminURL`** / **`KawarimiAPIClient`** on the server side.
 - **`KawarimiAdminSpecWire.validate(_:)`** — fail-fast decode check that encoded spec wire JSON matches **`HengeSpecSnapshot`** (`GET …/spec` contract). Call after **`JSONEncoder`** on your host **`SpecResponse`** (or equivalent) at startup; **`KawarimiAdminHeaders.jsonContentType`** is the shared JSON **`Content-Type`** string.
@@ -224,7 +224,7 @@ API summary:
 | What | Behavior |
 | --- | --- |
 | **Overrides (`kawarimi.json`)** | Updated when Henge / `KawarimiAPIClient` calls `POST …/configure`, when **`POST …/reload`** re-reads the file, or when **`KawarimiConfigStore/startFileWatchIfEnabled()`** is active (default for **DemoServer**): saving `kawarimi.json` on disk reloads into memory. Disable watch with **`KAWARIMI_CONFIG_WATCH=0`**. Reload / watch use the **same load rules as startup** (invalid JSON → empty overrides). Disk loads still skip full `configure` normalization, but `rowId` is normalized (trim + lowercase UUID validation) during load. Within a single server process, the last completed `configure` / `reload` / `reset` / disk reload wins. |
-| **Scenarios (`kawarimi-scenarios.json`)** | Read-only at runtime (no Henge admin API). Loaded with overrides on startup, **`POST …/reload`**, and file watch when enabled. Path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json directory}/kawarimi-scenarios.json`. Invalid JSON → empty scenarios; structural issues log **warnings** via **`KawarimiScenarioValidation`**. Saving an **existing** scenarios file via atomic replace may not trigger vnode watch on macOS — use **`POST …/reload`** if edits do not apply. |
+| **Scenarios (`kawarimi-scenarios.json`)** | Read-only at runtime. `GET …/__kawarimi/scenarios` returns the loaded scenario list (JSON array); call **`KawarimiAPIClient.fetchScenarios()`** or open the **Scenarios tab** in **`KawarimiConfigView`**. Loaded with overrides on startup, **`POST …/reload`**, and file watch when enabled. Path: init `scenariosPath:` → **`KAWARIMI_SCENARIOS_CONFIG`** → `{kawarimi.json directory}/kawarimi-scenarios.json`. Invalid JSON → empty scenarios; structural issues log **warnings** via **`KawarimiScenarioValidation`**. Saving an **existing** scenarios file via atomic replace may not trigger vnode watch on macOS — use **`POST …/reload`** if edits do not apply. |
 | **`KawarimiSpec` / `responseMap`** | **Build-time** from OpenAPI (not `kawarimi.json`). Fixed at **`KawarimiServerMiddleware` init**. After OpenAPI regen, **rebuild and restart** (or re-register middleware). **`POST …/reload` does not update spec bodies.** |
 
 ### Optional: Vapor global middleware
@@ -250,6 +250,15 @@ Omit the header or send whitespace-only to apply **no** narrowing.
 `POST …/__kawarimi/reload` and file watch reload **both** `kawarimi.json` and `kawarimi-scenarios.json`. **DemoServer** file watch monitors **both** paths (when they differ).
 
 **Authoring** (shape rules, `rowId` joins — not runtime behavior): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md). **`KawarimiValidate`** before commit — same skill.
+
+#### Scenario browser in Henge
+
+**`KawarimiConfigView`** includes a **Scenarios tab** (read-only) alongside the Endpoints tab. It lists all loaded scenarios with their cases: `kawarimiId`, `next`, `rowId` (abbreviated), and `method + path`.
+
+- Tap a scenario case row to jump to the Endpoints tab with that override row selected by `rowId`.
+- The tab label shows "Scenarios" and is always visible — if no scenarios file is loaded, the tab shows a placeholder message.
+
+**`KawarimiAPIClient.fetchScenarios()`** fetches `GET …/__kawarimi/scenarios` and decodes `[KawarimiScenario]`. The server handler is `KawarimiAdminHTTPHandler` (route `KawarimiAdminRoute.scenarios`). The tab reloads when "Refresh" is triggered from the Endpoints tab chrome.
 
 #### HTTP headers (`KawarimiScenarioHeaders`)
 

@@ -120,6 +120,24 @@ package final class OverrideEditorStore {
         selectEndpoint(rowKey: newKey, pathPrefix: pathPrefix, endpoints: endpoints, overrides: overrides)
     }
 
+    package func selectOverride(
+        rowId: MockOverrideRowID,
+        pathPrefix: String,
+        endpoints: [any SpecEndpointProviding],
+        overrides: [MockOverride]
+    ) {
+        guard let built = OverrideExplorerDraftBootstrap.makeFreshDetail(
+            rowId: rowId,
+            pathPrefix: pathPrefix,
+            endpoints: endpoints,
+            overrides: overrides
+        ) else {
+            return
+        }
+        stashCurrentDetailIfDirty()
+        commitDetail(built)
+    }
+
     package func resyncDetailAfterSpecReload(pathPrefix: String, endpoints: [any SpecEndpointProviding], overrides: [MockOverride]) {
         pendingDraftsByRowKey.removeAll()
         guard var d = detail else { return }

@@ -10,6 +10,7 @@ public struct KawarimiConfigView: View {
         securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     )
     private let fetchOverrides: () async throws -> [MockOverride]
+    private let fetchScenariosFromServer: () async throws -> [KawarimiScenario]
     private let configureOnServer: (MockOverride) async throws -> [MockOverride]
     private let removeOnServer: (MockOverride) async throws -> [MockOverride]
     private let resetAllOnServer: () async throws -> [MockOverride]
@@ -20,6 +21,7 @@ public struct KawarimiConfigView: View {
     @State private var endpoints: [any SpecEndpointProviding] = []
     @State private var securitySchemeCatalog: [any SpecSecuritySchemeProviding]?
     @State private var overridesSnapshot: [MockOverride] = []
+    @State private var scenariosSnapshot: [KawarimiScenario] = []
     @State private var isLoading = false
     @State private var isReloadingFromDisk = false
     @State private var reloadNoticeMessage: String?
@@ -41,6 +43,7 @@ public struct KawarimiConfigView: View {
             )
         }
         fetchOverrides = { try await client.fetchOverrides() }
+        fetchScenariosFromServer = { try await client.fetchScenarios() }
         configureOnServer = { try await client.configure(override: $0) }
         removeOnServer = { try await client.removeOverride(override: $0) }
         resetAllOnServer = { try await client.reset() }
@@ -71,6 +74,7 @@ public struct KawarimiConfigView: View {
             endpoints: endpoints,
             securitySchemeCatalog: securitySchemeCatalog,
             overrides: overridesSnapshot,
+            scenarios: scenariosSnapshot,
             isLoading: isLoading,
             specLoadID: specLoadID,
             overridesRevision: overridesRevision,
@@ -101,11 +105,13 @@ public struct KawarimiConfigView: View {
         do {
             let spec = try await specProvider()
             let overrides = try await fetchOverrides()
+            let scenarios = (try? await fetchScenariosFromServer()) ?? []
             meta = spec.meta
             serverURL = spec.meta.serverURL
             endpoints = spec.endpoints
             securitySchemeCatalog = spec.securitySchemeCatalog
             overridesSnapshot = overrides
+            scenariosSnapshot = scenarios
             specLoadID += 1
         } catch {
             errorMessage = error.localizedDescription
@@ -128,6 +134,7 @@ public struct KawarimiConfigView: View {
             let response = try await reloadFromDisk()
             reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
             _ = applyOverridesSnapshot(response.overrides)
+            scenariosSnapshot = (try? await fetchScenariosFromServer()) ?? []
         } catch {
             errorMessage = error.localizedDescription
         }

@@ -67,6 +67,14 @@ public struct KawarimiAPIClient: Sendable {
         try await fetchSpec(as: HengeSpecSnapshot.self)
     }
 
+    /// Fetches scenario definitions from `GET …/__kawarimi/scenarios`.
+    public func fetchScenarios() async throws -> [KawarimiScenario] {
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .scenarios)
+        let (data, response) = try await session.data(from: url)
+        try validateHTTPStatus(response, data: data)
+        return try JSONDecoder().decode([KawarimiScenario].self, from: data)
+    }
+
     public func fetchOverrides() async throws -> [MockOverride] {
         let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .status)
         let (data, response) = try await session.data(from: url)

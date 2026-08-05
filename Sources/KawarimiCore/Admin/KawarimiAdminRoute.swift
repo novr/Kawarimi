@@ -5,6 +5,7 @@ import HTTPTypes
 public enum KawarimiAdminRoute: Sendable, CaseIterable {
     case spec
     case status
+    case scenarios
     case configure
     case remove
     case reset
@@ -12,7 +13,7 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
 
     public var httpMethod: HTTPRequest.Method {
         switch self {
-        case .spec, .status: .get
+        case .spec, .status, .scenarios: .get
         case .configure, .remove, .reset, .reload: .post
         }
     }
@@ -21,6 +22,7 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
         switch self {
         case .spec: "spec"
         case .status: "status"
+        case .scenarios: "scenarios"
         case .configure: "configure"
         case .remove: "remove"
         case .reset: "reset"

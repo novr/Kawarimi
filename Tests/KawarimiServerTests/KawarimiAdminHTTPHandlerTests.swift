@@ -175,4 +175,57 @@ struct KawarimiAdminHTTPHandlerTests {
         #expect(response.status.code == 200)
         #expect(bodyData == wire)
     }
+
+    @Test func scenariosReturnsEmptyArrayWhenNoScenariosFile() async throws {
+        let (store, configURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: configURL) }
+
+        let handler = KawarimiAdminHTTPHandler(store: store, specWireData: { Data() })
+        let request = adminRequest(path: "/api/__kawarimi/scenarios", method: .get)
+        let (response, bodyData) = try #require(try await handler.handle(request: request, body: nil))
+        #expect(response.status.code == 200)
+        #expect(response.headerFields[.contentType] == KawarimiAdminHeaders.jsonContentType)
+        let scenarios = try JSONDecoder().decode([KawarimiScenario].self, from: try #require(bodyData))
+        #expect(scenarios.isEmpty)
+    }
+
+    @Test func scenariosReturnsLoadedScenarios() async throws {
+        let configURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".json")
+        let scenariosURL = configURL.deletingLastPathComponent()
+            .appendingPathComponent(UUID().uuidString + "-scenarios.json")
+        try Data("{\"overrides\":[]}".utf8).write(to: configURL)
+        let scenariosJSON = """
+        {"scenarios":[{"scenarioId":"login","initial":"step1","cases":[{"kawarimiId":"step1","rowId":"00000000-0000-0000-0000-000000000001","endpoint":{"method":"POST","path":"/api/login"}}]}]}
+        """
+        try Data(scenariosJSON.utf8).write(to: scenariosURL)
+        defer {
+            try? FileManager.default.removeItem(at: configURL)
+            try? FileManager.default.removeItem(at: scenariosURL)
+        }
+
+        let store = try KawarimiConfigStore(
+            configPath: configURL.path,
+            pathPrefix: "/api",
+            scenariosPath: scenariosURL.path
+        )
+        let handler = KawarimiAdminHTTPHandler(store: store, specWireData: { Data() })
+        let request = adminRequest(path: "/api/__kawarimi/scenarios", method: .get)
+        let (response, bodyData) = try #require(try await handler.handle(request: request, body: nil))
+        #expect(response.status.code == 200)
+        let scenarios = try JSONDecoder().decode([KawarimiScenario].self, from: try #require(bodyData))
+        #expect(scenarios.count == 1)
+        #expect(scenarios[0].scenarioId == "login")
+        #expect(scenarios[0].cases.count == 1)
+        #expect(scenarios[0].cases[0].kawarimiId == "step1")
+    }
+
+    @Test func scenariosRouteDoesNotMatchWrongMethod() async throws {
+        let (store, configURL) = try makeStore()
+        defer { try? FileManager.default.removeItem(at: configURL) }
+
+        let handler = KawarimiAdminHTTPHandler(store: store, specWireData: { Data() })
+        let request = adminRequest(path: "/api/__kawarimi/scenarios", method: .post)
+        let result = try await handler.handle(request: request, body: nil)
+        #expect(result == nil)
+    }
 }

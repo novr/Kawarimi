@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **KawarimiCore:** `GET …/__kawarimi/scenarios` admin route (`KawarimiAdminRoute.scenarios`) returns the loaded `[KawarimiScenario]` as JSON. `KawarimiAPIClient.fetchScenarios()` fetches and decodes it ([#228](https://github.com/novr/Kawarimi/issues/228)).
+- **KawarimiHenge:** `KawarimiConfigView` includes a read-only **Scenarios tab** alongside Endpoints. Lists scenario cases with `kawarimiId`, `next`, `rowId` (abbreviated), and `method + path`. Tapping a case selects the override by `rowId` in the detail column without leaving the Scenarios tab ([#228](https://github.com/novr/Kawarimi/issues/228)).
 - **KawarimiJutsu:** regression matrix covering OpenAPI `format: date-time` / `date` → swift-openapi-generator Swift types → handler stub literal kinds (parseable / missing / unparseable examples; `swiftc -typecheck` on the **generated** argument, plus mismatched-type failure).
 
 ### Fixed
