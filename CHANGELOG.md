@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-08-05
+
 ### Added
 
 - **KawarimiCore:** `GET …/__kawarimi/scenarios` admin route (`KawarimiAdminRoute.scenarios`) returns the loaded `[KawarimiScenario]` as JSON. `KawarimiAPIClient.fetchScenarios()` fetches and decodes it ([#228](https://github.com/novr/Kawarimi/issues/228)).
@@ -555,6 +557,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.1.0]: https://github.com/novr/Kawarimi/releases/tag/v4.1.0
 [4.0.0]: https://github.com/novr/Kawarimi/releases/tag/v4.0.0
 [3.4.1]: https://github.com/novr/Kawarimi/releases/tag/v3.4.1
 [3.4.0]: https://github.com/novr/Kawarimi/releases/tag/v3.4.0
