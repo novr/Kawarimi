@@ -1,5 +1,5 @@
 {
-  "originHash" : "a562a3f46e2cb322a3db0161a29bb3a5f35e59a335d4938fefcc2178897235a9",
+  "originHash" : "e4799127951f3f29b1bed89180d590e92c2573cae751a12dec065d104aabeb7e",
   "pins" : [
     {
       "identity" : "openapikit",
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-http-types.git",
       "state" : {
-        "revision" : "db774a277f60063a32d854f2980299caf06da041",
-        "version" : "1.6.0"
+        "revision" : "bff4b6903cdc99dda49649dd52f46c11cfd3ed50",
+        "version" : "1.8.0"
       }
     },
     {
