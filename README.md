@@ -33,6 +33,7 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | **KawarimiCore** | Shared models, `KawarimiConfigStore`, `KawarimiAPIClient`, scenario resolver |
 | **KawarimiServer** | Server-side dynamic mocks without coupling to Henge UI |
 | **KawarimiClient** | Scenario header state on generated OpenAPI clients |
+| **KawarimiStub** | In-process stub middleware for generated OpenAPI clients (no network) |
 | **KawarimiHenge** | SwiftUI admin UI (macOS) |
 
 Details: [Integration](docs/integration.md), [Henge](docs/henge.md).

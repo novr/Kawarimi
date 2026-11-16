@@ -24,6 +24,7 @@ Kawarimi 単体に Vapor 用プロダクトはありません。生成した API
 | サーバ operation への動的モック | **KawarimiServer**（`KawarimiServerMiddleware`） |
 | Henge 管理 HTTP（`__kawarimi/*`） | **KawarimiServer**（`KawarimiAdminHTTPHandler`。admin は OpenAPI 登録外） |
 | OpenAPI クライアントのシナリオオーケストレーション | **KawarimiClient**（`KawarimiClientOrchestrationMiddleware`） |
+| OpenAPI クライアントのインプロセス Stub | **KawarimiStub**（`KawarimiStubMiddleware`） |
 
 本リポジトリの **`DemoPackage` の構成** と **`DemoServer` のエントリポイント**: [Example/README_JA.md](../../Example/README_JA.md)。
 
@@ -196,7 +197,7 @@ upstream への forward は **`KawarimiServerMiddleware`** が **`KawarimiUpstre
 
 upstream 設定時のみ、レスポンスに **`X-Kawarimi-Proxy-Action: mock`** または **`forward`** が付くことがあります。未設定時は付きません。
 
-**v1 スコープ外:** 本番透過プロキシ / API ゲートウェイとしての利用；Client middleware による切り替え；未登録 path の catch-all；path リマップ；Cookie リライト；admin 認証。
+**v1 スコープ外:** 本番透過プロキシ / API ゲートウェイとしての利用；Client middleware による Stub と upstream の切り替え（サーバなしのインプロセス Stub は [**`KawarimiStubMiddleware`**](#client-stub-kawarimistubmiddleware)。転送はしない）；未登録 path の catch-all；path リマップ；Cookie リライト；admin 認証。
 
 ### オーバーライドマッチングの Product ルール
 
@@ -207,7 +208,7 @@ upstream 設定時のみ、レスポンスに **`X-Kawarimi-Proxy-Action: mock`*
    - **着信 HTTP（サーバ）:** リクエスト URL（path のみ）と persisted `path` を `PathTemplate` + `pathPrefix` で比較（`overrideMatchesIncomingRequest`）。
    - **エクスプローラ行（Henge）:** spec / 行のテンプレート path と persisted `path` を `KawarimiPath.aligned` で比較（`overrideMatchesOperation`）。
 3. **Primary selection** — 同一 operation にマッチする **enabled** 行のうち、`sortedForOverrideTieBreak` の**先頭**がプライマリ（`path` → `statusCode` → `name` → `exampleId`、同順位は安定ソートで `hits` 順を維持）。**`X-Kawarimi-Example-Id`** は**着信**時のみ候補を絞ります（`matchingEnabledOverrides`）。エクスプローラはこのヘッダーを送りません。
-4. **非目標** — プロセス内 `Kawarimi`（`ClientTransport`）は実行時オーバーライド非対応（#75）。
+4. **非目標** — プロセス内 `Kawarimi`（`ClientTransport`）は実行時オーバーライド非対応（#75）。生成クライアントでインプロセスにオーバーライドを当てるなら **`KawarimiStubMiddleware`** を使う。
 
 API 対応:
 
@@ -285,6 +286,35 @@ API 対応:
 - 終端レスポンス（**`X-Next-Kawarimi-Id` なし**）で当該シナリオの state を破棄 — next ヘッダーのないエラー応答も同様（次リクエストはサーバー上で `initial` から）。
 - **並行リクエスト**で同一 `scenarioId` を共有する場合、state は1つ。最後に返った **`X-Next-Kawarimi-Id`** が勝つ（並列 UI／テスト向けの文書化された挙動）。
 - テストや手動リセット用に **`reset(scenarioId:)`** / **`resetAll()`**。
+
+<a id="client-stub-kawarimistubmiddleware"></a>
+
+#### クライアント Stub（`KawarimiStubMiddleware`）
+
+**KawarimiStub** の OpenAPI **`ClientMiddleware`**（swift-openapi-runtime 依存。**KawarimiClient** には依存しない）。`kawarimi.json` / `kawarimi-scenarios.json` から全リクエストをインプロセスで返し、**`next` を呼ばない**。OkHttp で `chain.proceed()` を呼ばない Stub インターセプタに相当する。
+
+```swift
+let client = Client(
+    serverURL: URL(string: "http://localhost/api")!,
+    transport: URLSessionTransport(),
+    middlewares: [
+        KawarimiClientOrchestrationMiddleware(scenarioIdProvider: { _ in "login" }),
+        KawarimiStubMiddleware(
+            store: store,
+            responseMap: KawarimiSpec.responseMap,
+            endpoints: KawarimiSpec.endpoints
+        ),
+    ]
+)
+```
+
+- **順序** — `middlewares` の先頭が最も外側。**`KawarimiClientOrchestrationMiddleware`** を Stub より前に置くと、Stub がシナリオヘッダーを読み、オーケストレーションが Stub の **`X-Next-Kawarimi-Id`** を読む。シナリオ不要なら Stub だけを渡す。
+- **path** — クライアントのリクエスト path は `serverURL` 相対。Stub は `baseURL.path` とリクエスト path を結合してから照合するので、保存済みの `/api/...` はサーバと同じように当たる。
+- **解決順** — (1) **`KawarimiScenarioResolver`** によるシナリオ（不一致はフォールバック）、(2) 有効 override の先頭（マッチングと **`X-Kawarimi-Example-Id`** は **`KawarimiServerMiddleware`** と同じ）、(3) **`KawarimiSpec.endpoints`** から `operationID` で引いた、その operation の最小の **2xx** 応答（無名 / `__default` の例を優先）。
+- **未マッチ** — **`KawarimiStubError.noStub(operationID:)`** を throw。ネットワークには落ちない。
+- **`delayMs` / `failureMode`** — サーバ middleware と同じ（`connectionClose` は **`KawarimiMockFailureError`** を throw）。
+- **実通信** — この middleware を外して `Client` を作る。実行時のモード切替は持たない。
+- **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、`Bundle.url(forResource:…)` の `URL` を [`init(configURL:…)`](#kawarimijson--kawarimi_config) に渡す。
 
 ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
@@ -436,6 +466,8 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 **1つの**クライアントで実／モックを実行時に切り替えたい場合は、アプリ側で `ClientTransport` に準拠する薄いラッパーを自作し、`URLSessionTransport` に委譲しつつ `baseURL` やヘッダーを選ぶ形にしてください。
 
+`Kawarimi()` の 200 固定ではなく `kawarimi.json` とシナリオに従うインプロセスモックが欲しい場合は、[**`KawarimiStubMiddleware`**](#client-stub-kawarimistubmiddleware) を追加してください。
+
 <a id="kawarimijson--kawarimi_config"></a>
 
 ## `kawarimi.json` / `KAWARIMI_CONFIG`
@@ -445,6 +477,20 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 ファイル形式は `KawarimiConfig`（overrides 配列）です。**作成時のルール**（フィールドの意図・ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
+
+シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で得た `URL` を ``init(configURL:pathPrefix:scenariosURL:)`` に渡します。file URL 以外は ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath`` です。`scenariosURL` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、バンドル URL に対する `configure` / `removeOverride` / `reset` は失敗します。書き戻すときはコンテナ内へコピーしてその `URL` で開いてください。リソース名の便利初期化（`init(bundle:configResource:…)`）もあり、内部で同じ `configURL` 経路を使います。
+
+```swift
+guard let configURL = Bundle.main.url(forResource: "kawarimi", withExtension: "json"),
+      let scenariosURL = Bundle.main.url(forResource: "kawarimi-scenarios", withExtension: "json") else {
+    throw KawarimiConfigStoreError.resourceNotFound(resource: "kawarimi", fileExtension: "json", subdirectory: nil)
+}
+let store = try KawarimiConfigStore(
+    configURL: configURL,
+    pathPrefix: "/api",
+    scenariosURL: scenariosURL
+)
+```
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 

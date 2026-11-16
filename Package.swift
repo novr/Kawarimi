@@ -11,6 +11,7 @@ var products: [Product] = [
     .library(name: "KawarimiJutsu", targets: ["KawarimiJutsu"]),
     .library(name: "KawarimiServer", targets: ["KawarimiServer"]),
     .library(name: "KawarimiClient", targets: ["KawarimiClient"]),
+    .library(name: "KawarimiStub", targets: ["KawarimiStub"]),
     .plugin(
         name: "KawarimiPlugin",
         targets: ["KawarimiPlugin"]
@@ -73,6 +74,14 @@ var targets: [Target] = [
         ]
     ),
     .target(
+        name: "KawarimiStub",
+        dependencies: [
+            "KawarimiCore",
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        ]
+    ),
+    .target(
         name: "KawarimiHengeCore",
         dependencies: [
             "KawarimiCore",
@@ -108,6 +117,16 @@ var targets: [Target] = [
     .testTarget(
         name: "KawarimiClientTests",
         dependencies: [
+            "KawarimiClient",
+            "KawarimiCore",
+            .product(name: "HTTPTypes", package: "swift-http-types"),
+            .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
+        ]
+    ),
+    .testTarget(
+        name: "KawarimiStubTests",
+        dependencies: [
+            "KawarimiStub",
             "KawarimiClient",
             "KawarimiCore",
             .product(name: "HTTPTypes", package: "swift-http-types"),

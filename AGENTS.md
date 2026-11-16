@@ -34,6 +34,7 @@
 - `KawarimiHenge`: ランタイム機能（生成パスと分離）。
 - `KawarimiServer`: OpenAPI サーバ向け動的モック。
 - `KawarimiClient`: OpenAPI クライアント向けシナリオオーケストレーション middleware。
+- `KawarimiStub`: OpenAPI クライアント向けインプロセス Stub middleware（`next` を呼ばない）。
 - 実 API サーバ実装やサーバ内部要件はスコープ外。
 
 ## GIT

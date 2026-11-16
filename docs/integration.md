@@ -85,6 +85,7 @@ SwiftPM products:
 - **KawarimiHenge** — SwiftUI admin — [henge.md](henge.md).
 - **KawarimiServer** — server dynamic mocks — [henge.md](henge.md).
 - **KawarimiClient** — client scenario orchestration middleware — [henge.md](henge.md).
+- **KawarimiStub** — in-process client stub middleware (`KawarimiStubMiddleware`) — [henge.md](henge.md#client-stub-kawarimistubmiddleware).
 
 ### KawarimiValidate binary
 
@@ -136,7 +137,7 @@ targets: [
 ]
 ```
 
-For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
+For dynamic mock UI add **KawarimiHenge**; for `KawarimiAPIClient` add **KawarimiCore**; for server-side runtime overrides add **KawarimiServer**; for multi-step scenario headers on generated OpenAPI clients add **KawarimiClient**; for in-process stubs on generated OpenAPI clients add **KawarimiStub** — see [henge.md](henge.md). After creating `KawarimiConfigStore`, call `await store.startFileWatchIfEnabled()` so edits to **`kawarimi.json`** and **`kawarimi-scenarios.json`** on disk apply without restart (disable with `KAWARIMI_CONFIG_WATCH=0`). Override scenario file path with **`KAWARIMI_SCENARIOS_CONFIG`** (or init `scenariosPath:`).
 
 ### Mock / scenario JSON (agents)
 

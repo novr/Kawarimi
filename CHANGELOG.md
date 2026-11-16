@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **KawarimiStub:** new product with **`KawarimiStubMiddleware`** (`ClientMiddleware`) — an in-process stub for generated OpenAPI clients that never calls `next`. Resolves scenario headers, then enabled overrides (same matching as **`KawarimiServerMiddleware`**, with `baseURL.path` joined to the relative client path), then the operation's lowest documented 2xx from **`KawarimiSpec.endpoints`** by `operationID`; otherwise throws **`KawarimiStubError.noStub`**. **KawarimiClient** is unchanged.
+- **KawarimiCore:** `KawarimiConfigStore` accepts file `URL`s via `init(configURL:pathPrefix:scenariosURL:)` (for `Bundle.url(forResource:…)` and Documents copies) and a thin `init(bundle:configResource:…)` convenience. Non-file URLs throw `invalidConfigPath` / `invalidScenariosPath`; a missing bundle resource throws `resourceNotFound`. The app bundle is not writable.
+
 ## [4.1.0] - 2026-08-05
 
 ### Added

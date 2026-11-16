@@ -1,0 +1,11 @@
+{
+  "overrides": [
+    {
+      "path": "/api/greet",
+      "method": "GET",
+      "statusCode": 200,
+      "body": "{\"ok\":true}",
+      "contentType": "application/json"
+    }
+  ]
+}

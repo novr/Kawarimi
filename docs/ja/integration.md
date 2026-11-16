@@ -85,6 +85,7 @@ SwiftPM プロダクト:
 - **KawarimiHenge** — SwiftUI 管理 UI — [henge.md](henge.md)。
 - **KawarimiServer** — サーバ動的モック — [henge.md](henge.md)。
 - **KawarimiClient** — クライアントのシナリオオーケストレーション middleware — [henge.md](henge.md)。
+- **KawarimiStub** — クライアントのインプロセス Stub middleware（`KawarimiStubMiddleware`） — [henge.md](henge.md#client-stub-kawarimistubmiddleware)。
 
 ### KawarimiValidate バイナリ
 
@@ -136,7 +137,7 @@ targets: [
 ]
 ```
 
-ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer**、生成 OpenAPI クライアントの複数ステップシナリオヘッダーには **KawarimiClient** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の **`kawarimi.json`** と **`kawarimi-scenarios.json`** の保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。シナリオファイルのパスは **`KAWARIMI_SCENARIOS_CONFIG`**（または init `scenariosPath:`）で上書きできる。
+ダイナミックモック用 SwiftUI には **KawarimiHenge**、`KawarimiAPIClient` には **KawarimiCore**、サーバ実行時オーバーライドには **KawarimiServer**、生成 OpenAPI クライアントの複数ステップシナリオヘッダーには **KawarimiClient**、生成 OpenAPI クライアントのインプロセス Stub には **KawarimiStub** を追加（[henge.md](henge.md)）。`KawarimiConfigStore` 作成後に `await store.startFileWatchIfEnabled()` を呼ぶと、ディスク上の **`kawarimi.json`** と **`kawarimi-scenarios.json`** の保存が再起動なしで反映される（`KAWARIMI_CONFIG_WATCH=0` で無効）。シナリオファイルのパスは **`KAWARIMI_SCENARIOS_CONFIG`**（または init `scenariosPath:`）で上書きできる。
 
 ### mock / シナリオ JSON（エージェント向け）
 
