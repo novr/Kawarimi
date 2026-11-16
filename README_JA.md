@@ -33,6 +33,7 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | **KawarimiCore** | 共有モデル、`KawarimiConfigStore`、`KawarimiAPIClient`、シナリオ resolver |
 | **KawarimiServer** | Henge UI に依存しないサーバ側動的モック |
 | **KawarimiClient** | 生成 OpenAPI クライアントのシナリオヘッダー state |
+| **KawarimiStub** | 生成 OpenAPI クライアント向けインプロセス Stub middleware（ネットワークなし） |
 | **KawarimiHenge** | SwiftUI 管理 UI（macOS） |
 
 詳細: [導入・統合](docs/ja/integration.md)、[Henge](docs/ja/henge.md)。

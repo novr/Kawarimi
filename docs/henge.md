@@ -24,6 +24,7 @@ Kawarimi does not ship a Vapor product; combine your generated API target with t
 | Dynamic mock on server operations | **KawarimiServer** (`KawarimiServerMiddleware`) |
 | Henge admin HTTP (`__kawarimi/*`) | **KawarimiServer** (`KawarimiAdminHTTPHandler`; admin is outside OpenAPI registration) |
 | Scenario orchestration on OpenAPI client | **KawarimiClient** (`KawarimiClientOrchestrationMiddleware`) |
+| In-process stub on OpenAPI client | **KawarimiStub** (`KawarimiStubMiddleware`) |
 
 `DemoPackage` layout and `DemoServer` entrypoints: [Example/README.md](../Example/README.md).
 
@@ -197,7 +198,7 @@ Path forwarding uses **`KawarimiPath.aligned`** with `apiPathPrefix` (re-apply p
 
 When upstream is set, responses may include **`X-Kawarimi-Proxy-Action: mock`** or **`forward`**. This header is **not** added when upstream is unset.
 
-**Out of scope (v1):** production transparent proxy / API gateway use; Client-side middleware switching (app → upstream directly with in-process overrides); catch-all forward for unregistered paths; path remapping; Cookie rewrite; admin auth.
+**Out of scope (v1):** production transparent proxy / API gateway use; Client-side middleware switching between stub and upstream (in-process stubs without a server are [**`KawarimiStubMiddleware`**](#client-stub-kawarimistubmiddleware), which never forwards); catch-all forward for unregistered paths; path remapping; Cookie rewrite; admin auth.
 
 ### Override matching product rules
 
@@ -208,7 +209,7 @@ The **single source of truth for matching and primary selection** is **KawarimiC
    - **Incoming HTTP (server):** Compare the request URL (path only) to the persisted override `path` using `PathTemplate` + `pathPrefix` (`overrideMatchesIncomingRequest`).
    - **Explorer row (Henge):** Compare the spec / row template path to the persisted `path` using `KawarimiPath.aligned` (`overrideMatchesOperation`).
 3. **Primary selection** — Among **enabled** overrides that match the same operation, the **first** after `sortedForOverrideTieBreak` wins (`path` → `statusCode` → `name` → `exampleId`; stable sort preserves `hits` order for equal keys). **`X-Kawarimi-Example-Id`** narrows candidates only on **incoming** requests (`matchingEnabledOverrides`); the explorer does not send this header.
-4. **Non-goals** — In-process `Kawarimi` (`ClientTransport`) does not apply runtime overrides (#75).
+4. **Non-goals** — In-process `Kawarimi` (`ClientTransport`) does not apply runtime overrides (#75). Use **`KawarimiStubMiddleware`** for in-process overrides on a generated client.
 
 API summary:
 
@@ -286,6 +287,34 @@ OpenAPI **`ClientMiddleware`** in **KawarimiClient** (depends on swift-openapi-r
 - Terminal response (no **`X-Next-Kawarimi-Id`**) clears state for that scenario — including error responses without a next header (the next request restarts from `initial` on the server).
 - **Concurrent requests** for the same `scenarioId` share one state map; the last response’s **`X-Next-Kawarimi-Id`** wins (documented behavior for parallel UI/tests).
 - **`reset(scenarioId:)`** / **`resetAll()`** for tests or manual reset.
+
+<a id="client-stub-kawarimistubmiddleware"></a>
+
+#### Client stub (`KawarimiStubMiddleware`)
+
+OpenAPI **`ClientMiddleware`** in **KawarimiStub** (depends on swift-openapi-runtime, not on **KawarimiClient**). It answers every request in-process from `kawarimi.json` / `kawarimi-scenarios.json` and **never calls `next`** — like an OkHttp stub interceptor that does not call `chain.proceed()`.
+
+```swift
+let client = Client(
+    serverURL: URL(string: "http://localhost/api")!,
+    transport: URLSessionTransport(),
+    middlewares: [
+        KawarimiClientOrchestrationMiddleware(scenarioIdProvider: { _ in "login" }),
+        KawarimiStubMiddleware(
+            store: store,
+            responseMap: KawarimiSpec.responseMap,
+            endpoints: KawarimiSpec.endpoints
+        ),
+    ]
+)
+```
+
+- **Order** — The first entry in `middlewares` is outermost. Put **`KawarimiClientOrchestrationMiddleware`** before the stub so the stub sees scenario headers and the orchestration reads the stub's **`X-Next-Kawarimi-Id`**. Without scenarios, pass the stub alone.
+- **Path** — Client request paths are relative to `serverURL`; the stub joins `baseURL.path` + request path before matching, so persisted `/api/...` paths match as on the server.
+- **Resolution** — (1) scenario headers via **`KawarimiScenarioResolver`** (falls back on mismatch), (2) first enabled override (same matching and **`X-Kawarimi-Example-Id`** rules as **`KawarimiServerMiddleware`**), (3) the operation's lowest documented **2xx** response in **`KawarimiSpec.endpoints`**, chosen by `operationID` (unnamed / `__default` example first).
+- **No match** — throws **`KawarimiStubError.noStub(operationID:)`**; it does not fall through to the network.
+- **`delayMs` / `failureMode`** — same as the server middleware (`connectionClose` throws **`KawarimiMockFailureError`**).
+- **Real network** — build the `Client` without this middleware. There is no runtime mode switch.
 
 Invalid scenario JSON on disk logs **warnings** at load/reload; requests still fall back. **`KawarimiValidate`** exists to fail CI instead of relying on this soft behavior — [validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
@@ -436,6 +465,8 @@ This repository includes **DemoServer** and **DemoApp** under **`Example/`** —
 **DemoApp Try-it** (`OpenAPIExecuteView`) seeds the JSON body editor from **`requestBodies`** (`SpecRequestBodySelection.defaultJSONBodyText`) when the method shows a body editor — not from a success **response** example. Operations without `requestBodies` keep `"{}"`.
 
 If you need **one** client that switches real vs mock at runtime, implement a small `ClientTransport` wrapper in your app that forwards to `URLSessionTransport` and picks `baseURL` / headers.
+
+For in-process mocks that follow `kawarimi.json` and scenarios (not the fixed 200 of `Kawarimi()`), add [**`KawarimiStubMiddleware`**](#client-stub-kawarimistubmiddleware).
 
 <a id="kawarimijson--kawarimi_config"></a>
 
