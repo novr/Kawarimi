@@ -11,6 +11,8 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     /// Rejects `..` in the scenarios path to avoid escaping the intended directory.
     case invalidScenariosPath(String)
     case bodyTooLong(actual: Int, limit: Int)
+    /// ``Bundle/url(forResource:withExtension:subdirectory:)`` returned nil.
+    case resourceNotFound(resource: String, fileExtension: String, subdirectory: String?)
 
     public var errorDescription: String? {
         switch self {
@@ -20,6 +22,9 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
             return "Invalid kawarimi scenarios path (must not contain \"..\"): \(path)"
         case .bodyTooLong(let actual, let limit):
             return "Override body exceeds limit (\(actual) UTF-8 bytes, max \(limit))"
+        case .resourceNotFound(let resource, let fileExtension, let subdirectory):
+            let place = subdirectory.map { " in \($0)" } ?? ""
+            return "Kawarimi bundle resource not found: \(resource).\(fileExtension)\(place)"
         }
     }
 }
@@ -85,6 +90,56 @@ public actor KawarimiConfigStore {
         Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loadedOverrides, scenariosPath: self.scenariosPath)
         self.cachedOverrides = loadedOverrides
         self.cachedScenarios = loadedScenarios
+    }
+
+    /// Loads overrides (and optional scenarios) from bundle resources via ``Bundle/url(forResource:withExtension:subdirectory:)``.
+    ///
+    /// Use this on the simulator and device, where the app cannot read a path outside its sandbox.
+    /// `configure`, `removeOverride`, and `reset` write back to the resource URL; an app bundle is not writable, so copy the file into the container and use ``init(configPath:pathPrefix:scenariosPath:)`` when mutations must persist.
+    /// When `scenariosResource` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)`` (environment, then `kawarimi-scenarios.json` beside the config resource).
+    public init(
+        bundle: Bundle = .main,
+        configResource: String,
+        configExtension: String = "json",
+        subdirectory: String? = nil,
+        pathPrefix: String = "",
+        scenariosResource: String? = nil,
+        scenariosExtension: String = "json"
+    ) throws {
+        let configURL = try Self.resourceURL(
+            bundle: bundle,
+            resource: configResource,
+            fileExtension: configExtension,
+            subdirectory: subdirectory
+        )
+        let scenariosPath: String?
+        if let scenariosResource {
+            scenariosPath = try Self.resourceURL(
+                bundle: bundle,
+                resource: scenariosResource,
+                fileExtension: scenariosExtension,
+                subdirectory: subdirectory
+            ).path
+        } else {
+            scenariosPath = nil
+        }
+        try self.init(configPath: configURL.path, pathPrefix: pathPrefix, scenariosPath: scenariosPath)
+    }
+
+    private static func resourceURL(
+        bundle: Bundle,
+        resource: String,
+        fileExtension: String,
+        subdirectory: String?
+    ) throws -> URL {
+        guard let url = bundle.url(forResource: resource, withExtension: fileExtension, subdirectory: subdirectory) else {
+            throw KawarimiConfigStoreError.resourceNotFound(
+                resource: resource,
+                fileExtension: fileExtension,
+                subdirectory: subdirectory
+            )
+        }
+        return url
     }
 
     /// Re-reads `kawarimi.json` using the same rules as ``init(configPath:pathPrefix:)``.
