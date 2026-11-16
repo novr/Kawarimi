@@ -314,7 +314,7 @@ let client = Client(
 - **未マッチ** — **`KawarimiStubError.noStub(operationID:)`** を throw。ネットワークには落ちない。
 - **`delayMs` / `failureMode`** — サーバ middleware と同じ（`connectionClose` は **`KawarimiMockFailureError`** を throw）。
 - **実通信** — この middleware を外して `Client` を作る。実行時のモード切替は持たない。
-- **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、[`KawarimiConfigStore` のバンドル初期化](#kawarimijson--kawarimi_config)で渡す。
+- **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、`Bundle.url(forResource:…)` の `URL` を [`init(configURL:…)`](#kawarimijson--kawarimi_config) に渡す。
 
 ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
@@ -478,14 +478,17 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
-シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で開きます（省略時の bundle は `Bundle.main`）。`scenariosResource` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、`configure` / `removeOverride` / `reset` は失敗します。書き戻すときはコンテナ内へコピーして `configPath` で開いてください。
+シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で得た `URL` を ``init(configURL:pathPrefix:scenariosURL:)`` に渡します。file URL 以外は ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath`` です。`scenariosURL` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、バンドル URL に対する `configure` / `removeOverride` / `reset` は失敗します。書き戻すときはコンテナ内へコピーしてその `URL` で開いてください。リソース名の便利初期化（`init(bundle:configResource:…)`）もあり、内部で同じ `configURL` 経路を使います。
 
 ```swift
+guard let configURL = Bundle.main.url(forResource: "kawarimi", withExtension: "json"),
+      let scenariosURL = Bundle.main.url(forResource: "kawarimi-scenarios", withExtension: "json") else {
+    throw KawarimiConfigStoreError.resourceNotFound(resource: "kawarimi", fileExtension: "json", subdirectory: nil)
+}
 let store = try KawarimiConfigStore(
-    bundle: .main,
-    configResource: "kawarimi",
+    configURL: configURL,
     pathPrefix: "/api",
-    scenariosResource: "kawarimi-scenarios"
+    scenariosURL: scenariosURL
 )
 ```
 

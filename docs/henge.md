@@ -315,7 +315,7 @@ let client = Client(
 - **No match** — throws **`KawarimiStubError.noStub(operationID:)`**; it does not fall through to the network.
 - **`delayMs` / `failureMode`** — same as the server middleware (`connectionClose` throws **`KawarimiMockFailureError`**).
 - **Real network** — build the `Client` without this middleware. There is no runtime mode switch.
-- **Simulator / device** — a `kawarimi.json` outside the app sandbox is not readable. Put the JSON in the app bundle and pass it with the [bundle initializer](#kawarimijson--kawarimi_config).
+- **Simulator / device** — a `kawarimi.json` outside the app sandbox is not readable. Put the JSON in the app bundle and pass the `URL` from `Bundle.url(forResource:…)` to [`init(configURL:…)`](#kawarimijson--kawarimi_config).
 
 Invalid scenario JSON on disk logs **warnings** at load/reload; requests still fall back. **`KawarimiValidate`** exists to fail CI instead of relying on this soft behavior — [validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
@@ -479,14 +479,17 @@ The file format uses `KawarimiConfig` (overrides array). **Authoring** rules (wh
 
 Set `KAWARIMI_CONFIG` to override the config file path.
 
-The simulator and a device cannot read a path outside the app sandbox. Add the JSON files to the app target's resources and open them with `Bundle.url(forResource:withExtension:subdirectory:)` (the default bundle is `Bundle.main`). Omitting `scenariosResource` keeps the usual lookup: the environment variable, then `kawarimi-scenarios.json` beside the config resource. The app bundle is not writable, so `configure`, `removeOverride`, and `reset` fail. Copy the file into the app container and open it with `configPath` when writes must persist.
+The simulator and a device cannot read a path outside the app sandbox. Ship the JSON in the app target's resources, resolve `URL`s with `Bundle.url(forResource:withExtension:subdirectory:)`, and pass them to ``init(configURL:pathPrefix:scenariosURL:)``. Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath``. Omitting `scenariosURL` keeps the usual lookup: the environment variable, then `kawarimi-scenarios.json` beside the config file. The app bundle is not writable, so `configure`, `removeOverride`, and `reset` fail against a bundle URL; copy into the container and open that `URL` when writes must persist. A resource-name convenience (`init(bundle:configResource:…)`) exists and calls the same `configURL` path.
 
 ```swift
+guard let configURL = Bundle.main.url(forResource: "kawarimi", withExtension: "json"),
+      let scenariosURL = Bundle.main.url(forResource: "kawarimi-scenarios", withExtension: "json") else {
+    throw KawarimiConfigStoreError.resourceNotFound(resource: "kawarimi", fileExtension: "json", subdirectory: nil)
+}
 let store = try KawarimiConfigStore(
-    bundle: .main,
-    configResource: "kawarimi",
+    configURL: configURL,
     pathPrefix: "/api",
-    scenariosResource: "kawarimi-scenarios"
+    scenariosURL: scenariosURL
 )
 ```
 
