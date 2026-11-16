@@ -1,0 +1,16 @@
+{
+  "scenarios": [
+    {
+      "scenarioId": "login",
+      "initial": "start",
+      "cases": [
+        {
+          "kawarimiId": "start",
+          "next": null,
+          "rowId": "00000000-0000-0000-0000-000000000001",
+          "endpoint": { "method": "GET", "path": "/api/greet" }
+        }
+      ]
+    }
+  ]
+}
