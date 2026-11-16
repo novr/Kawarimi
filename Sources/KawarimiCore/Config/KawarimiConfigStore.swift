@@ -92,11 +92,36 @@ public actor KawarimiConfigStore {
         self.cachedScenarios = loadedScenarios
     }
 
-    /// Loads overrides (and optional scenarios) from bundle resources via ``Bundle/url(forResource:withExtension:subdirectory:)``.
+    /// Loads from file URLs such as ``Bundle/url(forResource:withExtension:subdirectory:)`` or a Documents copy.
     ///
-    /// Use this on the simulator and device, where the app cannot read a path outside its sandbox.
-    /// `configure`, `removeOverride`, and `reset` write back to the resource URL; an app bundle is not writable, so copy the file into the container and use ``init(configPath:pathPrefix:scenariosPath:)`` when mutations must persist.
-    /// When `scenariosResource` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)`` (environment, then `kawarimi-scenarios.json` beside the config resource).
+    /// Prefer this over string paths when the caller already has a `URL` (simulator / device sandbox).
+    /// Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` or ``invalidScenariosPath``.
+    /// `configure`, `removeOverride`, and `reset` write to `configURL`; an app-bundle URL is not writable, so copy into the container first when mutations must persist.
+    /// When `scenariosURL` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)``.
+    public init(
+        configURL: URL,
+        pathPrefix: String = "",
+        scenariosURL: URL? = nil
+    ) throws {
+        let configPath = try Self.filePath(
+            from: configURL,
+            invalid: { KawarimiConfigStoreError.invalidConfigPath($0) }
+        )
+        let scenariosPath: String?
+        if let scenariosURL {
+            scenariosPath = try Self.filePath(
+                from: scenariosURL,
+                invalid: { KawarimiConfigStoreError.invalidScenariosPath($0) }
+            )
+        } else {
+            scenariosPath = nil
+        }
+        try self.init(configPath: configPath, pathPrefix: pathPrefix, scenariosPath: scenariosPath)
+    }
+
+    /// Resolves bundle resources with ``Bundle/url(forResource:withExtension:subdirectory:)``, then ``init(configURL:pathPrefix:scenariosURL:)``.
+    ///
+    /// When `scenariosResource` is nil, scenario lookup stays beside the config resource (or ``KawarimiScenarioDefaults/environmentKey``).
     public init(
         bundle: Bundle = .main,
         configResource: String,
@@ -112,18 +137,18 @@ public actor KawarimiConfigStore {
             fileExtension: configExtension,
             subdirectory: subdirectory
         )
-        let scenariosPath: String?
+        let scenariosURL: URL?
         if let scenariosResource {
-            scenariosPath = try Self.resourceURL(
+            scenariosURL = try Self.resourceURL(
                 bundle: bundle,
                 resource: scenariosResource,
                 fileExtension: scenariosExtension,
                 subdirectory: subdirectory
-            ).path
+            )
         } else {
-            scenariosPath = nil
+            scenariosURL = nil
         }
-        try self.init(configPath: configURL.path, pathPrefix: pathPrefix, scenariosPath: scenariosPath)
+        try self.init(configURL: configURL, pathPrefix: pathPrefix, scenariosURL: scenariosURL)
     }
 
     private static func resourceURL(
@@ -140,6 +165,16 @@ public actor KawarimiConfigStore {
             )
         }
         return url
+    }
+
+    private static func filePath(
+        from url: URL,
+        invalid: (String) -> KawarimiConfigStoreError
+    ) throws -> String {
+        guard url.isFileURL else {
+            throw invalid(url.absoluteString)
+        }
+        return url.standardizedFileURL.path
     }
 
     /// Re-reads `kawarimi.json` using the same rules as ``init(configPath:pathPrefix:)``.
