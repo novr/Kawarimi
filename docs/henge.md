@@ -315,6 +315,7 @@ let client = Client(
 - **No match** — throws **`KawarimiStubError.noStub(operationID:)`**; it does not fall through to the network.
 - **`delayMs` / `failureMode`** — same as the server middleware (`connectionClose` throws **`KawarimiMockFailureError`**).
 - **Real network** — build the `Client` without this middleware. There is no runtime mode switch.
+- **Simulator / device** — a `kawarimi.json` outside the app sandbox is not readable. Put the JSON in the app bundle and pass it with the [bundle initializer](#kawarimijson--kawarimi_config).
 
 Invalid scenario JSON on disk logs **warnings** at load/reload; requests still fall back. **`KawarimiValidate`** exists to fail CI instead of relying on this soft behavior — [validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
@@ -477,6 +478,17 @@ For in-process mocks that follow `kawarimi.json` and scenarios (not the fixed 20
 The file format uses `KawarimiConfig` (overrides array). **Authoring** rules (why fields exist, not runtime): [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md).
 
 Set `KAWARIMI_CONFIG` to override the config file path.
+
+The simulator and a device cannot read a path outside the app sandbox. Add the JSON files to the app target's resources and open them with `Bundle.url(forResource:withExtension:subdirectory:)` (the default bundle is `Bundle.main`). Omitting `scenariosResource` keeps the usual lookup: the environment variable, then `kawarimi-scenarios.json` beside the config resource. The app bundle is not writable, so `configure`, `removeOverride`, and `reset` fail. Copy the file into the app container and open it with `configPath` when writes must persist.
+
+```swift
+let store = try KawarimiConfigStore(
+    bundle: .main,
+    configResource: "kawarimi",
+    pathPrefix: "/api",
+    scenariosResource: "kawarimi-scenarios"
+)
+```
 
 `KAWARIMI_CONFIG_WATCH` controls automatic reload when the config file changes on disk: **unset** or **`1`** → watch enabled; **`0`** → disabled. Values such as **`false`** are treated as enabled (only **`0`** turns watch off). **DemoServer** calls `startFileWatchIfEnabled()` at startup; other hosts should do the same if they want the same behavior.
 

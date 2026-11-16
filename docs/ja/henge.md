@@ -314,6 +314,7 @@ let client = Client(
 - **未マッチ** — **`KawarimiStubError.noStub(operationID:)`** を throw。ネットワークには落ちない。
 - **`delayMs` / `failureMode`** — サーバ middleware と同じ（`connectionClose` は **`KawarimiMockFailureError`** を throw）。
 - **実通信** — この middleware を外して `Client` を作る。実行時のモード切替は持たない。
+- **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、[`KawarimiConfigStore` のバンドル初期化](#kawarimijson--kawarimi_config)で渡す。
 
 ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
@@ -476,6 +477,17 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 ファイル形式は `KawarimiConfig`（overrides 配列）です。**作成時のルール**（フィールドの意図・ランタイムではない）: [skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md)。
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
+
+シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で開きます（省略時の bundle は `Bundle.main`）。`scenariosResource` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、`configure` / `removeOverride` / `reset` は失敗します。書き戻すときはコンテナ内へコピーして `configPath` で開いてください。
+
+```swift
+let store = try KawarimiConfigStore(
+    bundle: .main,
+    configResource: "kawarimi",
+    pathPrefix: "/api",
+    scenariosResource: "kawarimi-scenarios"
+)
+```
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 
