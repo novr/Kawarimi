@@ -116,11 +116,50 @@ jobs:
         working-directory: Example/DemoPackage
         run: swift test
 
+  macos:
+    name: Swift Test (macOS)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: macos-26
+    timeout-minutes: 20
+    env:
+      # Package.swift drops KawarimiHenge / HengeCli when this is "1" (workflow default).
+      KAWARIMI_LINUX_CI: "0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Cache SwiftPM
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .build
+            Example/DemoPackage/.build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-macos-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
+          restore-keys: |
+            spm-${{ runner.os }}-macos-
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build package (includes KawarimiHenge)
+        run: swift build
+
+      - name: Run macOS-only code path tests
+        run: swift test --filter 'KawarimiProxyURLSessionTransportIntegrationTests|KawarimiConfigFileWatcherTests'
+
+      - name: Build HengeCli
+        working-directory: Example/DemoPackage
+        run: swift build --product HengeCli
+
   swift-test:
     name: Swift Test
     runs-on: ubuntu-latest
     timeout-minutes: 1
-    needs: [changes, kawarimi, demo-package]
+    needs: [changes, kawarimi, demo-package, macos]
     if: always()
     steps:
       - name: Gate
@@ -129,6 +168,7 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           KAWARIMI: ${{ needs.kawarimi.result }}
           DEMO: ${{ needs.demo-package.result }}
+          MACOS: ${{ needs.macos.result }}
         run: |
           set -euo pipefail
           if [ "$CHANGES_RESULT" != "success" ]; then
@@ -139,8 +179,8 @@ jobs:
             echo "No code-related paths in this PR; skipping Swift test jobs. Required check still passes."
             exit 0
           fi
-          if [ "$KAWARIMI" != "success" ] || [ "$DEMO" != "success" ]; then
-            echo "Expected ubuntu test jobs to succeed; got KAWARIMI=$KAWARIMI DEMO=$DEMO"
+          if [ "$KAWARIMI" != "success" ] || [ "$DEMO" != "success" ] || [ "$MACOS" != "success" ]; then
+            echo "Expected test jobs to succeed; got KAWARIMI=$KAWARIMI DEMO=$DEMO MACOS=$MACOS"
             exit 1
           fi
           echo "OK"
