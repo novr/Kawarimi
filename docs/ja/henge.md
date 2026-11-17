@@ -506,7 +506,7 @@ let store = try KawarimiConfigStore(
 )
 ```
 
-**永続化** — `init(configURL:…)` と `init(bundle:…)` は `persistence: KawarimiConfigPersistence` を受け取る（既定は **`.disk`** で、上の挙動）。**`.memoryOnly`** では初期化時にファイルを一度だけ読む（バンドル URL でもよい）。`configure` / `removeOverride` / `reset` はメモリだけを変え、`reloadFromDisk()` はメモリに触れず **`.unchanged`** を返し、`startFileWatchIfEnabled()` は何もしない。`reset()` は JSON の初期値に戻すのではなく、すべての override を消す。ファイルなしで始めるときは `init(pathPrefix:overrides:scenarios:)`（常に memory-only）。シナリオはどちらのモードでも読み取り専用。
+**永続化** — `init(configURL:…)` と `init(bundle:…)` は `persistence: KawarimiConfigPersistence` を受け取る（既定は **`.disk`** で、上の挙動）。**`.memoryOnly`** では初期化時にファイルを一度だけ読む（バンドル URL でもよい）。`configure` / `removeOverride` / `reset` はメモリだけを変え、`reloadFromDisk()` はメモリに触れず **`.unchanged`** を返し、`startFileWatchIfEnabled()` は何もしない。`reset()` は JSON の初期値に戻すのではなく、すべての override を消す。ファイルなしで始めるときは `init(pathPrefix:overrides:scenarios:)`（常に memory-only）。渡した override は `configure` と同じく正規化される（例: `greet` は `/api/greet` になる）。シナリオはどちらのモードでも読み取り専用。`KawarimiConfigView(store:spec:)` で memory-only のストアに **Reload from disk** を押すと、再読み込みを省略した旨だけを表示する。
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 
