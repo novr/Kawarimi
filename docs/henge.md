@@ -316,6 +316,20 @@ let client = Client(
 - **`delayMs` / `failureMode`** — same as the server middleware (`connectionClose` throws **`KawarimiMockFailureError`**).
 - **Real network** — build the `Client` without this middleware. There is no runtime mode switch.
 - **Simulator / device** — a `kawarimi.json` outside the app sandbox is not readable. Put the JSON in the app bundle and pass the `URL` from `Bundle.url(forResource:…)` to [`init(configURL:…)`](#kawarimijson--kawarimi_config).
+- **Edit at runtime with Henge (unsaved)** — in the same app process, pass one `KawarimiConfigStore` to both the stub and **`KawarimiConfigView(store:spec:)`**. Saves in Henge apply to the next stubbed request. With `persistence: .memoryOnly` the JSON is read once at startup and edits are never written; they are lost when the app exits. A Henge running in another process (for example on the Mac) cannot share this memory; use the HTTP admin API there.
+
+```swift
+let store = try KawarimiConfigStore(
+    configURL: configURL,
+    pathPrefix: "/api",
+    scenariosURL: scenariosURL,
+    persistence: .memoryOnly
+)
+// Henge screen in the app
+KawarimiConfigView(store: store, spec: SpecResponse(meta: KawarimiSpec.meta, endpoints: KawarimiSpec.endpoints))
+// Client stub
+KawarimiStubMiddleware(store: store, responseMap: KawarimiSpec.responseMap, endpoints: KawarimiSpec.endpoints)
+```
 
 Invalid scenario JSON on disk logs **warnings** at load/reload; requests still fall back. **`KawarimiValidate`** exists to fail CI instead of relying on this soft behavior — [validation.md](../skills/kawarimi-user-mock-and-scenario-format/validation.md).
 
@@ -479,7 +493,7 @@ The file format uses `KawarimiConfig` (overrides array). **Authoring** rules (wh
 
 Set `KAWARIMI_CONFIG` to override the config file path.
 
-The simulator and a device cannot read a path outside the app sandbox. Ship the JSON in the app target's resources, resolve `URL`s with `Bundle.url(forResource:withExtension:subdirectory:)`, and pass them to ``init(configURL:pathPrefix:scenariosURL:)``. Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath``. Omitting `scenariosURL` keeps the usual lookup: the environment variable, then `kawarimi-scenarios.json` beside the config file. The app bundle is not writable, so `configure`, `removeOverride`, and `reset` fail against a bundle URL; copy into the container and open that `URL` when writes must persist. A resource-name convenience (`init(bundle:configResource:…)`) exists and calls the same `configURL` path.
+The simulator and a device cannot read a path outside the app sandbox. Ship the JSON in the app target's resources, resolve `URL`s with `Bundle.url(forResource:withExtension:subdirectory:)`, and pass them to ``init(configURL:pathPrefix:scenariosURL:)``. Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath``. Omitting `scenariosURL` keeps the usual lookup: the environment variable, then `kawarimi-scenarios.json` beside the config file. The app bundle is not writable, so with the default `.disk` persistence `configure`, `removeOverride`, and `reset` fail against a bundle URL; use `.memoryOnly` (below) or copy into the container and open that `URL` when writes must persist. A resource-name convenience (`init(bundle:configResource:…)`) exists and calls the same `configURL` path.
 
 ```swift
 guard let configURL = Bundle.main.url(forResource: "kawarimi", withExtension: "json"),
@@ -492,6 +506,8 @@ let store = try KawarimiConfigStore(
     scenariosURL: scenariosURL
 )
 ```
+
+**Persistence** — `init(configURL:…)` and `init(bundle:…)` take `persistence: KawarimiConfigPersistence` (default **`.disk`**, the behavior above). With **`.memoryOnly`** the files are read once at init (a bundle URL is fine); `configure`, `removeOverride`, and `reset` change memory only, `reloadFromDisk()` returns **`.unchanged`** without touching memory, and `startFileWatchIfEnabled()` does nothing. `reset()` clears every override rather than restoring the JSON seed. `init(pathPrefix:overrides:scenarios:)` starts a memory-only store without files. Scenarios stay read-only in both modes.
 
 `KAWARIMI_CONFIG_WATCH` controls automatic reload when the config file changes on disk: **unset** or **`1`** → watch enabled; **`0`** → disabled. Values such as **`false`** are treated as enabled (only **`0`** turns watch off). **DemoServer** calls `startFileWatchIfEnabled()` at startup; other hosts should do the same if they want the same behavior.
 
