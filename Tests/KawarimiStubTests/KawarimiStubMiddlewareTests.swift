@@ -313,7 +313,12 @@ struct KawarimiStubMiddlewareTests {
     }
 
     @Test func unsavedMemoryOnlyEditAppliesToNextRequest() async throws {
-        let store = KawarimiConfigStore(pathPrefix: "/api")
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let configURL = dir.appendingPathComponent("kawarimi.json")
+        try JSONEncoder().encode(KawarimiConfig(overrides: [])).write(to: configURL)
+        let store = try KawarimiConfigStore(configURL: configURL, pathPrefix: "/api", persistence: .memoryOnly)
         let endpoints: [any SpecEndpointProviding] = [
             FakeEndpoint(
                 path: "/api/greet",

@@ -13,6 +13,10 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     case bodyTooLong(actual: Int, limit: Int)
     /// ``Bundle/url(forResource:withExtension:subdirectory:)`` returned nil.
     case resourceNotFound(resource: String, fileExtension: String, subdirectory: String?)
+    /// ``KawarimiConfigPersistence/memoryOnly`` reads the config once and never writes, so a missing file must not look like an empty config.
+    case configNotFound(String)
+    /// Same reason as ``configNotFound(_:)``: undecodable JSON would otherwise start a memory-only store with no overrides.
+    case invalidConfigJSON(path: String, reason: String)
 
     public var errorDescription: String? {
         switch self {
@@ -25,6 +29,10 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
         case .resourceNotFound(let resource, let fileExtension, let subdirectory):
             let place = subdirectory.map { " in \($0)" } ?? ""
             return "Kawarimi bundle resource not found: \(resource).\(fileExtension)\(place)"
+        case .configNotFound(let path):
+            return "Kawarimi config file not found: \(path)"
+        case .invalidConfigJSON(let path, let reason):
+            return "Invalid kawarimi config JSON at \(path): \(reason)"
         }
     }
 }
@@ -78,23 +86,6 @@ public actor KawarimiConfigStore {
         try self.init(configPath: configPath, pathPrefix: pathPrefix, scenariosPath: scenariosPath, persistence: .disk)
     }
 
-    /// Starts without files and always uses ``KawarimiConfigPersistence/memoryOnly``.
-    /// Seed overrides are normalized like ``configure(_:)`` (path prefix, method, empty fields) so `/greet` matches under `/api`.
-    public init(
-        pathPrefix: String = "",
-        overrides: [MockOverride] = [],
-        scenarios: [KawarimiScenario] = []
-    ) {
-        let prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
-        let normalized = overrides.map { Self.normalize($0, prefix: prefix) }
-        self.files = nil
-        self.persistence = .memoryOnly
-        self.prefix = prefix
-        Self.logScenarioWarnings(scenarios: scenarios, overrides: normalized, scenariosPath: "(in-memory scenarios)")
-        self.cachedOverrides = normalized
-        self.cachedScenarios = scenarios
-    }
-
     private init(
         configPath: String,
         pathPrefix: String,
@@ -127,7 +118,13 @@ public actor KawarimiConfigStore {
             : nil
         self.persistence = persistence
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
-        let loadedOverrides = Self.loadOverridesFromDisk(at: absolute)
+        let loadedOverrides: [MockOverride]
+        switch persistence {
+        case .memoryOnly:
+            loadedOverrides = try Self.requireConfigOverrides(at: absolute)
+        case .disk:
+            loadedOverrides = Self.loadOverridesFromDisk(at: absolute)
+        }
         let loadedScenarios = Self.loadScenariosFromDisk(at: absoluteScenariosPath)
         Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loadedOverrides, scenariosPath: absoluteScenariosPath)
         self.cachedOverrides = loadedOverrides
@@ -139,7 +136,7 @@ public actor KawarimiConfigStore {
     /// Prefer this over string paths when the caller already has a `URL` (simulator / device sandbox).
     /// Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` or ``invalidScenariosPath``.
     /// With ``KawarimiConfigPersistence/disk``, `configure`, `removeOverride`, and `reset` write to `configURL`; an app-bundle URL is not writable, so copy into the container first when mutations must persist.
-    /// With ``KawarimiConfigPersistence/memoryOnly``, the files are read once (a bundle URL is fine) and later mutations stay in memory.
+    /// With ``KawarimiConfigPersistence/memoryOnly``, the config file is read once and must exist as a ``KawarimiConfig`` (a bundle URL is fine); later mutations stay in memory. A missing scenarios file still starts with no scenarios.
     /// When `scenariosURL` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)``.
     public init(
         configURL: URL,
@@ -273,6 +270,7 @@ public actor KawarimiConfigStore {
         fileWatchers = []
     }
 
+    /// ``KawarimiConfigPersistence/disk`` treats a missing or undecodable file as no overrides, matching reload.
     private static func loadOverridesFromDisk(at absolute: String) -> [MockOverride] {
         guard let data = FileManager.default.contents(atPath: absolute) else {
             return []
@@ -283,6 +281,18 @@ public actor KawarimiConfigStore {
         } catch {
             logInvalidKawarimiConfig(at: absolute, error: error)
             return []
+        }
+    }
+
+    /// ``KawarimiConfigPersistence/memoryOnly`` never writes, so these failures must surface at init.
+    private static func requireConfigOverrides(at absolute: String) throws -> [MockOverride] {
+        guard let data = FileManager.default.contents(atPath: absolute) else {
+            throw KawarimiConfigStoreError.configNotFound(absolute)
+        }
+        do {
+            return try JSONDecoder().decode(KawarimiConfig.self, from: data).overrides
+        } catch {
+            throw KawarimiConfigStoreError.invalidConfigJSON(path: absolute, reason: error.localizedDescription)
         }
     }
 
@@ -349,10 +359,6 @@ public actor KawarimiConfigStore {
     }
 
     private func normalize(_ override: MockOverride) -> MockOverride {
-        Self.normalize(override, prefix: prefix)
-    }
-
-    private static func normalize(_ override: MockOverride, prefix: String) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path

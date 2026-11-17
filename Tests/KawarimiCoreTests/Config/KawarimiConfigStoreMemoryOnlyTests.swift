@@ -96,23 +96,67 @@ struct KawarimiConfigStoreMemoryOnlyTests {
         await store.stopFileWatch()
     }
 
-    @Test func fileLessStoreStartsFromSeedValues() async throws {
-        let empty = KawarimiConfigStore()
-        #expect(empty.persistence == .memoryOnly)
-        #expect(await empty.overrides().isEmpty)
-        #expect(await empty.scenarios().isEmpty)
-        #expect(await empty.reloadFromDisk() == .unchanged)
+    @Test func memoryOnlyThrowsWhenConfigFileIsMissing() {
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("kawarimi.json")
+        expectStoreError(.configNotFound(missing.path)) {
+            _ = try KawarimiConfigStore(configURL: missing, persistence: .memoryOnly)
+        }
+    }
 
-        let seeded = KawarimiConfigStore(pathPrefix: "/api", overrides: [
-            MockOverride(path: "greet", method: .get, statusCode: 200, body: "", contentType: "application/json"),
-        ])
-        #expect(await seeded.pathPrefix == "/api")
-        let seed = try #require(await seeded.overrides().first)
-        #expect(seed.path == "/api/greet")
-        #expect(seed.body == nil)
-        #expect(seed.contentType == nil)
-        try await seeded.configure(MockOverride(path: "/greet", method: .post, statusCode: 201))
-        #expect(await seeded.overrides().map(\.path) == ["/api/greet", "/api/greet"])
-        #expect(await seeded.overrides().map(\.method) == [.get, .post])
+    @Test func memoryOnlyThrowsWhenConfigJSONIsInvalid() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let configURL = dir.appendingPathComponent("kawarimi.json")
+        try Data("not-json".utf8).write(to: configURL)
+
+        expectStoreError(.invalidConfigJSON(path: configURL.path, reason: "")) {
+            _ = try KawarimiConfigStore(configURL: configURL, persistence: .memoryOnly)
+        }
+    }
+
+    @Test func memoryOnlyAcceptsAnEmptyOverrideFileWithoutScenarios() async throws {
+        let (dir, configURL) = try makeSeedDirectory(overrides: [])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try KawarimiConfigStore(configURL: configURL, persistence: .memoryOnly)
+        #expect(await store.overrides().isEmpty)
+        #expect(await store.scenarios().isEmpty)
+    }
+
+    @Test func diskInitStartsEmptyWhenConfigIsMissingOrInvalid() async throws {
+        let missing = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("kawarimi.json")
+        let missingStore = try KawarimiConfigStore(configURL: missing)
+        #expect(await missingStore.overrides().isEmpty)
+
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let configURL = dir.appendingPathComponent("kawarimi.json")
+        try Data("not-json".utf8).write(to: configURL)
+        let invalidStore = try KawarimiConfigStore(configURL: configURL)
+        #expect(await invalidStore.overrides().isEmpty)
+    }
+}
+
+private func expectStoreError(
+    _ expected: KawarimiConfigStoreError,
+    _ body: () throws -> Void
+) {
+    do {
+        try body()
+        Issue.record("expected \(expected)")
+    } catch let error as KawarimiConfigStoreError {
+        switch (error, expected) {
+        case (.configNotFound, .configNotFound), (.invalidConfigJSON, .invalidConfigJSON):
+            break
+        default:
+            Issue.record("expected \(expected), got \(error)")
+        }
+    } catch {
+        Issue.record("expected \(expected), got \(error)")
     }
 }

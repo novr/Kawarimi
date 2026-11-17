@@ -4,6 +4,15 @@ import Testing
 
 @testable import KawarimiHengeCore
 
+private func makeMemoryStore(pathPrefix: String = "/api") throws -> (KawarimiConfigStore, URL) {
+    let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    let configURL = dir.appendingPathComponent("kawarimi.json")
+    try JSONEncoder().encode(KawarimiConfig(overrides: [])).write(to: configURL)
+    let store = try KawarimiConfigStore(configURL: configURL, pathPrefix: pathPrefix, persistence: .memoryOnly)
+    return (store, dir)
+}
+
 private func makeSpec() throws -> HengeSpecSnapshot {
     let json = """
     {
@@ -24,7 +33,9 @@ private func makeSpec() throws -> HengeSpecSnapshot {
 @Suite("HengeLocalBackend", .timeLimit(.minutes(1)))
 struct HengeLocalBackendTests {
     @Test func specSnapshotForwardsBuildTimeSpec() throws {
-        let backend = HengeLocalBackend(store: KawarimiConfigStore(), spec: try makeSpec())
+        let (store, dir) = try makeMemoryStore(pathPrefix: "")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let backend = HengeLocalBackend(store: store, spec: try makeSpec())
         let snapshot = backend.specSnapshot()
         #expect(snapshot.meta.serverURL == "https://example.com/api")
         #expect(snapshot.meta.apiPathPrefix == "/api")
@@ -33,7 +44,8 @@ struct HengeLocalBackendTests {
     }
 
     @Test func mutationsReturnLatestStoreOverrides() async throws {
-        let store = KawarimiConfigStore(pathPrefix: "/api")
+        let (store, dir) = try makeMemoryStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
         let backend = HengeLocalBackend(store: store, spec: try makeSpec())
 
         let configured = try await backend.configure(MockOverride(path: "/greet", method: .get, statusCode: 500))
@@ -50,7 +62,8 @@ struct HengeLocalBackendTests {
     }
 
     @Test func reloadOnMemoryOnlyStoreKeepsEdits() async throws {
-        let store = KawarimiConfigStore(pathPrefix: "/api")
+        let (store, dir) = try makeMemoryStore()
+        defer { try? FileManager.default.removeItem(at: dir) }
         let backend = HengeLocalBackend(store: store, spec: try makeSpec())
         let configured = try await backend.configure(MockOverride(path: "/greet", method: .get, statusCode: 503))
 
