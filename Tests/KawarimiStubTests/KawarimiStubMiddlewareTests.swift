@@ -312,6 +312,48 @@ struct KawarimiStubMiddlewareTests {
         #expect(!flag.value)
     }
 
+    @Test func unsavedMemoryOnlyEditAppliesToNextRequest() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let configURL = dir.appendingPathComponent("kawarimi.json")
+        try JSONEncoder().encode(KawarimiConfig(overrides: [])).write(to: configURL)
+        let store = try KawarimiConfigStore(configURL: configURL, pathPrefix: "/api", persistence: .memoryOnly)
+        let endpoints: [any SpecEndpointProviding] = [
+            FakeEndpoint(
+                path: "/api/greet",
+                method: .get,
+                operationId: "getGreeting",
+                responses: [FakeResponse(statusCode: 200, body: "{\"source\":\"spec\"}")]
+            ),
+        ]
+        let middleware = KawarimiStubMiddleware(store: store, responseMap: [:], endpoints: endpoints)
+        func send() async throws -> (HTTPResponse, HTTPBody?) {
+            try await middleware.intercept(
+                HTTPRequest(method: .get, scheme: nil, authority: nil, path: "/greet"),
+                body: nil,
+                baseURL: baseURL,
+                operationID: "getGreeting",
+                next: failingNext(NextFlag())
+            )
+        }
+
+        let (before, beforeBody) = try await send()
+        #expect(before.status.code == 200)
+        #expect(try await collect(beforeBody) == "{\"source\":\"spec\"}")
+
+        try await store.configure(MockOverride(
+            path: "/greet",
+            method: .get,
+            statusCode: 503,
+            body: "{\"source\":\"memory\"}",
+            contentType: "application/json"
+        ))
+        let (after, afterBody) = try await send()
+        #expect(after.status.code == 503)
+        #expect(try await collect(afterBody) == "{\"source\":\"memory\"}")
+    }
+
     @Test func serverRequestPathJoinsBaseURLPath() {
         #expect(KawarimiStubMiddleware.serverRequestPath(baseURL: URL(string: "https://h/api")!, requestPath: "/greet") == "/api/greet")
         #expect(KawarimiStubMiddleware.serverRequestPath(baseURL: URL(string: "https://h/api/")!, requestPath: "/greet") == "/api/greet")

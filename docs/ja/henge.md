@@ -315,6 +315,20 @@ let client = Client(
 - **`delayMs` / `failureMode`** — サーバ middleware と同じ（`connectionClose` は **`KawarimiMockFailureError`** を throw）。
 - **実通信** — この middleware を外して `Client` を作る。実行時のモード切替は持たない。
 - **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、`Bundle.url(forResource:…)` の `URL` を [`init(configURL:…)`](#kawarimijson--kawarimi_config) に渡す。
+- **Henge で実行時に編集（未保存）** — 同じアプリプロセスで、1 つの `KawarimiConfigStore` を Stub と **`KawarimiConfigView(store:spec:)`** の両方に渡す。Henge で保存した内容は次の Stub リクエストから効く。`persistence: .memoryOnly` では JSON を起動時に読み、編集は書き込まない。`reset()` はそのファイルを読み直す。アプリを終了すると編集は消える。別プロセス（Mac 上など）の Henge はこのメモリを共有できないので、HTTP の admin API を使う。
+
+```swift
+let store = try KawarimiConfigStore(
+    configURL: configURL,
+    pathPrefix: "/api",
+    scenariosURL: scenariosURL,
+    persistence: .memoryOnly
+)
+// アプリ内の Henge 画面
+KawarimiConfigView(store: store, spec: SpecResponse(meta: KawarimiSpec.meta, endpoints: KawarimiSpec.endpoints))
+// クライアント Stub
+KawarimiStubMiddleware(store: store, responseMap: KawarimiSpec.responseMap, endpoints: KawarimiSpec.endpoints)
+```
 
 ディスク上の不正な scenario JSON は load/reload 時に **警告ログ**のみ。リクエストはフォールバックする。**`KawarimiValidate`** はこのソフトな挙動に頼らず CI で落とす — [validation.md](../../skills/kawarimi-user-mock-and-scenario-format/validation.md)。
 
@@ -478,7 +492,7 @@ OpenAPI の**番号チップ**（例: **200 formal**、**200 success**）は spe
 
 環境変数 `KAWARIMI_CONFIG` でパスを上書きできます。
 
-シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で得た `URL` を ``init(configURL:pathPrefix:scenariosURL:)`` に渡します。file URL 以外は ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath`` です。`scenariosURL` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、バンドル URL に対する `configure` / `removeOverride` / `reset` は失敗します。書き戻すときはコンテナ内へコピーしてその `URL` で開いてください。リソース名の便利初期化（`init(bundle:configResource:…)`）もあり、内部で同じ `configURL` 経路を使います。
+シミュレータと実機はサンドボックス外のパスを読めません。JSON をアプリターゲットのリソースに入れ、`Bundle.url(forResource:withExtension:subdirectory:)` で得た `URL` を ``init(configURL:pathPrefix:scenariosURL:)`` に渡します。file URL 以外は ``KawarimiConfigStoreError/invalidConfigPath`` / ``invalidScenariosPath`` です。`scenariosURL` を省略すると、通常どおり環境変数、次に config と同じ場所の `kawarimi-scenarios.json` を見ます。アプリバンドルは書き込めないので、既定の `.disk` ではバンドル URL に対する `configure` / `removeOverride` / `reset` は失敗します。書き戻さないなら `.memoryOnly`（下記）を使い、書き戻すときはコンテナ内へコピーしてその `URL` で開いてください。リソース名の便利初期化（`init(bundle:configResource:…)`）もあり、内部で同じ `configURL` 経路を使います。
 
 ```swift
 guard let configURL = Bundle.main.url(forResource: "kawarimi", withExtension: "json"),
@@ -491,6 +505,8 @@ let store = try KawarimiConfigStore(
     scenariosURL: scenariosURL
 )
 ```
+
+**永続化** — `init(configURL:…)` と `init(bundle:…)` は `persistence: KawarimiConfigPersistence` を受け取る（既定は **`.disk`** で、上の挙動）。**`.memoryOnly`** では初期化時に設定ファイルを読み、中身は `KawarimiConfig` でなければならない（バンドル URL でもよい）。ファイルが無いときは **`configNotFound`**、JSON として読めないときは **`invalidConfigJSON`** を throw する。**`.disk`** はどちらの場合も override なしで起動する。シナリオファイルが無いときは、どちらのモードでもシナリオなしで始まる。`configure` / `removeOverride` はメモリだけを変え、`reloadFromDisk()` はメモリに触れず **`.unchanged`** を返し、`startFileWatchIfEnabled()` は何もしない。`reset()` は `kawarimi.json` をメモリに読み直し、書き込まない。未保存の編集は捨てられ、ディスク上のファイルが残る。`.disk` の `reset()` はこれまでどおり、すべての override を消してその空の一覧を書き込む。`.memoryOnly` はこれらの初期化だけが持ち、必ず設定ファイルから始まる。シナリオはどちらのモードでも読み取り専用。`KawarimiConfigView(store:spec:)` で memory-only のストアに **Reload from disk** を押すと、再読み込みを省略した旨だけを表示する。
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 

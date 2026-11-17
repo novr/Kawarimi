@@ -13,6 +13,10 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
     case bodyTooLong(actual: Int, limit: Int)
     /// ``Bundle/url(forResource:withExtension:subdirectory:)`` returned nil.
     case resourceNotFound(resource: String, fileExtension: String, subdirectory: String?)
+    /// ``KawarimiConfigPersistence/memoryOnly`` reads the config once and never writes, so a missing file must not look like an empty config.
+    case configNotFound(String)
+    /// Same reason as ``configNotFound(_:)``: undecodable JSON would otherwise start a memory-only store with no overrides.
+    case invalidConfigJSON(path: String, reason: String)
 
     public var errorDescription: String? {
         switch self {
@@ -25,6 +29,10 @@ public enum KawarimiConfigStoreError: Error, Sendable, LocalizedError {
         case .resourceNotFound(let resource, let fileExtension, let subdirectory):
             let place = subdirectory.map { " in \($0)" } ?? ""
             return "Kawarimi bundle resource not found: \(resource).\(fileExtension)\(place)"
+        case .configNotFound(let path):
+            return "Kawarimi config file not found: \(path)"
+        case .invalidConfigJSON(let path, let reason):
+            return "Invalid kawarimi config JSON at \(path): \(reason)"
         }
     }
 }
@@ -46,21 +54,43 @@ public enum KawarimiConfigDefaults {
     public static let fileName = "kawarimi.json"
 }
 
+public enum KawarimiConfigPersistence: Sendable, Equatable {
+    /// Mutations are written to the config file; reload and file watch read it again.
+    case disk
+    /// The config file is read at init and again by ``KawarimiConfigStore/reset()``. Other mutations stay in memory and are not written.
+    case memoryOnly
+}
+
 public actor KawarimiConfigStore {
-    /// Always absolute; relative `file://` URLs can make `Data.write(to:)` fail (e.g. 518).
-    private let configPath: String
-    private let scenariosPath: String
+    private struct Files: Sendable {
+        /// Always absolute; relative `file://` URLs can make `Data.write(to:)` fail (e.g. 518).
+        let configPath: String
+        let scenariosPath: String
+    }
+
+    /// Writes, reload, and file watch use these paths only for ``KawarimiConfigPersistence/disk``. ``reset()`` re-reads the config path in either mode.
+    private let files: Files
     private let prefix: String
     private var cachedOverrides: [MockOverride]
     private var cachedScenarios: [KawarimiScenario]
     private var fileWatchers: [KawarimiConfigFileWatcher] = []
 
     public var pathPrefix: String { prefix }
+    public nonisolated let persistence: KawarimiConfigPersistence
 
     public init(
         configPath: String,
         pathPrefix: String = "",
         scenariosPath: String? = nil
+    ) throws {
+        try self.init(configPath: configPath, pathPrefix: pathPrefix, scenariosPath: scenariosPath, persistence: .disk)
+    }
+
+    private init(
+        configPath: String,
+        pathPrefix: String,
+        scenariosPath: String?,
+        persistence: KawarimiConfigPersistence
     ) throws {
         let components = (configPath as NSString).pathComponents
         if components.contains("..") {
@@ -74,7 +104,6 @@ public actor KawarimiConfigStore {
             let cwd = FileManager.default.currentDirectoryPath
             absolute = (cwd as NSString).appendingPathComponent(expanded)
         }
-        self.configPath = absolute
         let resolvedScenariosPath = KawarimiScenarioDefaults.resolvedPath(
             explicit: scenariosPath,
             configAbsolutePath: absolute
@@ -83,11 +112,19 @@ public actor KawarimiConfigStore {
         if scenarioComponents.contains("..") {
             throw KawarimiConfigStoreError.invalidScenariosPath(resolvedScenariosPath)
         }
-        self.scenariosPath = Self.absolutePath(from: resolvedScenariosPath)
+        let absoluteScenariosPath = Self.absolutePath(from: resolvedScenariosPath)
+        self.files = Files(configPath: absolute, scenariosPath: absoluteScenariosPath)
+        self.persistence = persistence
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
-        let loadedOverrides = Self.loadOverridesFromDisk(at: absolute)
-        let loadedScenarios = Self.loadScenariosFromDisk(at: self.scenariosPath)
-        Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loadedOverrides, scenariosPath: self.scenariosPath)
+        let loadedOverrides: [MockOverride]
+        switch persistence {
+        case .memoryOnly:
+            loadedOverrides = try Self.requireConfigOverrides(at: absolute)
+        case .disk:
+            loadedOverrides = Self.loadOverridesFromDisk(at: absolute)
+        }
+        let loadedScenarios = Self.loadScenariosFromDisk(at: absoluteScenariosPath)
+        Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loadedOverrides, scenariosPath: absoluteScenariosPath)
         self.cachedOverrides = loadedOverrides
         self.cachedScenarios = loadedScenarios
     }
@@ -96,12 +133,14 @@ public actor KawarimiConfigStore {
     ///
     /// Prefer this over string paths when the caller already has a `URL` (simulator / device sandbox).
     /// Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` or ``invalidScenariosPath``.
-    /// `configure`, `removeOverride`, and `reset` write to `configURL`; an app-bundle URL is not writable, so copy into the container first when mutations must persist.
+    /// With ``KawarimiConfigPersistence/disk``, `configure`, `removeOverride`, and `reset` write to `configURL`; an app-bundle URL is not writable, so copy into the container first when mutations must persist.
+    /// With ``KawarimiConfigPersistence/memoryOnly``, the config file must exist as a ``KawarimiConfig`` (a bundle URL is fine). `configure` and `removeOverride` stay in memory. `reset()` re-reads that file and does not write. A missing scenarios file still starts with no scenarios.
     /// When `scenariosURL` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)``.
     public init(
         configURL: URL,
         pathPrefix: String = "",
-        scenariosURL: URL? = nil
+        scenariosURL: URL? = nil,
+        persistence: KawarimiConfigPersistence = .disk
     ) throws {
         let configPath = try Self.filePath(
             from: configURL,
@@ -116,7 +155,12 @@ public actor KawarimiConfigStore {
         } else {
             scenariosPath = nil
         }
-        try self.init(configPath: configPath, pathPrefix: pathPrefix, scenariosPath: scenariosPath)
+        try self.init(
+            configPath: configPath,
+            pathPrefix: pathPrefix,
+            scenariosPath: scenariosPath,
+            persistence: persistence
+        )
     }
 
     /// Resolves bundle resources with ``Bundle/url(forResource:withExtension:subdirectory:)``, then ``init(configURL:pathPrefix:scenariosURL:)``.
@@ -129,7 +173,8 @@ public actor KawarimiConfigStore {
         subdirectory: String? = nil,
         pathPrefix: String = "",
         scenariosResource: String? = nil,
-        scenariosExtension: String = "json"
+        scenariosExtension: String = "json",
+        persistence: KawarimiConfigPersistence = .disk
     ) throws {
         let configURL = try Self.resourceURL(
             bundle: bundle,
@@ -148,7 +193,12 @@ public actor KawarimiConfigStore {
         } else {
             scenariosURL = nil
         }
-        try self.init(configURL: configURL, pathPrefix: pathPrefix, scenariosURL: scenariosURL)
+        try self.init(
+            configURL: configURL,
+            pathPrefix: pathPrefix,
+            scenariosURL: scenariosURL,
+            persistence: persistence
+        )
     }
 
     private static func resourceURL(
@@ -179,26 +229,29 @@ public actor KawarimiConfigStore {
 
     /// Re-reads `kawarimi.json` using the same rules as ``init(configPath:pathPrefix:)``.
     /// Returns ``KawarimiConfigReloadResult/unchanged`` when the decoded overrides match the in-memory cache.
+    /// With ``KawarimiConfigPersistence/memoryOnly`` this is a no-op returning `.unchanged`, so unsaved edits are kept.
     public func reloadFromDisk() -> KawarimiConfigReloadResult {
-        let loaded = Self.loadOverridesFromDisk(at: configPath)
-        let loadedScenarios = Self.loadScenariosFromDisk(at: scenariosPath)
+        guard persistence == .disk else { return .unchanged }
+        let loaded = Self.loadOverridesFromDisk(at: files.configPath)
+        let loadedScenarios = Self.loadScenariosFromDisk(at: files.scenariosPath)
         if loaded == cachedOverrides && loadedScenarios == cachedScenarios {
             return .unchanged
         }
-        Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loaded, scenariosPath: scenariosPath)
+        Self.logScenarioWarnings(scenarios: loadedScenarios, overrides: loaded, scenariosPath: files.scenariosPath)
         cachedOverrides = loaded
         cachedScenarios = loadedScenarios
         return .applied
     }
 
-    /// Watches ``configPath`` and ``scenariosPath`` on disk when ``policy`` is enabled (default: ``KawarimiConfigWatchPolicy/fromEnvironment()``).
+    /// Watches the config and scenarios files when ``policy`` is enabled (default: ``KawarimiConfigWatchPolicy/fromEnvironment()``).
+    /// Never starts with ``KawarimiConfigPersistence/memoryOnly``.
     public func startFileWatchIfEnabled(
         policy: KawarimiConfigWatchPolicy = KawarimiConfigWatchPolicy.fromEnvironment()
     ) {
-        guard policy.isEnabled, fileWatchers.isEmpty else { return }
-        var paths = [configPath]
-        if scenariosPath != configPath {
-            paths.append(scenariosPath)
+        guard persistence == .disk, policy.isEnabled, fileWatchers.isEmpty else { return }
+        var paths = [files.configPath]
+        if files.scenariosPath != files.configPath {
+            paths.append(files.scenariosPath)
         }
         fileWatchers = paths.map { path in
             KawarimiConfigFileWatcher(path: path) { [weak self] in
@@ -215,6 +268,7 @@ public actor KawarimiConfigStore {
         fileWatchers = []
     }
 
+    /// ``KawarimiConfigPersistence/disk`` treats a missing or undecodable file as no overrides, matching reload.
     private static func loadOverridesFromDisk(at absolute: String) -> [MockOverride] {
         guard let data = FileManager.default.contents(atPath: absolute) else {
             return []
@@ -225,6 +279,18 @@ public actor KawarimiConfigStore {
         } catch {
             logInvalidKawarimiConfig(at: absolute, error: error)
             return []
+        }
+    }
+
+    /// ``KawarimiConfigPersistence/memoryOnly`` never writes, so these failures must surface at init.
+    private static func requireConfigOverrides(at absolute: String) throws -> [MockOverride] {
+        guard let data = FileManager.default.contents(atPath: absolute) else {
+            throw KawarimiConfigStoreError.configNotFound(absolute)
+        }
+        do {
+            return try JSONDecoder().decode(KawarimiConfig.self, from: data).overrides
+        } catch {
+            throw KawarimiConfigStoreError.invalidConfigJSON(path: absolute, reason: error.localizedDescription)
         }
     }
 
@@ -285,7 +351,13 @@ public actor KawarimiConfigStore {
         }
     }
 
+    /// With ``KawarimiConfigPersistence/disk``, drops every override and writes that empty list.
+    /// With ``KawarimiConfigPersistence/memoryOnly``, re-reads `kawarimi.json` and does not write. Scenarios stay as last loaded.
     public func reset() throws {
+        if persistence == .memoryOnly {
+            cachedOverrides = try Self.requireConfigOverrides(at: files.configPath)
+            return
+        }
         cachedOverrides = []
         try persist()
     }
@@ -347,11 +419,12 @@ public actor KawarimiConfigStore {
     }
 
     private func persist() throws {
+        guard persistence == .disk else { return }
         let config = KawarimiConfig(overrides: cachedOverrides)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(config)
-        let url = URL(fileURLWithPath: configPath, isDirectory: false)
+        let url = URL(fileURLWithPath: files.configPath, isDirectory: false)
         try data.write(to: url, options: .atomic)
     }
 
