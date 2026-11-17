@@ -131,6 +131,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Swift version
+        id: swift-version
+        shell: bash
+        run: |
+          swift --version
+          echo "value=$(swift --version | shasum -a 256 | cut -d' ' -f1)" >> "${GITHUB_OUTPUT}"
+
+      # Keyed on the toolchain so a runner Xcode update does not restore an incompatible .build.
       - name: Cache SwiftPM
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -138,18 +146,27 @@ jobs:
             .build
             Example/DemoPackage/.build
             ~/Library/Caches/org.swift.swiftpm
-          key: spm-${{ runner.os }}-macos-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
+          key: spm-${{ runner.os }}-macos-${{ steps.swift-version.outputs.value }}-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
           restore-keys: |
-            spm-${{ runner.os }}-macos-
-
-      - name: Swift version
-        run: swift --version
+            spm-${{ runner.os }}-macos-${{ steps.swift-version.outputs.value }}-
 
       - name: Build package (includes KawarimiHenge)
         run: swift build
 
       - name: Run macOS-only code path tests
-        run: swift test --filter 'KawarimiProxyURLSessionTransportIntegrationTests|KawarimiConfigFileWatcherTests'
+        shell: bash
+        run: |
+          set -euo pipefail
+          suites=(KawarimiProxyURLSessionTransportIntegrationTests KawarimiConfigFileWatcherTests)
+          listed="$(swift test list)"
+          # `swift test --filter` exits 0 when nothing matches, so a renamed suite would pass silently.
+          for suite in "${suites[@]}"; do
+            if ! grep -q "\.${suite}/" <<<"${listed}"; then
+              echo "::error::Test suite ${suite} not found in swift test list"
+              exit 1
+            fi
+          done
+          swift test --skip-build --filter "$(IFS='|'; echo "${suites[*]}")"
 
       - name: Build HengeCli
         working-directory: Example/DemoPackage
