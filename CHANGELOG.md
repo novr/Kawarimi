@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiCore:** `KawarimiConfigPersistence` (`.disk` / `.memoryOnly`) on `KawarimiConfigStore`'s `init(configURL:…)` and `init(bundle:…)` (default `.disk`, unchanged behavior). `.memoryOnly` is only on those inits and always requires a config file. With `.memoryOnly` the config file must exist and decode as `KawarimiConfig` (`configNotFound` / `invalidConfigJSON`); `.disk` still starts empty when the file is missing or invalid. `configure` / `removeOverride` never write; `reset()` re-reads `kawarimi.json` without writing. `reloadFromDisk()` returns `.unchanged` and keeps edits, and file watch does not start. `.disk` `reset()` still clears overrides and writes that empty list.
 - **KawarimiHenge:** `KawarimiConfigView(store:spec:)` edits an in-process `KawarimiConfigStore` (spec from `SpecResponse(meta:endpoints:)`). Sharing that store with **`KawarimiStubMiddleware`** applies unsaved edits to the next stubbed request. "Reload from disk" on a memory-only store reports that it was skipped instead of the server wording. **KawarimiHengeCore** adds a package-internal `HengeLocalBackend` for the same operations.
 
+### Changed
+
+- **CI:** `ci.yaml` adds a **`macos-26`** job (gated by **Swift Test**) that builds **`KawarimiHenge`** and **`HengeCli`** and runs macOS-only code path tests (`KawarimiProxyURLSessionTransportIntegrationTests`, `KawarimiConfigFileWatcherTests` vnode path). Ubuntu jobs are unchanged.
+
 ## [4.1.0] - 2026-08-05
 
 ### Added
