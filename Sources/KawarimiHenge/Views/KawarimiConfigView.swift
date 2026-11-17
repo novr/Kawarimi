@@ -50,6 +50,20 @@ public struct KawarimiConfigView: View {
         reloadFromDisk = { try await client.reload() }
     }
 
+    /// Edits `store` directly in this process. Pass the same store to `KawarimiStubMiddleware` so saves apply to the next stubbed request.
+    /// With ``KawarimiConfigPersistence/memoryOnly`` edits are not written to disk and "Reload from disk" keeps them.
+    public init<Spec: KawarimiFetchedSpec>(store: KawarimiConfigStore, spec: Spec) {
+        let backend = HengeLocalBackend(store: store, spec: spec)
+        _serverURL = State(initialValue: spec.meta.serverURL)
+        specProvider = { backend.specSnapshot() }
+        fetchOverrides = { await backend.overrides() }
+        fetchScenariosFromServer = { await backend.scenarios() }
+        configureOnServer = { try await backend.configure($0) }
+        removeOnServer = { try await backend.remove($0) }
+        resetAllOnServer = { try await backend.reset() }
+        reloadFromDisk = { await backend.reload() }
+    }
+
     public var body: some View {
         OverrideEditorView(
             serverURL: serverURL,
