@@ -4,8 +4,8 @@ import KawarimiCore
 ///
 /// Mutations return ``KawarimiConfigStore/overrides()`` afterwards, matching the admin routes that `KawarimiConfigView` expects.
 public struct HengeLocalBackend<Spec: KawarimiFetchedSpec>: Sendable {
-    public let store: KawarimiConfigStore
-    public let spec: Spec
+    private let store: KawarimiConfigStore
+    private let spec: Spec
 
     public init(store: KawarimiConfigStore, spec: Spec) {
         self.store = store
@@ -45,6 +45,10 @@ public struct HengeLocalBackend<Spec: KawarimiFetchedSpec>: Sendable {
     public func reset() async throws -> [MockOverride] {
         try await store.reset()
         return await store.overrides()
+    }
+
+    public func reloadNoticeMessage(for result: KawarimiConfigReloadResult) -> String {
+        KawarimiConfigReloadPresentation.localNoticeMessage(for: result, persistence: store.persistence)
     }
 
     public func reload() async -> KawarimiConfigReloadResponse {

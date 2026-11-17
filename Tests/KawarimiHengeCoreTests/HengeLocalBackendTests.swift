@@ -56,6 +56,7 @@ struct HengeLocalBackendTests {
 
         let response = await backend.reload()
         #expect(response == KawarimiConfigReloadResponse(result: .unchanged, overrides: configured))
+        #expect(backend.reloadNoticeMessage(for: response.result) == "Reload skipped: memory-only store keeps unsaved edits.")
         #expect(await backend.scenarios().isEmpty)
     }
 }

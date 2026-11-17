@@ -15,6 +15,7 @@ public struct KawarimiConfigView: View {
     private let removeOnServer: (MockOverride) async throws -> [MockOverride]
     private let resetAllOnServer: () async throws -> [MockOverride]
     private let reloadFromDisk: () async throws -> KawarimiConfigReloadResponse
+    private let reloadNotice: (KawarimiConfigReloadResult) -> String
 
     @State private var serverURL: String
     @State private var meta: (any SpecMetaProviding)?
@@ -48,6 +49,7 @@ public struct KawarimiConfigView: View {
         removeOnServer = { try await client.removeOverride(override: $0) }
         resetAllOnServer = { try await client.reset() }
         reloadFromDisk = { try await client.reload() }
+        reloadNotice = { KawarimiConfigReloadPresentation.noticeMessage(for: $0) }
     }
 
     /// Edits `store` directly in this process. Pass the same store to `KawarimiStubMiddleware` so saves apply to the next stubbed request.
@@ -62,6 +64,7 @@ public struct KawarimiConfigView: View {
         removeOnServer = { try await backend.remove($0) }
         resetAllOnServer = { try await backend.reset() }
         reloadFromDisk = { await backend.reload() }
+        reloadNotice = { backend.reloadNoticeMessage(for: $0) }
     }
 
     public var body: some View {
@@ -149,7 +152,7 @@ public struct KawarimiConfigView: View {
         defer { isReloadingFromDisk = false }
         do {
             let response = try await reloadFromDisk()
-            reloadNoticeMessage = KawarimiConfigReloadPresentation.noticeMessage(for: response.result)
+            reloadNoticeMessage = reloadNotice(response.result)
             _ = applyOverridesSnapshot(response.overrides)
             do {
                 scenariosSnapshot = try await fetchScenariosFromServer()
