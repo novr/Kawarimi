@@ -57,7 +57,7 @@ public enum KawarimiConfigDefaults {
 public enum KawarimiConfigPersistence: Sendable, Equatable {
     /// Mutations are written to the config file; reload and file watch read it again.
     case disk
-    /// Files are read once at init; mutations stay in memory and are lost when the process exits.
+    /// The config file is read at init and again by ``KawarimiConfigStore/reset()``. Other mutations stay in memory and are not written.
     case memoryOnly
 }
 
@@ -68,8 +68,8 @@ public actor KawarimiConfigStore {
         let scenariosPath: String
     }
 
-    /// nil when ``persistence`` is ``KawarimiConfigPersistence/memoryOnly``, so no code path can write or re-read.
-    private let files: Files?
+    /// Writes, reload, and file watch use these paths only for ``KawarimiConfigPersistence/disk``. ``reset()`` re-reads the config path in either mode.
+    private let files: Files
     private let prefix: String
     private var cachedOverrides: [MockOverride]
     private var cachedScenarios: [KawarimiScenario]
@@ -113,9 +113,7 @@ public actor KawarimiConfigStore {
             throw KawarimiConfigStoreError.invalidScenariosPath(resolvedScenariosPath)
         }
         let absoluteScenariosPath = Self.absolutePath(from: resolvedScenariosPath)
-        self.files = persistence == .disk
-            ? Files(configPath: absolute, scenariosPath: absoluteScenariosPath)
-            : nil
+        self.files = Files(configPath: absolute, scenariosPath: absoluteScenariosPath)
         self.persistence = persistence
         self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
         let loadedOverrides: [MockOverride]
@@ -136,7 +134,7 @@ public actor KawarimiConfigStore {
     /// Prefer this over string paths when the caller already has a `URL` (simulator / device sandbox).
     /// Non-file URLs throw ``KawarimiConfigStoreError/invalidConfigPath`` or ``invalidScenariosPath``.
     /// With ``KawarimiConfigPersistence/disk``, `configure`, `removeOverride`, and `reset` write to `configURL`; an app-bundle URL is not writable, so copy into the container first when mutations must persist.
-    /// With ``KawarimiConfigPersistence/memoryOnly``, the config file is read once and must exist as a ``KawarimiConfig`` (a bundle URL is fine); later mutations stay in memory. A missing scenarios file still starts with no scenarios.
+    /// With ``KawarimiConfigPersistence/memoryOnly``, the config file must exist as a ``KawarimiConfig`` (a bundle URL is fine). `configure` and `removeOverride` stay in memory. `reset()` re-reads that file and does not write. A missing scenarios file still starts with no scenarios.
     /// When `scenariosURL` is nil, scenario lookup stays ``KawarimiScenarioDefaults/resolvedPath(explicit:configAbsolutePath:environment:)``.
     public init(
         configURL: URL,
@@ -233,7 +231,7 @@ public actor KawarimiConfigStore {
     /// Returns ``KawarimiConfigReloadResult/unchanged`` when the decoded overrides match the in-memory cache.
     /// With ``KawarimiConfigPersistence/memoryOnly`` this is a no-op returning `.unchanged`, so unsaved edits are kept.
     public func reloadFromDisk() -> KawarimiConfigReloadResult {
-        guard let files else { return .unchanged }
+        guard persistence == .disk else { return .unchanged }
         let loaded = Self.loadOverridesFromDisk(at: files.configPath)
         let loadedScenarios = Self.loadScenariosFromDisk(at: files.scenariosPath)
         if loaded == cachedOverrides && loadedScenarios == cachedScenarios {
@@ -250,7 +248,7 @@ public actor KawarimiConfigStore {
     public func startFileWatchIfEnabled(
         policy: KawarimiConfigWatchPolicy = KawarimiConfigWatchPolicy.fromEnvironment()
     ) {
-        guard let files, policy.isEnabled, fileWatchers.isEmpty else { return }
+        guard persistence == .disk, policy.isEnabled, fileWatchers.isEmpty else { return }
         var paths = [files.configPath]
         if files.scenariosPath != files.configPath {
             paths.append(files.scenariosPath)
@@ -353,7 +351,13 @@ public actor KawarimiConfigStore {
         }
     }
 
+    /// With ``KawarimiConfigPersistence/disk``, drops every override and writes that empty list.
+    /// With ``KawarimiConfigPersistence/memoryOnly``, re-reads `kawarimi.json` and does not write. Scenarios stay as last loaded.
     public func reset() throws {
+        if persistence == .memoryOnly {
+            cachedOverrides = try Self.requireConfigOverrides(at: files.configPath)
+            return
+        }
         cachedOverrides = []
         try persist()
     }
@@ -415,7 +419,7 @@ public actor KawarimiConfigStore {
     }
 
     private func persist() throws {
-        guard let files else { return }
+        guard persistence == .disk else { return }
         let config = KawarimiConfig(overrides: cachedOverrides)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

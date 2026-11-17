@@ -315,7 +315,7 @@ let client = Client(
 - **`delayMs` / `failureMode`** — サーバ middleware と同じ（`connectionClose` は **`KawarimiMockFailureError`** を throw）。
 - **実通信** — この middleware を外して `Client` を作る。実行時のモード切替は持たない。
 - **シミュレータ / 実機** — サンドボックス外の `kawarimi.json` は読めない。JSON をアプリバンドルに入れ、`Bundle.url(forResource:…)` の `URL` を [`init(configURL:…)`](#kawarimijson--kawarimi_config) に渡す。
-- **Henge で実行時に編集（未保存）** — 同じアプリプロセスで、1 つの `KawarimiConfigStore` を Stub と **`KawarimiConfigView(store:spec:)`** の両方に渡す。Henge で保存した内容は次の Stub リクエストから効く。`persistence: .memoryOnly` では JSON を起動時に一度だけ読み、編集は書き込まない。アプリを終了すると消える。別プロセス（Mac 上など）の Henge はこのメモリを共有できないので、HTTP の admin API を使う。
+- **Henge で実行時に編集（未保存）** — 同じアプリプロセスで、1 つの `KawarimiConfigStore` を Stub と **`KawarimiConfigView(store:spec:)`** の両方に渡す。Henge で保存した内容は次の Stub リクエストから効く。`persistence: .memoryOnly` では JSON を起動時に読み、編集は書き込まない。`reset()` はそのファイルを読み直す。アプリを終了すると編集は消える。別プロセス（Mac 上など）の Henge はこのメモリを共有できないので、HTTP の admin API を使う。
 
 ```swift
 let store = try KawarimiConfigStore(
@@ -506,7 +506,7 @@ let store = try KawarimiConfigStore(
 )
 ```
 
-**永続化** — `init(configURL:…)` と `init(bundle:…)` は `persistence: KawarimiConfigPersistence` を受け取る（既定は **`.disk`** で、上の挙動）。**`.memoryOnly`** では初期化時に設定ファイルを一度だけ読み、中身は `KawarimiConfig` でなければならない（バンドル URL でもよい）。ファイルが無いときは **`configNotFound`**、JSON として読めないときは **`invalidConfigJSON`** を throw する。**`.disk`** はどちらの場合も override なしで起動する。シナリオファイルが無いときは、どちらのモードでもシナリオなしで始まる。`configure` / `removeOverride` / `reset` はメモリだけを変え、`reloadFromDisk()` はメモリに触れず **`.unchanged`** を返し、`startFileWatchIfEnabled()` は何もしない。`reset()` は JSON の初期値に戻すのではなく、すべての override を消す。`.memoryOnly` はこれらの初期化だけが持ち、必ず設定ファイルから始まる。シナリオはどちらのモードでも読み取り専用。`KawarimiConfigView(store:spec:)` で memory-only のストアに **Reload from disk** を押すと、再読み込みを省略した旨だけを表示する。
+**永続化** — `init(configURL:…)` と `init(bundle:…)` は `persistence: KawarimiConfigPersistence` を受け取る（既定は **`.disk`** で、上の挙動）。**`.memoryOnly`** では初期化時に設定ファイルを読み、中身は `KawarimiConfig` でなければならない（バンドル URL でもよい）。ファイルが無いときは **`configNotFound`**、JSON として読めないときは **`invalidConfigJSON`** を throw する。**`.disk`** はどちらの場合も override なしで起動する。シナリオファイルが無いときは、どちらのモードでもシナリオなしで始まる。`configure` / `removeOverride` はメモリだけを変え、`reloadFromDisk()` はメモリに触れず **`.unchanged`** を返し、`startFileWatchIfEnabled()` は何もしない。`reset()` は `kawarimi.json` をメモリに読み直し、書き込まない。未保存の編集は捨てられ、ディスク上のファイルが残る。`.disk` の `reset()` はこれまでどおり、すべての override を消してその空の一覧を書き込む。`.memoryOnly` はこれらの初期化だけが持ち、必ず設定ファイルから始まる。シナリオはどちらのモードでも読み取り専用。`KawarimiConfigView(store:spec:)` で memory-only のストアに **Reload from disk** を押すと、再読み込みを省略した旨だけを表示する。
 
 `KAWARIMI_CONFIG_WATCH` はディスク上の設定ファイル変更時の自動 reload: **未設定** または **`1`** で監視 ON、**`0`** で OFF（**`false`** などは ON のまま）。**DemoServer** は起動時に `startFileWatchIfEnabled()` を呼びます。他ホストでも同様にする場合は同 API を呼んでください。
 

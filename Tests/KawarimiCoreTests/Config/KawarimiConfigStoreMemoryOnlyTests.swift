@@ -47,7 +47,7 @@ struct KawarimiConfigStoreMemoryOnlyTests {
         try await store.removeOverride(await store.overrides()[0])
         #expect(await store.overrides().map(\.statusCode) == [500])
         try await store.reset()
-        #expect(await store.overrides().isEmpty)
+        #expect(await store.overrides().map(\.body) == ["{\"seed\":true}"])
 
         #expect(try Data(contentsOf: configURL) == before)
         #expect(try FileManager.default.contentsOfDirectory(atPath: dir.path) == ["kawarimi.json"])
@@ -94,6 +94,31 @@ struct KawarimiConfigStoreMemoryOnlyTests {
         try await Task.sleep(for: .milliseconds(300))
         #expect(await store.overrides().map(\.body) == ["{\"seed\":true}"])
         await store.stopFileWatch()
+    }
+
+    @Test func memoryOnlyResetRereadsConfigFileWithoutWriting() async throws {
+        let (dir, configURL) = try makeSeedDirectory(overrides: [seedOverride])
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let store = try KawarimiConfigStore(configURL: configURL, pathPrefix: "/api", persistence: .memoryOnly)
+        try await store.configure(MockOverride(path: "/api/greet", method: .get, statusCode: 500, body: "{\"edited\":true}"))
+
+        let replacement = MockOverride(
+            path: "/api/other",
+            method: .post,
+            statusCode: 201,
+            body: "{\"from\":\"file\"}",
+            contentType: "application/json"
+        )
+        let replacementData = try JSONEncoder().encode(KawarimiConfig(overrides: [replacement]))
+        try replacementData.write(to: configURL, options: .atomic)
+
+        try await store.reset()
+        let overrides = await store.overrides()
+        #expect(overrides.map(\.path) == ["/api/other"])
+        #expect(overrides.map(\.method) == [.post])
+        #expect(overrides.map(\.statusCode) == [201])
+        #expect(overrides.map(\.body) == ["{\"from\":\"file\"}"])
+        #expect(try Data(contentsOf: configURL) == replacementData)
     }
 
     @Test func memoryOnlyThrowsWhenConfigFileIsMissing() {
