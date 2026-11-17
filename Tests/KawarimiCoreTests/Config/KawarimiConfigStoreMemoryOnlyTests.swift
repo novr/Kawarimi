@@ -89,11 +89,11 @@ struct KawarimiConfigStoreMemoryOnlyTests {
         defer { try? FileManager.default.removeItem(at: dir) }
         let store = try KawarimiConfigStore(configURL: configURL, pathPrefix: "/api", persistence: .memoryOnly)
         await store.startFileWatchIfEnabled(policy: .enabled)
-        defer { Task { await store.stopFileWatch() } }
 
         try JSONEncoder().encode(KawarimiConfig(overrides: [])).write(to: configURL, options: .atomic)
         try await Task.sleep(for: .milliseconds(300))
         #expect(await store.overrides().map(\.body) == ["{\"seed\":true}"])
+        await store.stopFileWatch()
     }
 
     @Test func fileLessStoreStartsFromSeedValues() async throws {
@@ -103,8 +103,14 @@ struct KawarimiConfigStoreMemoryOnlyTests {
         #expect(await empty.scenarios().isEmpty)
         #expect(await empty.reloadFromDisk() == .unchanged)
 
-        let seeded = KawarimiConfigStore(pathPrefix: "/api", overrides: [seedOverride])
+        let seeded = KawarimiConfigStore(pathPrefix: "/api", overrides: [
+            MockOverride(path: "greet", method: .get, statusCode: 200, body: "", contentType: "application/json"),
+        ])
         #expect(await seeded.pathPrefix == "/api")
+        let seed = try #require(await seeded.overrides().first)
+        #expect(seed.path == "/api/greet")
+        #expect(seed.body == nil)
+        #expect(seed.contentType == nil)
         try await seeded.configure(MockOverride(path: "/greet", method: .post, statusCode: 201))
         #expect(await seeded.overrides().map(\.path) == ["/api/greet", "/api/greet"])
         #expect(await seeded.overrides().map(\.method) == [.get, .post])

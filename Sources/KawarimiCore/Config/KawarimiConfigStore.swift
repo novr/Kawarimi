@@ -79,17 +79,19 @@ public actor KawarimiConfigStore {
     }
 
     /// Starts without files and always uses ``KawarimiConfigPersistence/memoryOnly``.
-    /// Seed values are stored as given (same as rows decoded from `kawarimi.json`).
+    /// Seed overrides are normalized like ``configure(_:)`` (path prefix, method, empty fields) so `/greet` matches under `/api`.
     public init(
         pathPrefix: String = "",
         overrides: [MockOverride] = [],
         scenarios: [KawarimiScenario] = []
     ) {
+        let prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
+        let normalized = overrides.map { Self.normalize($0, prefix: prefix) }
         self.files = nil
         self.persistence = .memoryOnly
-        self.prefix = KawarimiPath.joinPathPrefix(KawarimiPath.splitPathSegments(pathPrefix))
-        Self.logScenarioWarnings(scenarios: scenarios, overrides: overrides, scenariosPath: "(in-memory scenarios)")
-        self.cachedOverrides = overrides
+        self.prefix = prefix
+        Self.logScenarioWarnings(scenarios: scenarios, overrides: normalized, scenariosPath: "(in-memory scenarios)")
+        self.cachedOverrides = normalized
         self.cachedScenarios = scenarios
     }
 
@@ -347,6 +349,10 @@ public actor KawarimiConfigStore {
     }
 
     private func normalize(_ override: MockOverride) -> MockOverride {
+        Self.normalize(override, prefix: prefix)
+    }
+
+    private static func normalize(_ override: MockOverride, prefix: String) -> MockOverride {
         var result = override
         if !result.path.hasPrefix("/") {
             result.path = "/" + result.path
