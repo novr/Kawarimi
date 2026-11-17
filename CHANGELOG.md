@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-11-17
+
 ### Added
 
 - **KawarimiStub:** new product with **`KawarimiStubMiddleware`** (`ClientMiddleware`) — an in-process stub for generated OpenAPI clients that never calls `next`. Resolves scenario headers, then enabled overrides (same matching as **`KawarimiServerMiddleware`**, with `baseURL.path` joined to the relative client path), then the operation's lowest documented 2xx from **`KawarimiSpec.endpoints`** by `operationID`; otherwise throws **`KawarimiStubError.noStub`**. **KawarimiClient** is unchanged.
@@ -564,6 +566,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.2.0]: https://github.com/novr/Kawarimi/releases/tag/v4.2.0
 [4.1.0]: https://github.com/novr/Kawarimi/releases/tag/v4.1.0
 [4.0.0]: https://github.com/novr/Kawarimi/releases/tag/v4.0.0
 [3.4.1]: https://github.com/novr/Kawarimi/releases/tag/v3.4.1
