@@ -6,6 +6,7 @@ cd "$repo_root"
 
 export KAWARIMI_LINUX_CI=1
 
+# No-op when swift is already on PATH (e.g. image: swift:6.2-noble).
 bash "${repo_root}/Scripts/ensure-swift-linux.sh"
 
 if command -v git >/dev/null 2>&1; then
