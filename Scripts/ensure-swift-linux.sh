@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# Idempotent Swift 6.2 toolchain on Ubuntu 24.04 when not using the swift Docker base image.
+# Idempotent Swift toolchain on Ubuntu Noble when not using the swift Docker base image.
 set -euo pipefail
+
+# Swift.org uses "ubuntu2404" in the URL path and "ubuntu24.04" in archive/dir names.
+readonly UBUNTU_VERSION="24.04"
+readonly UBUNTU_SWIFT_SUFFIX="ubuntu${UBUNTU_VERSION}"
+readonly UBUNTU_SWIFT_DL_SLUG="ubuntu${UBUNTU_VERSION//./}"
 
 if command -v swift >/dev/null 2>&1; then
   swift --version
@@ -22,9 +27,9 @@ ${SUDO} apt-get install -y --no-install-recommends \
   build-essential libc++-dev libstdc++-12-dev
 
 SWIFT_BUNDLE="swift-${SWIFT_VERSION}-RELEASE"
-SWIFT_TAR="${SWIFT_BUNDLE}-ubuntu24.04.tar.gz"
-SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/${SWIFT_BUNDLE}/${SWIFT_TAR}"
-INSTALL_DIR="/opt/${SWIFT_BUNDLE}-ubuntu24.04"
+SWIFT_TAR="${SWIFT_BUNDLE}-${UBUNTU_SWIFT_SUFFIX}.tar.gz"
+SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/${UBUNTU_SWIFT_DL_SLUG}/${SWIFT_BUNDLE}/${SWIFT_TAR}"
+INSTALL_DIR="/opt/${SWIFT_BUNDLE}-${UBUNTU_SWIFT_SUFFIX}"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
