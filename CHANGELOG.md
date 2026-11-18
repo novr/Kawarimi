@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Docs
+
+- **Repo:** `skills/kawarimi-release` skill for `chore(release): prepare X.Y.Z` — adds merged Dependabot bumps that are not yet in `CHANGELOG.md` to the new version section; `AGENTS.md` points release prep at it.
+
 ## [4.2.0] - 2026-11-17
 
 ### Added
