@@ -19,7 +19,7 @@ ${SUDO} apt-get install -y --no-install-recommends \
 
 SWIFT_VERSION="6.2.1"
 SWIFT_TAR="swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
-SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION%%.*}.${SWIFT_VERSION##*.}-release/ubuntu2404/${SWIFT_TAR%.tar.gz}/${SWIFT_TAR}"
+SWIFT_URL="https://download.swift.org/swift-6.2.1-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
 INSTALL_DIR="/opt/swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04"
 
 tmpdir="$(mktemp -d)"
