@@ -43,7 +43,7 @@
 - コミットは Conventional Commits 準拠（`type(scope)!: description`、英語）で、論理単位に分割する。
 - `type` は `feat|fix|docs|test|refactor|perf|chore|ci` のみを使う。
 - `scope` は `core|jutsu|cli|plugin|henge|server|release|deps` を優先する。
-- ユーザー影響のある変更は同一 PR で `CHANGELOG.md` の `[Unreleased]` を更新する。
+- ユーザー影響のある変更は同一 PR で `CHANGELOG.md` の `[Unreleased]` を更新する。Dependabot の PR は例外で、リリース準備で拾う。
 - 破壊的変更はコミットで `!` または `BREAKING CHANGE:` を使い、`CHANGELOG.md` でも明示する。
-- リリース準備は `chore(release): prepare X.Y.Z` を原則 1 コミットにまとめる。
+- リリース準備は `chore(release): prepare X.Y.Z` を原則 1 コミットにまとめる。手順は `skills/kawarimi-release/SKILL.md` に従い、未記載の Dependabot 更新をその版の節に足す。
 - パッチ時に `docs/integration.md` / `docs/ja/integration.md` を更新しないルールは、リリース準備コミット（`chore(release): prepare X.Y.Z`）にのみ適用する。
