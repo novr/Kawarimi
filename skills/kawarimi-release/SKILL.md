@@ -17,17 +17,21 @@ description: >-
 3. **範囲を決める** — 最新の `v*` タグの一つ前のタグから `HEAD` まで。最新が `v4.2.0` なら `v4.1.0..HEAD`。前回タグに入ったのに前回の節へ書き忘れた更新も、この範囲で拾う。
 
    ```bash
-   git tag --sort=-v:refname -l 'v*' | sed -n 2p
-   git log <prev-prev-tag>..HEAD --format='%h %an | %s'
+   PREV=$(git tag --sort=-v:refname -l 'v*' | sed -n 2p)
+   git log --author='dependabot\[bot\]' "$PREV..HEAD" --format='%h %s'
    ```
 
-4. **Dependabot のコミットを選ぶ** — 作者が `dependabot[bot]`、またはメッセージが `chore(deps):` で始まるもの。PR 番号はメッセージ末尾の `(#NNN)`。
-5. **記載済みを飛ばす** — `CHANGELOG.md` のどこかに `(#NNN)`（`pull/NNN` のリンク）があれば飛ばす。公開済みの版の節には足さない。
-6. **差分を読む** — 各コミットとその親（`<sha>^`）で、ファイル全体を比べる。unified diff の行は照合しない。
-   - `Package.resolved` と `Example/DemoPackage/Package.resolved`: JSON の `pins[].identity` ごとに `state.version` を比べる。
-   - `.github/workflows/*.yaml`: `uses: owner/repo@<sha> # vX.Y.Z` のコメントの版を action 名ごとに集める。同じ action が複数ファイルにあっても1回だけ書く。
-7. **新しい版の節に書く** — 行き先は手順2で作った `## [X.Y.Z]` の `### Changed`。`[Unreleased]` には置かない。その版に `### Changed` が無ければ、`### Added` の後、`### Deprecated` / `### Removed` / `### Fixed` / `### Security` / `### Docs` / `### Breaking` / `### Migration` の前に作る。
-8. **コミット** — 見出し、Dependabot の行、リンクを `chore(release): prepare X.Y.Z` の1コミットにまとめる。
+4. **Dependabot のコミットを選ぶ** — 作者が `dependabot[bot]` のものだけ。人が書いた `chore(deps):` は、その PR が自分で `[Unreleased]` に書いている。PR 番号はメッセージ末尾の `(#NNN)`。同じ PR 番号のコミットが複数あれば、まとめて1件として扱う。
+5. **記載済みを飛ばす** — `CHANGELOG.md` のどこかに `[#NNN]` があれば飛ばす。issue と PR は同じ番号空間なので、`issues/NNN` と `pull/NNN` のどちらのリンクでも同じ件を指す。
+6. **差分を読む** — 各コミットとその親（`<sha>^`）で、ファイル全体を比べる。unified diff の行は照合しない。タイトルの版は使わない（#31 はタイトルが「openapikit 5.3.0」だが、中身は `.github/dependabot.yml` だけ）。
+   - `Package.resolved`: JSON の `pins[].identity` ごとに `state.version` を比べる。
+   - `Package.swift`: `.package(url:from:)` の `from:` を URL ごとに比べる。URL は末尾の `.git` を除いて pin の `location` と突き合わせる。
+   - `Example/DemoPackage/Package.swift`: 同じく `from:` を比べる。`Example/DemoPackage/Package.resolved` は `.gitignore` 対象でリポジトリに無い。
+   - `.github/workflows/*.yaml`: `uses: owner/repo@<ref>` の版を action 名ごとに集める。版は `# vX.Y.Z` コメント、コメントが無ければ `<ref>` 自体が `vN` / `vN.N.N` のときその値。同じ action が複数ファイルにあっても1回だけ書く。
+   - 上のファイル以外が変わっていたら、行を作らない（「書かずに残すもの」）。
+7. **前の版に入っていたか見る** — `git tag --contains <sha> --sort=v:refname -l 'v*' | head -1` で最も古いタグを探す。あれば、その更新は前の版ですでに出ている。行末に `Included in vA.B.C but not listed there.` を付ける。
+8. **新しい版の節に書く** — 行き先は手順2で作った `## [X.Y.Z]` の `### Changed`。`[Unreleased]` には置かない。公開済みの版の節は書き換えない。その版に `### Changed` が無ければ、`### Added` の後、`### Deprecated` / `### Removed` / `### Fixed` / `### Security` / `### Docs` / `### Breaking` / `### Migration` の前に作る。
+9. **コミット** — 見出し、Dependabot の行、リンクを `chore(release): prepare X.Y.Z` の1コミットにまとめる。
 
 ## 行の形
 
@@ -48,15 +52,17 @@ Actions（action 名の昇順）:
 - リンク先は pin の `location` から末尾の `.git` を除いたもの。
 - 同じ PR で複数の pin が変わったら、`; ` で区切って1行に並べる。
 - `Package.swift` に無い pin（推移依存）には、`Package.resolved pin only; …` の文を付けない。
-- `Package.swift` の `from:` も変わったときは、その文を付けず `Package.swift` lower bound X → Y と書く。
-- `Example/DemoPackage/Package.resolved` の更新は `**Example/DemoPackage:**` で始める。
+- `Package.swift` の `from:` も変わったときは、その文の代わりに pin の後へ `; Package.swift lower bound X → Y` を書く（例: `[Yams](https://github.com/jpsim/Yams) 5.4.0 → 6.2.1; Package.swift lower bound 5.0.0 → 6.2.1`）。
+- `Example/DemoPackage/Package.swift` の更新は `**Example/DemoPackage:**` で始め、`from:` の変化を書く。
+- 前の版に入っていた更新は、行末に `Included in v4.2.0 but not listed there.` のように付ける。
 
 ## 書かずに残すもの
 
 次のときは行を作らず、リリース PR の本文に PR 番号と理由を書いて人に確認してもらう。
 
-- `uses:` の SHA だけが変わり、`# vX.Y.Z` のコメントが無い。
-- 同じ action 名に複数の版コメントがある。
+- 依存ファイルと workflow 以外が変わっている（#31 は `.github/dependabot.yml` だけ）。
+- `uses:` の ref が SHA で、`# vX.Y.Z` のコメントが無い。
+- 同じ action 名に複数の版がある。
 - 版の変化が読み取れない。
 
 ## 範囲外
