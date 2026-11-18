@@ -2,6 +2,6 @@
   "name": "Kawarimi",
   "user": "ubuntu",
   "image": "swift:6.2-noble",
-  "install": "KAWARIMI_BUILD_DEMOSERVER=1 bash Scripts/cloud-agent-install.sh",
+  "install": "bash Scripts/cloud-agent-install.sh",
   "start": "bash .cursor/start.sh"
 }

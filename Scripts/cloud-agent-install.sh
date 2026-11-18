@@ -7,7 +7,7 @@ cd "$repo_root"
 export KAWARIMI_LINUX_CI=1
 
 if ! command -v swift >/dev/null 2>&1; then
-  echo "swift not found. Use base image swift:6.2-noble (see .cursor/environment.json)." >&2
+  echo "swift not found: set base image to swift:6.2-noble (.cursor/environment.json)" >&2
   exit 1
 fi
 
@@ -21,7 +21,4 @@ swift build
 cd Example/DemoPackage
 swift package resolve
 swift build --product DemoSpecWireExport
-# DemoServer (Vapor) requires base image swift:6.2-noble (see .github/workflows/ci.yaml).
-if [[ "${KAWARIMI_BUILD_DEMOSERVER:-}" == "1" ]]; then
-  swift build --product DemoServer
-fi
+swift build --product DemoServer
