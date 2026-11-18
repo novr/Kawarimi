@@ -1,0 +1,10 @@
+{
+  "name": "Kawarimi",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "install": "bash Scripts/cloud-agent-install.sh",
+  "start": "bash .cursor/start.sh"
+}
