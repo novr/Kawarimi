@@ -1,6 +1,7 @@
 {
   "name": "Kawarimi",
   "user": "ubuntu",
+  "image": "swift:6.2-noble",
   "build": {
     "dockerfile": "Dockerfile",
     "context": ".."
