@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.1] - 2026-11-18
+
+### Changed
+
+- **CI:** bump GitHub Actions — `actions/download-artifact` v8.0.1 → v8.0.2, `actions/upload-artifact` v7.0.1 → v7.0.2, `dorny/paths-filter` v4.0.2 → v4.0.3, `softprops/action-gh-release` v3.0.2 → v3.0.3 ([#245](https://github.com/novr/Kawarimi/pull/245)). Included in v4.2.0 but not listed there.
+- **Dependencies:** [swift-openapi-runtime](https://github.com/apple/swift-openapi-runtime) 1.12.0 → 1.12.1 ([#246](https://github.com/novr/Kawarimi/pull/246)). Package.resolved pin only; Package.swift lower bound unchanged. Included in v4.2.0 but not listed there.
+- **Dependencies:** [swift-http-types](https://github.com/apple/swift-http-types) 1.6.0 → 1.8.0 ([#247](https://github.com/novr/Kawarimi/pull/247)). Package.resolved pin only; Package.swift lower bound unchanged. Included in v4.2.0 but not listed there.
+
 ### Docs
 
 - **Repo:** `skills/kawarimi-release` skill for `chore(release): prepare X.Y.Z` — adds merged Dependabot bumps that are not yet in `CHANGELOG.md` to the new version section; `AGENTS.md` points release prep at it.
@@ -574,6 +582,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.2.1]: https://github.com/novr/Kawarimi/releases/tag/v4.2.1
 [4.2.0]: https://github.com/novr/Kawarimi/releases/tag/v4.2.0
 [4.1.0]: https://github.com/novr/Kawarimi/releases/tag/v4.1.0
 [4.0.0]: https://github.com/novr/Kawarimi/releases/tag/v4.0.0
