@@ -1,0 +1,7 @@
+{
+  "name": "Kawarimi",
+  "user": "ubuntu",
+  "image": "swift:6.2-noble",
+  "install": "bash Scripts/cloud-agent-install.sh",
+  "start": "bash .cursor/start.sh"
+}
