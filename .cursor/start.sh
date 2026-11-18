@@ -11,8 +11,8 @@ export HOST=127.0.0.1
 export PORT=8080
 
 if [[ ! -x "$binary" ]]; then
-  echo "DemoServer not built; run Scripts/cloud-agent-install.sh first" >&2
-  exit 1
+  echo "DemoServer binary missing (requires image swift:6.2-noble and KAWARIMI_BUILD_DEMOSERVER=1 install)" >&2
+  exit 0
 fi
 
 cd "$demo_pkg"
