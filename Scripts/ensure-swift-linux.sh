@@ -7,6 +7,9 @@ if command -v swift >/dev/null 2>&1; then
   exit 0
 fi
 
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+SWIFT_VERSION="$(tr -d '[:space:]' < "${repo_root}/.swift-version")"
+
 if [[ "$(id -u)" -eq 0 ]]; then
   SUDO=""
 else
@@ -18,10 +21,10 @@ ${SUDO} apt-get install -y --no-install-recommends \
   ca-certificates curl git xz-utils libncurses6 libcurl4-openssl-dev libpython3.12-dev libxml2-dev \
   build-essential libc++-dev libstdc++-12-dev
 
-SWIFT_VERSION="6.2.4"
-SWIFT_TAR="swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
-SWIFT_URL="https://download.swift.org/swift-6.2.4-release/ubuntu2404/swift-${SWIFT_VERSION}-RELEASE/swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04.tar.gz"
-INSTALL_DIR="/opt/swift-${SWIFT_VERSION}-RELEASE-ubuntu24.04"
+SWIFT_BUNDLE="swift-${SWIFT_VERSION}-RELEASE"
+SWIFT_TAR="${SWIFT_BUNDLE}-ubuntu24.04.tar.gz"
+SWIFT_URL="https://download.swift.org/swift-${SWIFT_VERSION}-release/ubuntu2404/${SWIFT_BUNDLE}/${SWIFT_TAR}"
+INSTALL_DIR="/opt/${SWIFT_BUNDLE}-ubuntu24.04"
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
