@@ -31,6 +31,14 @@ import Testing
     #expect(KawarimiAdminRoute.reload.httpMethod == .post)
     #expect(KawarimiAdminRoute.reload.relativePath == "reload")
     #expect(KawarimiAdminRoute.reload.successStatusCode == 200)
+
+    #expect(KawarimiAdminRoute.requests.httpMethod == .get)
+    #expect(KawarimiAdminRoute.requests.relativePath == "requests")
+    #expect(KawarimiAdminRoute.requests.successStatusCode == 200)
+
+    #expect(KawarimiAdminRoute.clearRequests.httpMethod == .delete)
+    #expect(KawarimiAdminRoute.clearRequests.relativePath == "requests")
+    #expect(KawarimiAdminRoute.clearRequests.successStatusCode == 200)
 }
 
 @Test func kawarimiAdminRouteAdminURLMatchesLegacyClientPaths() {
@@ -110,6 +118,27 @@ import Testing
     #expect(
         KawarimiAdminRoute.matching(
             requestPath: "/api/__kawarimi/scenarios",
+            method: .post,
+            pathPrefix: prefix
+        ) == nil
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/requests",
+            method: .get,
+            pathPrefix: prefix
+        ) == .requests
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/requests",
+            method: .delete,
+            pathPrefix: prefix
+        ) == .clearRequests
+    )
+    #expect(
+        KawarimiAdminRoute.matching(
+            requestPath: "/api/__kawarimi/requests",
             method: .post,
             pathPrefix: prefix
         ) == nil

@@ -88,8 +88,10 @@ struct DemoServer {
             pathPrefix: KawarimiSpec.meta.apiPathPrefix
         )
         await store.startFileWatchIfEnabled()
+        let historyStore = KawarimiRequestHistoryStore()
         let adminHandler = KawarimiAdminHTTPHandler(
             store: store,
+            historyStore: historyStore,
             specWireData: { try DemoServerSpecResponse.encodedWireData() }
         )
         app.middleware.use(KawarimiAdminVaporMiddleware(handler: adminHandler))
@@ -110,7 +112,8 @@ struct DemoServer {
                 KawarimiServerMiddleware(
                     store: store,
                     responseMap: KawarimiSpec.responseMap,
-                    upstreamSettings: upstreamSettings
+                    upstreamSettings: upstreamSettings,
+                    historyStore: historyStore
                 ),
             ]
         )

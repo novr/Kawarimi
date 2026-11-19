@@ -10,11 +10,14 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
     case remove
     case reset
     case reload
+    case requests
+    case clearRequests
 
     public var httpMethod: HTTPRequest.Method {
         switch self {
-        case .spec, .status, .scenarios: .get
+        case .spec, .status, .scenarios, .requests: .get
         case .configure, .remove, .reset, .reload: .post
+        case .clearRequests: .delete
         }
     }
 
@@ -27,6 +30,7 @@ public enum KawarimiAdminRoute: Sendable, CaseIterable {
         case .remove: "remove"
         case .reset: "reset"
         case .reload: "reload"
+        case .requests, .clearRequests: "requests"
         }
     }
 

@@ -5,13 +5,16 @@ import KawarimiCore
 /// Admin `__kawarimi/*` HTTP. Returns `nil` for non-admin requests because those paths are not OpenAPI operations.
 public struct KawarimiAdminHTTPHandler: Sendable {
     public let store: KawarimiConfigStore
+    public let historyStore: KawarimiRequestHistoryStore?
     public let specWireData: @Sendable () async throws -> Data
 
     public init(
         store: KawarimiConfigStore,
+        historyStore: KawarimiRequestHistoryStore? = nil,
         specWireData: @escaping @Sendable () async throws -> Data
     ) {
         self.store = store
+        self.historyStore = historyStore
         self.specWireData = specWireData
     }
 
@@ -19,7 +22,8 @@ public struct KawarimiAdminHTTPHandler: Sendable {
         request: HTTPRequest,
         body: Data?
     ) async throws -> (HTTPResponse, Data?)? {
-        let pathOnly = KawarimiRequestPath.pathOnly(request.path)
+        let rawPath = request.path ?? ""
+        let pathOnly = KawarimiRequestPath.pathOnly(rawPath)
         guard KawarimiAdminPath.isManagementRequestPath(pathOnly) else {
             return nil
         }
@@ -57,6 +61,20 @@ public struct KawarimiAdminHTTPHandler: Sendable {
             let scenarios = await store.scenarios()
             let data = try JSONEncoder().encode(scenarios)
             return jsonResponse(statusCode: route.successStatusCode, body: data)
+        case .requests:
+            guard let historyStore else { return nil }
+            let filters = KawarimiRequestHistoryCapture.requestFilters(from: rawPath)
+            let recorded = await historyStore.requests(
+                operationId: filters.operationId,
+                path: filters.path,
+                method: filters.method
+            )
+            let data = try KawarimiAdminJSONCoding.makeEncoder().encode(recorded)
+            return jsonResponse(statusCode: route.successStatusCode, body: data)
+        case .clearRequests:
+            guard let historyStore else { return nil }
+            await historyStore.clear()
+            return jsonResponse(statusCode: route.successStatusCode, body: Data("{}".utf8))
         }
     }
 

@@ -9,11 +9,13 @@ struct KawarimiAdminVaporMiddleware: AsyncMiddleware {
     let handler: KawarimiAdminHTTPHandler
 
     func respond(to request: Request, chainingTo next: any AsyncResponder) async throws -> Response {
+        let pathOnly = KawarimiRequestPath.pathOnly(request.url.path)
+        let path = KawarimiAdminPathQuery.pathWithQuery(pathOnly, query: request.url.query)
         let httpRequest = HTTPRequest(
             method: HTTPRequest.Method(request.method.rawValue) ?? .get,
             scheme: request.url.scheme ?? "http",
             authority: request.headers.first(name: .host) ?? request.url.host ?? "localhost",
-            path: KawarimiRequestPath.pathOnly(request.url.path)
+            path: path
         )
         let collected = try await request.body.collect(max: 10 * 1024 * 1024).get()
         let bodyData: Data?

@@ -279,6 +279,15 @@ After editing **`kawarimi.json` on disk**, re-read it into the server (`200` + o
 curl -i -X POST http://localhost:8080/api/__kawarimi/reload
 ```
 
+**Spy request history** (DemoServer shares one **`KawarimiRequestHistoryStore`** between middleware and admin):
+
+```bash
+# After hitting your API (e.g. GET /api/greet), list recorded requests:
+curl -s 'http://localhost:8080/api/__kawarimi/requests'
+curl -s 'http://localhost:8080/api/__kawarimi/requests?operationId=getGreeting&method=GET'
+curl -i -X DELETE http://localhost:8080/api/__kawarimi/requests
+```
+
 When **calling your API** (not `__kawarimi`), you can send **`X-Kawarimi-Example-Id`** so **`KawarimiServerMiddleware`** picks the matching enabled override among several for the same route.
 
 See [henge.md](../docs/henge.md) (`KawarimiMockRequestHeaders.exampleId`).

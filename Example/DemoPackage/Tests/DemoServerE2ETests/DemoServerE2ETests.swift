@@ -639,5 +639,54 @@ final class DemoServerE2ETests {
                 == DemoServerE2EScenarioSupport.fallbackMessage
         )
     }
+
+    @Test func spyRecordsRequestsAndFiltersByQuery() async throws {
+        try await server.resetOverrides()
+        let client = KawarimiAPIClient(baseURL: server.baseURL)
+        try await client.clearRequests()
+        #expect(try await client.fetchRequests().isEmpty)
+
+        let greetURL = server.baseURL.appending(path: "greet")
+        var components = try #require(URLComponents(url: greetURL, resolvingAgainstBaseURL: false))
+        components.queryItems = [URLQueryItem(name: "lang", value: "ja")]
+        let (greetResponse, _) = try await DemoServerHTTP.get(
+            try #require(components.url),
+            headers: ["Authorization": "Bearer secret"]
+        )
+        #expect(greetResponse.statusCode == 200)
+
+        let all = try await client.fetchRequests()
+        #expect(all.count == 1)
+        let entry = try #require(all.first)
+        #expect(entry.matchedOperationId == "getGreeting")
+        #expect(entry.method == "GET")
+        #expect(entry.path == DemoServerE2EPaths.greetPath)
+        #expect(entry.queryItems == [RecordedQueryItem(name: "lang", value: "ja")])
+        #expect(entry.headers["authorization"] == "[redacted]")
+        #expect(entry.responseStatusCode == 200)
+
+        #expect(try await client.fetchRequests(operationId: "getGreeting", method: "get").count == 1)
+        #expect(try await client.fetchRequests(path: DemoServerE2EPaths.greetPath).count == 1)
+        #expect(try await client.fetchRequests(operationId: "listItems").isEmpty)
+        #expect(try await client.fetchRequests(operationId: "getGreeting", method: "POST").isEmpty)
+
+        try await client.clearRequests()
+        #expect(try await client.fetchRequests().isEmpty)
+    }
+
+    @Test func spyAdminTrafficIsNotRecordedAndMalformedQuerySurvives() async throws {
+        try await server.resetOverrides()
+        let client = KawarimiAPIClient(baseURL: server.baseURL)
+        try await client.clearRequests()
+
+        _ = try await client.fetchOverrides()
+        let malformed = URL(string: server.baseURL.appending(path: "greet").absoluteString + "?q=%zz")!
+        let (response, _) = try await DemoServerHTTP.get(malformed)
+        #expect(response.statusCode == 200)
+
+        let recorded = try await client.fetchRequests()
+        #expect(recorded.count == 1)
+        #expect(recorded.first?.queryItems == [RecordedQueryItem(name: "q", value: "%zz")])
+    }
 }
 #endif

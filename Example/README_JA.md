@@ -260,6 +260,15 @@ curl -X POST http://localhost:8080/api/__kawarimi/remove \
 curl -i -X POST http://localhost:8080/api/__kawarimi/reload
 ```
 
+**Spy リクエスト履歴**（DemoServer は middleware と admin で同じ **`KawarimiRequestHistoryStore`** を共有）:
+
+```bash
+# API（例: GET /api/greet）を呼んだあと、記録を取得:
+curl -s 'http://localhost:8080/api/__kawarimi/requests'
+curl -s 'http://localhost:8080/api/__kawarimi/requests?operationId=getGreeting&method=GET'
+curl -i -X DELETE http://localhost:8080/api/__kawarimi/requests
+```
+
 **通常の API 呼び出し**（`__kawarimi` 以外）では、参照ミドルウェア向けに **`X-Kawarimi-Example-Id`** ヘッダーを付けると、同一ルートに複数オーバーライドが有効なときに一致する例へ絞り込めます。
 
 詳細は [henge.md](../docs/ja/henge.md) の `KawarimiMockRequestHeaders.exampleId` を参照してください。

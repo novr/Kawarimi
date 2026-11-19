@@ -168,6 +168,60 @@ public struct KawarimiAPIClient: Sendable {
         return KawarimiConfigReloadResponse(result: result, overrides: overrides)
     }
 
+    /// Fetches recorded requests from `GET …/__kawarimi/requests` (optional AND filters).
+    public func fetchRequests(
+        operationId: String? = nil,
+        path: String? = nil,
+        method: String? = nil
+    ) async throws -> [RecordedRequest] {
+        let url = Self.adminURLWithQuery(
+            baseURL: baseURL,
+            route: .requests,
+            operationId: operationId,
+            path: path,
+            method: method
+        )
+        let (data, response) = try await session.data(from: url)
+        try validateHTTPStatus(response, data: data)
+        return try KawarimiAdminJSONCoding.makeDecoder().decode([RecordedRequest].self, from: data)
+    }
+
+    /// Clears recorded requests (`DELETE …/__kawarimi/requests`). Expects ``KawarimiAdminRoute/clearRequests`` `successStatusCode`.
+    public func clearRequests() async throws {
+        let url = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: .clearRequests)
+        var request = URLRequest(url: url)
+        request.httpMethod = KawarimiAdminRoute.clearRequests.httpMethod.rawValue
+        let (data, response) = try await session.data(for: request)
+        _ = try validateMutationHTTP(response, data: data, route: .clearRequests)
+    }
+
+    /// Builds ``KawarimiAdminRoute/adminURL`` then appends non-nil Spy filter query items.
+    public static func adminURLWithQuery(
+        baseURL: URL,
+        route: KawarimiAdminRoute,
+        operationId: String? = nil,
+        path: String? = nil,
+        method: String? = nil
+    ) -> URL {
+        let base = KawarimiAdminRoute.adminURL(baseURL: baseURL, route: route)
+        var items: [URLQueryItem] = []
+        if let operationId {
+            items.append(URLQueryItem(name: "operationId", value: operationId))
+        }
+        if let path {
+            items.append(URLQueryItem(name: "path", value: path))
+        }
+        if let method {
+            items.append(URLQueryItem(name: "method", value: method))
+        }
+        guard !items.isEmpty else { return base }
+        guard var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else {
+            return base
+        }
+        components.queryItems = items
+        return components.url ?? base
+    }
+
     private func performMutation(route: KawarimiAdminRoute, request: URLRequest) async throws -> [MockOverride] {
         let (data, response) = try await session.data(for: request)
         _ = try validateMutationHTTP(response, data: data, route: route)
