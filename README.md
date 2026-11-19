@@ -21,6 +21,7 @@ The Kawarimi mock is passed to `Client` as the transport; generated code does no
 | [CHANGELOG.md](CHANGELOG.md) | Releases and breaking changes (SemVer) |
 | [Integration](docs/integration.md) | SwiftPM, OpenAPI layout, configs, tests, Skills, KawarimiValidate |
 | [User Skills](skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | Agent SSOT for mock/scenario JSON — avoids drift from runtime contracts |
+| [Spy Skill](skills/kawarimi-user-spy-request-history/SKILL.md) | Caller contract for `GET` / `DELETE …/__kawarimi/requests` |
 | [Henge & runtime](docs/henge.md) | Dynamic mock, `__kawarimi` API, Vapor, scenario runtime |
 | [Mock JSON rules](docs/mock-json.md) | How embedded mock JSON is chosen |
 

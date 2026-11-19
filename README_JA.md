@@ -21,6 +21,7 @@ Kawarimi（モック）は `Client` に transport として渡す。生成コー
 | [CHANGELOG.md](CHANGELOG.md) | リリース・破壊的変更（SemVer） |
 | [導入・統合](docs/ja/integration.md) | SwiftPM、OpenAPI の配置、設定、テスト、Skills、KawarimiValidate |
 | [ユーザー向け Skills](skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | エージェント向け mock/シナリオ JSON SSOT — ランタイム契約とのずれを防ぐ |
+| [Spy Skill](skills/kawarimi-user-spy-request-history/SKILL.md) | `GET` / `DELETE …/__kawarimi/requests` の呼び出し契約 |
 | [ダイナミックモック（Henge）](docs/ja/henge.md) | ランタイムモック、`__kawarimi` API、Vapor、シナリオランタイム |
 | [モック JSON の決め方](docs/ja/mock-json.md) | 埋め込みモック JSON の優先順位 |
 

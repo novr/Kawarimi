@@ -8,6 +8,7 @@
 |-------------|------|
 | [integration.md](integration.md) | SwiftPM セットアップ、OpenAPI の置き場所、ジェネレータ設定、テスト、Skills、KawarimiValidate |
 | [../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../../skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | エージェント向け `kawarimi.json` / `kawarimi-scenarios.json` SSOT |
+| [../../skills/kawarimi-user-spy-request-history/SKILL.md](../../skills/kawarimi-user-spy-request-history/SKILL.md) | Spy `GET` / `DELETE …/__kawarimi/requests` の呼び出し契約 |
 | [henge.md](henge.md) | ランタイムモック（Henge）、`__kawarimi` HTTP API、Vapor、シナリオランタイム |
 | [mock-json.md](mock-json.md) | `KawarimiSpec` / `Kawarimi` のモック JSON、`KawarimiHandler` のデフォルトスタブ（JSON デコード含む） |
 

@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **KawarimiCore / KawarimiServer:** Spy API — `GET` / `DELETE …/__kawarimi/requests` records mock / forward / passthrough traffic in an optional shared **`KawarimiRequestHistoryStore`** actor. Models: **`RecordedRequest`**, **`RecordedQueryItem`**, **`RecordedProxyAction`**. **`KawarimiAdminRoute.requests`** / **`.clearRequests`**, **`KawarimiAPIClient.fetchRequests`** / **`clearRequests`**, fractional-second ISO-8601 via **`KawarimiAdminJSONCoding`**. Sensitive headers (`authorization` / `proxy-authorization` / `cookie` / `set-cookie`) are stored as `[redacted]`. Body is observed (not consume-and-replay), capped at 1 MiB UTF-8. DemoServer wires one shared store; Vapor admin forwards query strings into the handler ([#252](https://github.com/novr/Kawarimi/issues/252)).
 - **Note:** adding **`KawarimiAdminRoute`** cases can break exhaustive host `switch`es — prefer `@unknown default` or `default`.
 
+### Docs
+
+- **Skills:** `skills/kawarimi-user-spy-request-history` — caller contract for Spy `GET` / `DELETE …/__kawarimi/requests`, pinned by copying that directory at a release tag ([#257](https://github.com/novr/Kawarimi/issues/257)).
+
 ## [4.2.1] - 2026-11-18
 
 ### Changed

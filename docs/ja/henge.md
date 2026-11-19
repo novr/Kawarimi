@@ -358,7 +358,7 @@ KawarimiStubMiddleware(store: store, responseMap: KawarimiSpec.responseMap, endp
 
 ### Spy リクエスト履歴
 
-**`KawarimiRequestHistoryStore`**（actor、既定 `maxEntries` 500）はインメモリのリングバッファ。**`KawarimiServerMiddleware`** と **`KawarimiAdminHTTPHandler`** に同じインスタンスを渡す。`historyStore` が `nil` のときは記録しない。
+**`KawarimiRequestHistoryStore`**（actor、既定 `maxEntries` 500）はインメモリのリングバッファ。**`KawarimiServerMiddleware`** と **`KawarimiAdminHTTPHandler`** に同じインスタンスを渡す。`historyStore` が `nil` のときは記録しない。呼び出し契約は [skills/kawarimi-user-spy-request-history/SKILL.md](../../skills/kawarimi-user-spy-request-history/SKILL.md) をタグでピンする。
 
 - **記録対象:** **`KawarimiServerMiddleware`** に届く登録済み OpenAPI operation（`mock` / `forward` / `passthrough`）。未登録パス（典型的な OpenAPI `404`）と **`__kawarimi/*`** admin は記録しない。
 - **`path` フィルタ / フィールド:** **受信した実リクエストのパス**（例 `/api/widgets/1`。percent-decode しない）への完全一致。テンプレートではない。パス ID を問わない集計には **`operationId`** を使う。**`queryItems`** は percent-decode 済みで、`%zz` のような不正なエスケープはそのまま保持する。
