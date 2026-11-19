@@ -303,3 +303,151 @@ private final class MockKawarimiScenariosURLProtocol: URLProtocol {
         #expect(e.statusCode == 500)
     }
 }
+
+@Test func kawarimiAPIClientAdminURLWithQueryAppendsFilters() {
+    let base = URL(string: "http://127.0.0.1:8080/api")!
+    let plain = KawarimiAPIClient.adminURLWithQuery(baseURL: base, route: .requests)
+    #expect(plain.absoluteString == "http://127.0.0.1:8080/api/__kawarimi/requests")
+
+    let filtered = KawarimiAPIClient.adminURLWithQuery(
+        baseURL: base,
+        route: .requests,
+        operationId: "listWidgets",
+        path: "/api/widgets",
+        method: "GET"
+    )
+    let components = URLComponents(url: filtered, resolvingAgainstBaseURL: false)!
+    let items = Dictionary(
+        uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") }
+    )
+    #expect(items["operationId"] == "listWidgets")
+    #expect(items["path"] == "/api/widgets")
+    #expect(items["method"] == "GET")
+}
+
+@Test func kawarimiAPIClientAdminURLWithQueryRoundTripsReservedCharacters() {
+    let base = URL(string: "http://127.0.0.1:8080/api")!
+    let path = "/api/a&b=c+d e/%41"
+    let url = KawarimiAPIClient.adminURLWithQuery(baseURL: base, route: .requests, path: path)
+    let raw = url.absoluteString
+    let filters = KawarimiRequestHistoryCapture.requestFilters(from: raw.replacingOccurrences(of: "http://127.0.0.1:8080", with: ""))
+    #expect(filters.path == path)
+}
+
+/// Returns a recorded-request JSON array for GET and captures the request URL.
+private final class MockKawarimiFetchRequestsURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var lastURL: URL?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.lastURL = request.url
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let sample = RecordedRequest(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000099")!,
+            timestamp: Date(timeIntervalSince1970: 1_700_000_000.5),
+            method: "GET",
+            path: "/api/widgets",
+            queryItems: [],
+            headers: [:],
+            body: nil,
+            matchedOperationId: "listWidgets",
+            action: .mock,
+            responseStatusCode: 200
+        )
+        let body = try! KawarimiAdminJSONCoding.makeEncoder().encode([sample])
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": KawarimiAdminHeaders.jsonContentType]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+/// Returns `{}` for DELETE and captures the HTTP method.
+private final class MockKawarimiClearRequestsURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var lastMethod: String?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        Self.lastMethod = request.httpMethod
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: KawarimiAdminRoute.clearRequests.successStatusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": KawarimiAdminHeaders.jsonContentType]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data("{}".utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Test func kawarimiAPIClientFetchRequestsDecodesAndBuildsQuery() async throws {
+    URLProtocol.registerClass(MockKawarimiFetchRequestsURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiFetchRequestsURLProtocol.self) }
+    MockKawarimiFetchRequestsURLProtocol.lastURL = nil
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiFetchRequestsURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/api")!, session: session)
+    let requests = try await client.fetchRequests(operationId: "listWidgets", path: "/api/widgets", method: "GET")
+    #expect(requests.count == 1)
+    #expect(requests[0].matchedOperationId == "listWidgets")
+    let url = try #require(MockKawarimiFetchRequestsURLProtocol.lastURL)
+    let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+    let items = Dictionary(
+        uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value ?? "") }
+    )
+    #expect(items["operationId"] == "listWidgets")
+    #expect(items["path"] == "/api/widgets")
+    #expect(items["method"] == "GET")
+}
+
+@Test func kawarimiAPIClientClearRequestsUsesDelete() async throws {
+    URLProtocol.registerClass(MockKawarimiClearRequestsURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiClearRequestsURLProtocol.self) }
+    MockKawarimiClearRequestsURLProtocol.lastMethod = nil
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiClearRequestsURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://127.0.0.1/api")!, session: session)
+    try await client.clearRequests()
+    #expect(MockKawarimiClearRequestsURLProtocol.lastMethod == "DELETE")
+}
+
+@Test func kawarimiAPIClientFetchRequestsThrowsOn404() async throws {
+    URLProtocol.registerClass(MockKawarimiURLProtocol.self)
+    defer { URLProtocol.unregisterClass(MockKawarimiURLProtocol.self) }
+
+    let config = URLSessionConfiguration.ephemeral
+    config.protocolClasses = [MockKawarimiURLProtocol.self]
+    let session = URLSession(configuration: config)
+    let client = KawarimiAPIClient(baseURL: URL(string: "http://404/")!, session: session)
+    do {
+        _ = try await client.fetchRequests()
+        #expect(Bool(false), "expected KawarimiAPIError")
+    } catch let e as KawarimiAPIError {
+        #expect(e.statusCode == 404)
+    }
+}

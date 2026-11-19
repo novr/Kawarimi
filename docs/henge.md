@@ -115,17 +115,19 @@ You may mount `__kawarimi` at the root in your own app; keep it aligned with `Ka
 
 **KawarimiCore** exposes the shared HTTP contract so clients and servers stay aligned without duplicating path strings:
 
-- **`KawarimiAdminRoute`** — `spec`, `status`, `scenarios`, `configure`, `remove`, `reset`, `reload`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`).
+- **`KawarimiAdminRoute`** — `spec`, `status`, `scenarios`, `configure`, `remove`, `reset`, `reload`, `requests`, `clearRequests`; each case provides **`httpMethod`**, **`relativePath`**, and **`successStatusCode`** (`200`). Host `switch`es over this enum should include `@unknown default` or `default` so new cases stay source-compatible.
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — builds `{baseURL}/__kawarimi/{segment}` (same rules as **`KawarimiAPIClient`**).
-- **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — same path rules as **`adminURL`** / **`KawarimiAPIClient`** on the server side.
+- **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — same path rules as **`adminURL`** / **`KawarimiAPIClient`** on the server side (`requests` vs `clearRequests` share `relativePath` `"requests"` and are distinguished by HTTP method).
 - **`KawarimiAdminSpecWire.validate(_:)`** — fail-fast decode check that encoded spec wire JSON matches **`HengeSpecSnapshot`** (`GET …/spec` contract). Call after **`JSONEncoder`** on your host **`SpecResponse`** (or equivalent) at startup; **`KawarimiAdminHeaders.jsonContentType`** is the shared JSON **`Content-Type`** string.
 
-Wire **`KawarimiAdminHTTPHandler`** (product **KawarimiServer**) into your HTTP stack, then attach **`KawarimiServerMiddleware`** when registering generated handlers. On Vapor, see **DemoServer** ([`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)):
+Wire **`KawarimiAdminHTTPHandler`** (product **KawarimiServer**) into your HTTP stack, then attach **`KawarimiServerMiddleware`** when registering generated handlers. Pass the same optional **`KawarimiRequestHistoryStore`** actor to both when enabling the Spy API. On Vapor, see **DemoServer** ([`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)):
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
+let historyStore = KawarimiRequestHistoryStore()
 let adminHandler = KawarimiAdminHTTPHandler(
     store: store,
+    historyStore: historyStore,
     specWireData: { try SpecResponse.encodedWireData() } // host equivalent
 )
 app.middleware.use(KawarimiAdminVaporMiddleware(handler: adminHandler))
@@ -133,11 +135,17 @@ let transport = VaporTransport(routesBuilder: app)
 try handler.registerHandlers(
     on: transport,
     serverURL: serverURL,
-    middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
+    middlewares: [
+        KawarimiServerMiddleware(
+            store: store,
+            responseMap: KawarimiSpec.responseMap,
+            historyStore: historyStore
+        ),
+    ]
 )
 ```
 
-**`KawarimiAdminHTTPHandler`** returns `nil` for non-admin traffic so the host stack can still route normal API requests. It is not **`ServerMiddleware`** — `__kawarimi` is never registered as an OpenAPI operation.
+**`KawarimiAdminHTTPHandler`** returns `nil` for non-admin traffic so the host stack can still route normal API requests. It is not **`ServerMiddleware`** — `__kawarimi` is never registered as an OpenAPI operation. Spy routes (`GET` / `DELETE …/requests`) also return `nil` when `historyStore` is not connected (host typically responds `404`); an empty JSON array means the store is connected and has zero entries.
 
 **`KawarimiServerMiddleware`** (product **KawarimiServer**) conforms to swift-openapi-runtime’s **`ServerMiddleware`**. It:
 
@@ -146,6 +154,7 @@ try handler.registerHandlers(
 - Returns a synthetic HTTP response **without** calling `next` when a mock applies.
 - When **`KAWARIMI_UPSTREAM_URL`** is set and no override matches, forwards the raw HTTP request to upstream **without** calling `next` (see [Proxy (dev sidecar)](#proxy-upstream-forward) below).
 - Otherwise delegates to the generated handler (`next` → OpenAPI stubs).
+- When **`historyStore`** is set, records Spy history for mock / forward / passthrough (see [Spy request history](#spy-request-history) below). Default `nil` leaves request bodies untouched.
 
 **In-process `Kawarimi` (`ClientTransport`) does not read `kawarimi.json` or apply runtime overrides** — only the server middleware path above (or your own integration) does.
 
@@ -343,6 +352,23 @@ Sample committed fixtures and curl notes: [Example/README.md](../Example/README.
 | `POST {pathPrefix}/__kawarimi/reset` | Clear all overrides. Returns **`200`** with a JSON override array (typically `[]`). |
 | `POST {pathPrefix}/__kawarimi/reload` | Re-read **`kawarimi.json`** into `KawarimiConfigStore` (same as file-watch reload). Returns **`200`** with **`X-Kawarimi-Reload: applied`** (cache updated) or **`unchanged`** (decoded overrides already matched memory), and a JSON override array (same shape as **`GET …/status`**). Not for spec / `responseMap` refresh. |
 | `GET {pathPrefix}/__kawarimi/spec` | Return the full KawarimiSpec (meta + endpoints) |
+| `GET {pathPrefix}/__kawarimi/requests` | Spy: list recorded requests (JSON array of **`RecordedRequest`**). Optional query filters: **`operationId`**, **`path`**, **`method`** (AND). See [Spy request history](#spy-request-history). |
+| `DELETE {pathPrefix}/__kawarimi/requests` | Spy: clear recorded requests. Returns **`200`** with `{}`. |
+
+<a id="spy-request-history"></a>
+
+### Spy request history
+
+**`KawarimiRequestHistoryStore`** (actor, default `maxEntries` 500) holds an in-memory ring buffer. Pass the same instance to **`KawarimiServerMiddleware`** and **`KawarimiAdminHTTPHandler`**. Recording is off when `historyStore` is `nil`.
+
+- **What is recorded:** registered OpenAPI operations that hit **`KawarimiServerMiddleware`** (`mock` / `forward` / `passthrough`). Unregistered paths (typical OpenAPI `404`) and **`__kawarimi/*`** admin traffic are not recorded.
+- **`path` filter / field:** exact match on the **real request path as received** (e.g. `/api/widgets/1`, not percent-decoded), not an OpenAPI template. Use **`operationId`** when aggregating across path IDs. **`queryItems`** are percent-decoded; malformed escapes such as `%zz` are kept verbatim.
+- **Order:** store order is resolution-completion order; **`timestamp`** is receive time. Delayed mocks can reorder completion — clients may sort by **`timestamp`**.
+- **Body:** observe only (do not consume-and-replay). Cap is **1 MiB** UTF-8 (truncated on a character boundary). Mock reads a prefix when recording; forward / passthrough tee the first 1 MiB as the downstream handler consumes bytes (unread bodies stay `nil` or partial). Invalid UTF-8 → `nil`.
+- **Headers:** keys lowercased; last value wins. **`authorization`**, **`proxy-authorization`**, **`cookie`**, and **`set-cookie`** values are stored as **`[redacted]`** (presence remains visible). Admin Spy endpoints have no auth.
+- **Status:** `hang` / `connectionClose` mocks and downstream throws record **`responseStatusCode: null`**. Optional fields (**`body`**, **`matchedOperationId`**, **`responseStatusCode`**, query item **`value`**) are always present in the JSON as explicit `null`, never omitted.
+- **JSON dates:** fractional-second ISO-8601 via **`KawarimiAdminJSONCoding`** (shared by handler and **`KawarimiAPIClient`**).
+- **Client:** **`fetchRequests(operationId:path:method:)`** and **`clearRequests()`**.
 
 ### Admin error responses
 
@@ -355,10 +381,11 @@ Reference HTTP contract: [`KawarimiAdminHTTPHandler`](../Sources/KawarimiServer/
 | `POST …/configure` | `500` | Plain text for **`KawarimiConfigStoreError`** or persistence failures |
 | `POST …/remove` | `400` | Plain text when the body is not valid **`MockOverride`** JSON |
 | `POST …/remove` | `500` | Plain text for store failures |
+| `GET …/requests` / `DELETE …/requests` | host `404` (typical) | Handler returns `nil` when **`historyStore`** is unset; the host stack then answers as an unknown route |
 
-Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`POST …/configure`**, **`POST …/remove`**, **`POST …/reset`**, **`POST …/reload`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/reload`** also sets **`X-Kawarimi-Reload`**.
+Successful JSON responses (**`GET …/status`**, **`GET …/spec`**, **`GET …/requests`**, **`POST …/configure`**, **`POST …/remove`**, **`POST …/reset`**, **`POST …/reload`**, **`DELETE …/requests`**) use **`Content-Type: application/json`** (**`KawarimiAdminHeaders.jsonContentType`**). **`POST …/reload`** also sets **`X-Kawarimi-Reload`**.
 
-**`KawarimiAPIClient`**: **`configure`**, **`removeOverride`**, and **`reset`** decode the post-mutation override list from the response body. **`configureAndFetchOverrides`** and similar names remain as aliases (no extra **`GET …/status`**).
+**`KawarimiAPIClient`**: **`configure`**, **`removeOverride`**, and **`reset`** decode the post-mutation override list from the response body. **`configureAndFetchOverrides`** and similar names remain as aliases (no extra **`GET …/status`**). **`fetchRequests`** / **`clearRequests`** cover the Spy API.
 
 **KawarimiHenge (`KawarimiConfigView`):** pass a **`KawarimiAPIClient`** whose **`baseURL`** matches your admin mount (e.g. `http://127.0.0.1:8080/api`). Spec and endpoints are fetched via **`GET …/__kawarimi/spec`** (`HengeSpecSnapshot`).
 

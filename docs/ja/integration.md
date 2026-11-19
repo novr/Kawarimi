@@ -147,7 +147,7 @@ targets: [
 
 ### 管理ルート segment と spec wire 検証
 
-**`__kawarimi`** は **`KawarimiAdminHTTPHandler`** で配線し、パス規則を **`KawarimiAdminRoute`** に集約する（フレームワークごとのコピーを避ける）。Vapor: [Example `KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)。起動時に **`KawarimiAdminSpecWire.validate(_:)`** で `GET …/spec` の Henge 互換を fail-fast 確認 — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift)。
+**`__kawarimi`** は **`KawarimiAdminHTTPHandler`** で配線し、パス規則を **`KawarimiAdminRoute`** に集約する（フレームワークごとのコピーを避ける）。Vapor: [Example `KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)。起動時に **`KawarimiAdminSpecWire.validate(_:)`** で `GET …/spec` の Henge 互換を fail-fast 確認 — [Example `main.swift`](../Example/DemoPackage/Sources/DemoServer/main.swift)。任意の Spy 履歴は、同じ **`KawarimiRequestHistoryStore`** を admin handler と **`KawarimiServerMiddleware`** の両方へ渡す（[henge.md — Spy リクエスト履歴](henge.md#spy-request-history)）。
 
 ## 2. OpenAPI の置き場所
 

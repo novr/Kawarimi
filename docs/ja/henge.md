@@ -115,17 +115,19 @@ OpenAPI API と**同じパスプレフィックス体系**の下にマウント�
 
 **KawarimiCore** が共通 HTTP 契約を公開し、クライアントとサーバーでパス文字列の重複を避けます。
 
-- **`KawarimiAdminRoute`** — `spec` / `status` / `scenarios` / `configure` / `remove` / `reset` / `reload`。各 case に **`httpMethod`**・**`relativePath`**・**`successStatusCode`**（いずれも `200`）。
+- **`KawarimiAdminRoute`** — `spec` / `status` / `scenarios` / `configure` / `remove` / `reset` / `reload` / `requests` / `clearRequests`。各 case に **`httpMethod`**・**`relativePath`**・**`successStatusCode`**（いずれも `200`）。ホスト側の `switch` は `@unknown default` または `default` を付け、新規 case 追加後もソース互換を保つ。
 - **`KawarimiAdminRoute.adminURL(baseURL:route:)`** — `{baseURL}/__kawarimi/{segment}` を組み立て（**`KawarimiAPIClient`** と同じ規則）。
-- **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — サーバ側も **`adminURL`** / **`KawarimiAPIClient`** と同じパス規則。
+- **`KawarimiAdminRoute.matching(requestPath:method:pathPrefix:)`** — サーバ側も **`adminURL`** / **`KawarimiAPIClient`** と同じパス規則（`requests` と `clearRequests` は `relativePath` `"requests"` を共有し、HTTP メソッドで区別）。
 - **`KawarimiAdminSpecWire.validate(_:)`** — encode した spec wire JSON が **`HengeSpecSnapshot`** として decode できるか起動時に fail-fast 検証（`GET …/spec` 契約）。ホストの **`SpecResponse`**（相当型）を **`JSONEncoder`** した直後に呼ぶ。**`KawarimiAdminHeaders.jsonContentType`** は JSON **`Content-Type`** 文字列。
 
-**`KawarimiAdminHTTPHandler`**（製品 **KawarimiServer**）を HTTP スタックに載せ、生成 handler 登録時に **`KawarimiServerMiddleware`** を渡す。Vapor の例は **DemoServer**（[`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)）:
+**`KawarimiAdminHTTPHandler`**（製品 **KawarimiServer**）を HTTP スタックに載せ、生成 handler 登録時に **`KawarimiServerMiddleware`** を渡す。Spy API を使うときは同じ任意の **`KawarimiRequestHistoryStore`** actor を両方へ渡す。Vapor の例は **DemoServer**（[`KawarimiAdminVaporMiddleware.swift`](../Example/DemoPackage/Sources/DemoServer/KawarimiAdminVaporMiddleware.swift)）:
 
 ```swift
 let store = try KawarimiConfigStore(configPath: ProcessInfo.processInfo.environment["KAWARIMI_CONFIG"] ?? "kawarimi.json")
+let historyStore = KawarimiRequestHistoryStore()
 let adminHandler = KawarimiAdminHTTPHandler(
     store: store,
+    historyStore: historyStore,
     specWireData: { try SpecResponse.encodedWireData() } // ホスト相当
 )
 app.middleware.use(KawarimiAdminVaporMiddleware(handler: adminHandler))
@@ -133,11 +135,17 @@ let transport = VaporTransport(routesBuilder: app)
 try handler.registerHandlers(
     on: transport,
     serverURL: serverURL,
-    middlewares: [KawarimiServerMiddleware(store: store, responseMap: KawarimiSpec.responseMap)]
+    middlewares: [
+        KawarimiServerMiddleware(
+            store: store,
+            responseMap: KawarimiSpec.responseMap,
+            historyStore: historyStore
+        ),
+    ]
 )
 ```
 
-**`KawarimiAdminHTTPHandler`** は admin 以外を `nil` にして通常 API のルーティングを妨げない。**`ServerMiddleware` ではない** — `__kawarimi` は OpenAPI operation として登録されない。
+**`KawarimiAdminHTTPHandler`** は admin 以外を `nil` にして通常 API のルーティングを妨げない。**`ServerMiddleware` ではない** — `__kawarimi` は OpenAPI operation として登録されない。Spy ルート（`GET` / `DELETE …/requests`）も `historyStore` 未接続なら `nil`（ホストは通常 `404`）。空の JSON 配列は「ストア接続済みで 0 件」を意味する。
 
 **`KawarimiServerMiddleware`**（製品 **KawarimiServer**）は swift-openapi-runtime の **`ServerMiddleware`** です。
 
@@ -145,6 +153,7 @@ try handler.registerHandlers(
 - モックが当たったら **`next` を呼ばず** 合成レスポンスを返す。
 - **`KAWARIMI_UPSTREAM_URL`** 設定時にオーバーライド未マッチなら、生 HTTP で upstream に転送する（**`next` を呼ばない**）。詳細は [Proxy（dev sidecar）](#proxy-upstream-forward) を参照。
 - 上記以外は生成 handler に委譲（**`next`** → OpenAPI スタブ）。
+- **`historyStore`** があるとき、mock / forward / passthrough を Spy 履歴に記録する（[Spy リクエスト履歴](#spy-request-history)）。既定 `nil` のときはリクエスト body に触れない。
 
 **プロセス内の `Kawarimi`（`ClientTransport`）は `kawarimi.json` を読まず、実行時オーバーライドも適用しません** — 上記サーバ経路（または自前統合）のみです。
 
@@ -342,6 +351,23 @@ KawarimiStubMiddleware(store: store, responseMap: KawarimiSpec.responseMap, endp
 | `POST {pathPrefix}/__kawarimi/reset` | 全オーバーライドを解除。**`200`** + JSON オーバーライド配列（通常 `[]`） |
 | `POST {pathPrefix}/__kawarimi/reload` | **`kawarimi.json` を再読み込み**（ファイル監視の reload と同じ）。`**200**` と **`X-Kawarimi-Reload: applied`**（更新あり）または **`unchanged`**（既に一致）、および **`GET …/status` と同型**の JSON オーバーライド配列。spec / `responseMap` の更新用ではない。 |
 | `GET {pathPrefix}/__kawarimi/spec` | KawarimiSpec の全内容（meta + endpoints）を返す |
+| `GET {pathPrefix}/__kawarimi/requests` | Spy: 記録済みリクエスト一覧（**`RecordedRequest`** の JSON 配列）。任意クエリ **`operationId`** / **`path`** / **`method`**（AND）。[Spy リクエスト履歴](#spy-request-history) を参照。 |
+| `DELETE {pathPrefix}/__kawarimi/requests` | Spy: 記録を全削除。**`200`** + `{}`。 |
+
+<a id="spy-request-history"></a>
+
+### Spy リクエスト履歴
+
+**`KawarimiRequestHistoryStore`**（actor、既定 `maxEntries` 500）はインメモリのリングバッファ。**`KawarimiServerMiddleware`** と **`KawarimiAdminHTTPHandler`** に同じインスタンスを渡す。`historyStore` が `nil` のときは記録しない。
+
+- **記録対象:** **`KawarimiServerMiddleware`** に届く登録済み OpenAPI operation（`mock` / `forward` / `passthrough`）。未登録パス（典型的な OpenAPI `404`）と **`__kawarimi/*`** admin は記録しない。
+- **`path` フィルタ / フィールド:** **受信した実リクエストのパス**（例 `/api/widgets/1`。percent-decode しない）への完全一致。テンプレートではない。パス ID を問わない集計には **`operationId`** を使う。**`queryItems`** は percent-decode 済みで、`%zz` のような不正なエスケープはそのまま保持する。
+- **順序:** ストア順は解決完了順。**`timestamp`** は受信時刻。遅延モックで完了順が入れ替わり得るため、クライアントは **`timestamp`** でソートできる。
+- **Body:** 消費せず観測のみ。上限 **1 MiB** UTF-8（文字境界で切り詰め）。mock は記録時に先頭を読む。forward / passthrough は下流が消費した先頭 1 MiB を tee（未読なら `nil` または部分文字列）。不正 UTF-8 は `nil`。
+- **Headers:** キーは小文字、同名は後勝ち。**`authorization`** / **`proxy-authorization`** / **`cookie`** / **`set-cookie`** の値は **`[redacted]`**（存在の有無は分かる）。admin Spy に認証はない。
+- **Status:** `hang` / `connectionClose` モックと下流 throw は **`responseStatusCode: null`**。optional フィールド（**`body`** / **`matchedOperationId`** / **`responseStatusCode`** / query の **`value`**）は、キーを省略せず常に明示的な `null` で出力する。
+- **JSON 日付:** 小数秒付き ISO-8601（**`KawarimiAdminJSONCoding`**。handler と **`KawarimiAPIClient`** で共有）。
+- **クライアント:** **`fetchRequests(operationId:path:method:)`** と **`clearRequests()`**。
 
 ### Admin エラー応答
 
@@ -354,10 +380,11 @@ HTTP 契約: [`KawarimiAdminHTTPHandler`](../Sources/KawarimiServer/KawarimiAdmi
 | `POST …/configure` | `500` | プレーンテキスト（**`KawarimiConfigStoreError`** や永続化失敗） |
 | `POST …/remove` | `400` | プレーンテキスト（**`MockOverride`** JSON として不正な body） |
 | `POST …/remove` | `500` | プレーンテキスト（ストア失敗） |
+| `GET …/requests` / `DELETE …/requests` | ホストの `404`（典型） | **`historyStore`** 未設定時は handler が `nil` を返し、ホストが未知ルートとして応答 |
 
-成功時の JSON 応答（**`GET …/status`**、**`GET …/spec`**、**`POST …/configure`**、**`POST …/remove`**、**`POST …/reset`**、**`POST …/reload`**）は **`Content-Type: application/json`**（**`KawarimiAdminHeaders.jsonContentType`**）。**`POST …/reload`** は **`X-Kawarimi-Reload`** も付与。
+成功時の JSON 応答（**`GET …/status`**、**`GET …/spec`**、**`GET …/requests`**、**`POST …/configure`**、**`POST …/remove`**、**`POST …/reset`**、**`POST …/reload`**、**`DELETE …/requests`**）は **`Content-Type: application/json`**（**`KawarimiAdminHeaders.jsonContentType`**）。**`POST …/reload`** は **`X-Kawarimi-Reload`** も付与。
 
-**`KawarimiAPIClient`**: **`configure`** / **`removeOverride`** / **`reset`** はレスポンス body から overrides をデコード。**`configureAndFetchOverrides`** 等はエイリアス（追加 **`GET …/status`** なし）。
+**`KawarimiAPIClient`**: **`configure`** / **`removeOverride`** / **`reset`** はレスポンス body から overrides をデコード。**`configureAndFetchOverrides`** 等はエイリアス（追加 **`GET …/status`** なし）。Spy は **`fetchRequests`** / **`clearRequests`**。
 
 **KawarimiHenge（`KawarimiConfigView`）:** 管理 API の **`baseURL`** に揃えた **`KawarimiAPIClient`** のみ渡します（例: `http://127.0.0.1:8080/api`）。Spec とエンドポイントは **`GET …/__kawarimi/spec`**（`HengeSpecSnapshot`）で取得します。
 
