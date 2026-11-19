@@ -8,6 +8,7 @@ English guides for integrating and operating Kawarimi.
 |----------|----------|
 | [integration.md](integration.md) | SwiftPM setup, OpenAPI layout, generator configs, tests, Skills, KawarimiValidate |
 | [../skills/kawarimi-user-mock-and-scenario-format/SKILL.md](../skills/kawarimi-user-mock-and-scenario-format/SKILL.md) | Agent SSOT for `kawarimi.json` / `kawarimi-scenarios.json` authoring |
+| [../skills/kawarimi-user-spy-request-history/SKILL.md](../skills/kawarimi-user-spy-request-history/SKILL.md) | Caller contract for Spy `GET` / `DELETE …/__kawarimi/requests` |
 | [henge.md](henge.md) | Runtime mock (Henge), `__kawarimi` HTTP API, Vapor wiring, scenario runtime |
 | [mock-json.md](mock-json.md) | Mock JSON for `KawarimiSpec` / `Kawarimi` transport; default `KawarimiHandler` stubs (including JSON decode fallback) |
 

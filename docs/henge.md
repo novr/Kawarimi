@@ -359,7 +359,7 @@ Sample committed fixtures and curl notes: [Example/README.md](../Example/README.
 
 ### Spy request history
 
-**`KawarimiRequestHistoryStore`** (actor, default `maxEntries` 500) holds an in-memory ring buffer. Pass the same instance to **`KawarimiServerMiddleware`** and **`KawarimiAdminHTTPHandler`**. Recording is off when `historyStore` is `nil`.
+**`KawarimiRequestHistoryStore`** (actor, default `maxEntries` 500) holds an in-memory ring buffer. Pass the same instance to **`KawarimiServerMiddleware`** and **`KawarimiAdminHTTPHandler`**. Recording is off when `historyStore` is `nil`. Callers pin the HTTP contract at [skills/kawarimi-user-spy-request-history/SKILL.md](../skills/kawarimi-user-spy-request-history/SKILL.md).
 
 - **What is recorded:** registered OpenAPI operations that hit **`KawarimiServerMiddleware`** (`mock` / `forward` / `passthrough`). Unregistered paths (typical OpenAPI `404`) and **`__kawarimi/*`** admin traffic are not recorded.
 - **`path` filter / field:** exact match on the **real request path as received** (e.g. `/api/widgets/1`, not percent-decoded), not an OpenAPI template. Use **`operationId`** when aggregating across path IDs. **`queryItems`** are percent-decoded; malformed escapes such as `%zz` are kept verbatim.
