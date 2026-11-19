@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.0] - 2026-11-19
+
 ### Added
 
 - **KawarimiCore / KawarimiServer:** Spy API — `GET` / `DELETE …/__kawarimi/requests` records mock / forward / passthrough traffic in an optional shared **`KawarimiRequestHistoryStore`** actor. Models: **`RecordedRequest`**, **`RecordedQueryItem`**, **`RecordedProxyAction`**. **`KawarimiAdminRoute.requests`** / **`.clearRequests`**, **`KawarimiAPIClient.fetchRequests`** / **`clearRequests`**, fractional-second ISO-8601 via **`KawarimiAdminJSONCoding`**. Sensitive headers (`authorization` / `proxy-authorization` / `cookie` / `set-cookie`) are stored as `[redacted]`. Body is observed (not consume-and-replay), capped at 1 MiB UTF-8. DemoServer wires one shared store; Vapor admin forwards query strings into the handler ([#252](https://github.com/novr/Kawarimi/issues/252)).
@@ -591,6 +593,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.3.0]: https://github.com/novr/Kawarimi/releases/tag/v4.3.0
 [4.2.1]: https://github.com/novr/Kawarimi/releases/tag/v4.2.1
 [4.2.0]: https://github.com/novr/Kawarimi/releases/tag/v4.2.0
 [4.1.0]: https://github.com/novr/Kawarimi/releases/tag/v4.1.0
