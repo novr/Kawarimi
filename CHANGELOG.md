@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **CI / Release / Cloud Agent:** toolchain bump to **Swift 6.4** and **Xcode 27** (`runs-on: xcode-27`). Linux Docker image is driven by **`.swift-version`** via **`Scripts/swift-docker-image.sh`** (CI, release, performance, `Scripts/linux-test.sh`); Cloud Agent keeps `.cursor/environment.json` in sync (checked by `Scripts/cloud-agent-install.sh`). Package minimum remains **Swift 6.2+** (`swift-tools-version: 6.2`). Cold Swift 6.4 DemoPackage builds need more headroom — `demo-package` timeout 16 → 30, `kawarimi` 6 → 10.
+- **Example/DemoPackage:** `DemoServerE2ETests` no longer shells out to `swift build --show-bin-path` while `swift test` holds the package `.build.lock` (deadlock on Swift 6.4 / Xcode 27). Resolves `DemoServer` from filesystem layouts instead (including Swift Build `out/Products`). `DemoServerHarness.shutdown()` uses a bounded terminate/SIGKILL wait instead of unbounded `waitUntilExit()`.
 
 ## [4.3.0] - 2026-11-19
 
