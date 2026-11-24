@@ -10,10 +10,26 @@ env:
   KAWARIMI_LINUX_CI: "1"
 
 jobs:
+  resolve-swift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      image: ${{ steps.swift.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve Swift Docker image
+        id: swift
+        shell: bash
+        run: ./Scripts/swift-docker-image.sh
+
   run:
+    needs: resolve-swift
     runs-on: ubuntu-latest
     container:
-      image: swift:6.2-noble
+      image: ${{ needs.resolve-swift.outputs.image }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -26,10 +42,10 @@ jobs:
             .build
             Example/DemoPackage/.build
             /root/.cache/org.swift.swiftpm
-          key: spm-linux-perf-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
+          key: spm-linux-${{ hashFiles('.swift-version') }}-perf-${{ hashFiles('Package.resolved', 'Package.swift', 'Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift') }}
           restore-keys: |
-            spm-linux-perf-
-            spm-linux-
+            spm-linux-${{ hashFiles('.swift-version') }}-perf-
+            spm-linux-${{ hashFiles('.swift-version') }}-
 
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"

@@ -15,14 +15,32 @@ permissions:
   contents: write
 
 jobs:
+  resolve-swift:
+    name: Resolve Swift image
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    outputs:
+      image: ${{ steps.swift.outputs.image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Resolve Swift Docker image
+        id: swift
+        shell: bash
+        run: ./Scripts/swift-docker-image.sh
+
   verify:
     name: Verify
+    needs: resolve-swift
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash
     container:
-      image: swift:6.2-noble
+      image: ${{ needs.resolve-swift.outputs.image }}
     env:
       KAWARIMI_LINUX_CI: "1"
     steps:
@@ -56,10 +74,10 @@ jobs:
           path: |
             .build
             /root/.cache/org.swift.swiftpm
-          key: spm-linux-kawarimi-${{ hashFiles('Package.resolved', 'Package.swift') }}
+          key: spm-linux-${{ hashFiles('.swift-version') }}-kawarimi-${{ hashFiles('Package.resolved', 'Package.swift') }}
           restore-keys: |
-            spm-linux-kawarimi-
-            spm-linux-
+            spm-linux-${{ hashFiles('.swift-version') }}-kawarimi-
+            spm-linux-${{ hashFiles('.swift-version') }}-
 
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -134,7 +152,7 @@ jobs:
 
   build-macos:
     name: Build macOS binary
-    runs-on: macos-latest
+    runs-on: xcode-27
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
@@ -167,11 +185,6 @@ jobs:
             echo "version=${VERSION}"
             echo "asset=${ASSET}"
           } >> "${GITHUB_OUTPUT}"
-
-      - name: Set up Swift 6.2
-        uses: swift-actions/setup-swift@364295d9c23900ce04d4e5cc708387921b4e50f9 # v3
-        with:
-          swift-version: "6.2"
 
       - name: Resolve Swift version hash
         id: swift-version
