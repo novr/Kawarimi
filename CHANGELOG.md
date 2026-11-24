@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.3.1] - 2026-11-24
+
 ### Changed
 
 - **CI / Release / Cloud Agent:** toolchain bump to **Swift 6.4** and **Xcode 27** (`runs-on: xcode-27`). Linux Docker image is driven by **`.swift-version`** via **`Scripts/swift-docker-image.sh`** (CI, release, performance, `Scripts/linux-test.sh`); Cloud Agent keeps `.cursor/environment.json` in sync (checked by `Scripts/cloud-agent-install.sh`). Package minimum remains **Swift 6.2+** (`swift-tools-version: 6.2`). Cold Swift 6.4 DemoPackage builds need more headroom — `demo-package` timeout 16 → 30, `kawarimi` 6 → 10.
@@ -598,6 +600,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    - Any custom callers of **`swiftOperationTypeName` / `swiftOperationMethodName`** must **`try`**.  
    - **Henge**: prefer **`KawarimiConfigView(client:specType:)`** with your generated **`SpecResponse`**.
 
+[4.3.1]: https://github.com/novr/Kawarimi/releases/tag/v4.3.1
 [4.3.0]: https://github.com/novr/Kawarimi/releases/tag/v4.3.0
 [4.2.1]: https://github.com/novr/Kawarimi/releases/tag/v4.2.1
 [4.2.0]: https://github.com/novr/Kawarimi/releases/tag/v4.2.0
