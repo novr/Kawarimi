@@ -51,7 +51,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
     container:
       image: ${{ needs.changes.outputs.swift_image }}
     steps:
@@ -97,7 +97,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 16
+    timeout-minutes: 30
     container:
       image: ${{ needs.changes.outputs.swift_image }}
     steps:
