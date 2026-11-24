@@ -3,6 +3,11 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
 import KawarimiCore
 
 /// Spins up a `DemoServer` subprocess; learns the listen URL from a ready file written at boot.
@@ -133,8 +138,21 @@ struct DemoServerHarness {
     func shutdown() {
         stderrMonitor.stop()
         if process.isRunning {
+            let pid = process.processIdentifier
             process.terminate()
-            process.waitUntilExit()
+            // Avoid unbounded `waitUntilExit()`: under Swift Testing + Swift 6.4 the child
+            // can already be gone while Foundation still reports running, or ignore SIGTERM.
+            let deadline = Date().addingTimeInterval(3)
+            while process.isRunning, Date() < deadline {
+                Thread.sleep(forTimeInterval: 0.05)
+            }
+            if process.isRunning {
+                _ = kill(pid, SIGKILL)
+                let killDeadline = Date().addingTimeInterval(1)
+                while process.isRunning, Date() < killDeadline {
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+            }
         }
         _ = stderrMonitor.drain()
         try? FileManager.default.removeItem(at: configDir)
@@ -346,36 +364,35 @@ private func findDemoServerExecutable(packageRoot: URL) -> URL? {
     ]
     #endif
     var candidates: [URL] = []
+    // Do not spawn `swift build --show-bin-path` here: under `swift test` the package
+    // .build.lock is already held, and nested swift-build deadlocks on Swift 6.4 / Xcode 27.
+    if let nearTest = demoServerBesideTestBinary() {
+        candidates.append(nearTest)
+    }
+    let buildRoot = packageRoot.appendingPathComponent(buildPath)
+    for config in ["debug", "Debug", "release", "Release"] {
+        candidates.append(buildRoot.appendingPathComponent("out/Products/\(config)/DemoServer"))
+        candidates.append(buildRoot.appendingPathComponent("\(config)/DemoServer"))
+    }
     for triple in triples {
         candidates.append(
-            packageRoot
-                .appendingPathComponent(buildPath)
+            buildRoot
                 .appendingPathComponent(triple)
                 .appendingPathComponent("debug")
                 .appendingPathComponent("DemoServer")
         )
     }
-    if let binPath = runSwiftBuildShowBinPath(packageRoot: packageRoot, buildPath: buildPath), !binPath.isEmpty {
-        candidates.append(URL(fileURLWithPath: binPath).appendingPathComponent("DemoServer"))
-    }
-    return candidates.first { fm.fileExists(atPath: $0.path) }
+    return candidates.first { fm.isExecutableFile(atPath: $0.path) || fm.fileExists(atPath: $0.path) }
 }
 
-private func runSwiftBuildShowBinPath(packageRoot: URL, buildPath: String) -> String? {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = [
-        "swift", "build", "--package-path", packageRoot.path,
-        "--build-path", buildPath, "--show-bin-path",
-    ]
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = FileHandle.nullDevice
-    try? process.run()
-    process.waitUntilExit()
-    guard process.terminationStatus == 0 else { return nil }
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+/// Swift Build / Xcode test layout: `…/Products/Debug/DemoServerE2ETests.xctest/…` → sibling `DemoServer`.
+private func demoServerBesideTestBinary() -> URL? {
+    var url = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath()
+    while url.pathExtension != "xctest", url.pathComponents.count > 1 {
+        url = url.deletingLastPathComponent()
+    }
+    guard url.pathExtension == "xctest" else { return nil }
+    return url.deletingLastPathComponent().appendingPathComponent("DemoServer")
 }
 
 func resolveDemoPackageRoot() -> URL {

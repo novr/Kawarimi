@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 1
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      swift_image: ${{ steps.swift.outputs.image }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -34,18 +35,25 @@ jobs:
               - 'docs/**'
               - 'Package.swift'
               - 'Package.resolved'
+              - '.swift-version'
               - 'Example/**'
               - 'Scripts/**'
               - '.github/**'
+              - '.cursor/**'
+
+      - name: Resolve Swift Docker image
+        id: swift
+        shell: bash
+        run: ./Scripts/swift-docker-image.sh
 
   kawarimi:
     name: Swift Test (Kawarimi)
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 10
     container:
-      image: swift:6.2-noble
+      image: ${{ needs.changes.outputs.swift_image }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -58,10 +66,10 @@ jobs:
           path: |
             .build
             /root/.cache/org.swift.swiftpm
-          key: spm-linux-kawarimi-${{ hashFiles('Package.resolved', 'Package.swift') }}
+          key: spm-linux-${{ hashFiles('.swift-version') }}-kawarimi-${{ hashFiles('Package.resolved', 'Package.swift') }}
           restore-keys: |
-            spm-linux-kawarimi-
-            spm-linux-
+            spm-linux-${{ hashFiles('.swift-version') }}-kawarimi-
+            spm-linux-${{ hashFiles('.swift-version') }}-
 
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -89,9 +97,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 16
+    timeout-minutes: 30
     container:
-      image: swift:6.2-noble
+      image: ${{ needs.changes.outputs.swift_image }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -104,10 +112,10 @@ jobs:
           path: |
             Example/DemoPackage/.build
             /root/.cache/org.swift.swiftpm
-          key: spm-linux-demo-${{ hashFiles('Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift', 'Package.resolved') }}
+          key: spm-linux-${{ hashFiles('.swift-version') }}-demo-${{ hashFiles('Example/DemoPackage/Package.resolved', 'Example/DemoPackage/Package.swift', 'Package.resolved') }}
           restore-keys: |
-            spm-linux-demo-
-            spm-linux-
+            spm-linux-${{ hashFiles('.swift-version') }}-demo-
+            spm-linux-${{ hashFiles('.swift-version') }}-
 
       - name: Trust workspace for SwiftPM
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -120,7 +128,7 @@ jobs:
     name: Swift Test (macOS)
     needs: changes
     if: needs.changes.outputs.code == 'true'
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     env:
       # Package.swift drops KawarimiHenge / HengeCli when this is "1" (workflow default).

@@ -23,6 +23,7 @@ fi
 
 # Isolated from macOS `.build` and from older docker runs that used `-w /workspace`.
 linux_build_path=".build/linux-docker"
+swift_image="$("${script_dir}/swift-docker-image.sh")"
 
 docker run --rm \
   "${docker_volumes[@]}" \
@@ -30,7 +31,7 @@ docker run --rm \
   -e KAWARIMI_LINUX_CI=1 \
   -e KAWARIMI_SWIFT_BUILD_PATH="${linux_build_path}" \
   -e REPO_ROOT="${repo_root}" \
-  swift:6.2-noble \
+  "${swift_image}" \
   bash -lc '
     set -euo pipefail
     if command -v git >/dev/null 2>&1; then
